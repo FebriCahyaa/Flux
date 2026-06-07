@@ -132,7 +132,8 @@
     "navigation": {
         "home": "Главная",
         "games": "Игры",
-        "settings": "Настройки"
+        "settings": "Настройки",
+        "monitor": "Монитор"
     },
     "common": {
         "loading": "Загрузка",
@@ -142,5 +143,43 @@
         "cancel": "Отмена",
         "warning": "Предупреждение",
         "ok": "ОК"
+    },
+    "monitor_page": {
+        "title": "Монитор в реальном времени",
+        "live": "прямой эфир",
+        "section": {
+            "session": "Сессия",
+            "thermal": "Температура"
+        },
+        "profile_history": "История профилей (60с)",
+        "focused_app": "Активное приложение",
+        "thermal_headroom": "тепловой запас",
+        "thermal_history": "История температуры (60с)",
+        "thermal_unsupported": "Тепловой API недоступен (требуется API 31+)",
+        "thermal_label": {
+            "hot": "Горячо",
+            "warm": "Тепло",
+            "cool": "Норма",
+            "unsupported": "Н/Д"
+        },
+        "thermal_hint": {
+            "hot": "Performance Lite активен",
+            "warm": "Зона гистерезиса",
+            "cool": "Полная производительность доступна"
+        },
+        "charging": "Зарядка",
+        "audio": "Аудио",
+        "audio_active": "Активно",
+        "audio_silent": "Тихо",
+        "screen": "Экран",
+        "screen_on": "Включён",
+        "screen_off": "Выключен",
+        "dnd": "Не беспокоить",
+        "dnd_priority": "Приоритет",
+        "dnd_silence": "Полная тишина",
+        "dnd_alarms": "Только будильники",
+        "battery_saver": "Экономия заряда",
+        "battery_saver_on": "Активна — профиль энергосбережения",
+        "battery_saver_off": "Неактивна"
     }
 }

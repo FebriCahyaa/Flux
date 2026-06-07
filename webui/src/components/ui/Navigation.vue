@@ -37,6 +37,7 @@ import { useI18n } from 'vue-i18n'
 import HomeIcon from '@/components/icons/Home.vue'
 import GamesIcon from '@/components/icons/Games.vue'
 import SettingsIcon from '@/components/icons/Settings.vue'
+import MonitorIcon from '@/components/icons/Monitor.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -53,6 +54,12 @@ const navItems = computed(() => [
     path: '/games',
     label: t('navigation.games'),
     icon: GamesIcon,
+  },
+  {
+    name: 'Monitor',
+    path: '/monitor',
+    label: t('navigation.monitor'),
+    icon: MonitorIcon,
   },
   {
     name: 'Settings',

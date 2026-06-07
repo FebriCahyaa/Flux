@@ -132,7 +132,8 @@
     "navigation": {
         "home": "الرئيسية",
         "games": "الألعاب",
-        "settings": "الإعدادات"
+        "settings": "الإعدادات",
+        "monitor": "مراقبة"
     },
     "common": {
         "loading": "جارِ التحميل",
@@ -142,5 +143,43 @@
         "cancel": "إلغاء",
         "warning": "تحذير",
         "ok": "تمام"
+    },
+    "monitor_page": {
+        "title": "المراقبة المباشرة",
+        "live": "مباشر",
+        "section": {
+            "session": "الجلسة",
+            "thermal": "الحرارة"
+        },
+        "profile_history": "سجل الملف الشخصي (60 ث)",
+        "focused_app": "التطبيق النشط",
+        "thermal_headroom": "هامش حراري",
+        "thermal_history": "سجل الحرارة (60 ث)",
+        "thermal_unsupported": "واجهة برمجة الحرارة غير متاحة (تتطلب API 31+)",
+        "thermal_label": {
+            "hot": "ساخن",
+            "warm": "دافئ",
+            "cool": "بارد",
+            "unsupported": "غ/م"
+        },
+        "thermal_hint": {
+            "hot": "وضع الأداء الخفيف نشط",
+            "warm": "منطقة التذبذب",
+            "cool": "الأداء الكامل متاح"
+        },
+        "charging": "الشحن",
+        "audio": "الصوت",
+        "audio_active": "نشط",
+        "audio_silent": "صامت",
+        "screen": "الشاشة",
+        "screen_on": "مضاءة",
+        "screen_off": "مطفأة",
+        "dnd": "عدم الإزعاج",
+        "dnd_priority": "الأولوية",
+        "dnd_silence": "الصمت التام",
+        "dnd_alarms": "المنبهات فقط",
+        "battery_saver": "موفر البطارية",
+        "battery_saver_on": "نشط — ملف توفير الطاقة",
+        "battery_saver_off": "غير نشط"
     }
 }

@@ -153,7 +153,8 @@
     "navigation": {
         "home": "Home",
         "games": "Games",
-        "settings": "Settings"
+        "settings": "Settings",
+        "monitor": "Monitor"
     },
     "common": {
         "loading": "Loading",
@@ -163,5 +164,43 @@
         "cancel": "Cancel",
         "warning": "Warning",
         "ok": "Okay"
+    },
+    "monitor_page": {
+        "title": "Live Monitor",
+        "live": "live",
+        "section": {
+            "session": "Session",
+            "thermal": "Thermal"
+        },
+        "profile_history": "Profile history (60s)",
+        "focused_app": "Focused App",
+        "thermal_headroom": "headroom",
+        "thermal_history": "Thermal history (60s)",
+        "thermal_unsupported": "Thermal headroom API not available on this device (requires API 31+)",
+        "thermal_label": {
+            "hot": "Hot",
+            "warm": "Warm",
+            "cool": "Cool",
+            "unsupported": "N/A"
+        },
+        "thermal_hint": {
+            "hot": "Performance Lite active",
+            "warm": "Hysteresis zone",
+            "cool": "Full performance available"
+        },
+        "charging": "Charging",
+        "audio": "Audio",
+        "audio_active": "Active",
+        "audio_silent": "Silent",
+        "screen": "Screen",
+        "screen_on": "On",
+        "screen_off": "Off",
+        "dnd": "Do Not Disturb",
+        "dnd_priority": "Priority",
+        "dnd_silence": "Total Silence",
+        "dnd_alarms": "Alarms Only",
+        "battery_saver": "Battery Saver",
+        "battery_saver_on": "Active — Powersave profile",
+        "battery_saver_off": "Inactive"
     }
 }

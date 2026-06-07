@@ -145,7 +145,8 @@
     "navigation": {
         "home": "Beranda",
         "games": "Game",
-        "settings": "Pengaturan"
+        "settings": "Pengaturan",
+        "monitor": "Monitor"
     },
     "common": {
         "loading": "Memuat",
@@ -166,5 +167,43 @@
         "description": "Perubahan ini memerlukan reboot agar berlaku. Apakah Anda ingin melakukan reboot sekarang?",
         "reboot": "Reboot Sekarang",
         "later": "Nanti"
+    },
+    "monitor_page": {
+        "title": "Monitor Langsung",
+        "live": "langsung",
+        "section": {
+            "session": "Sesi",
+            "thermal": "Termal"
+        },
+        "profile_history": "Riwayat profil (60d)",
+        "focused_app": "Aplikasi Aktif",
+        "thermal_headroom": "ruang termal",
+        "thermal_history": "Riwayat termal (60d)",
+        "thermal_unsupported": "API thermal tidak tersedia di perangkat ini (butuh API 31+)",
+        "thermal_label": {
+            "hot": "Panas",
+            "warm": "Hangat",
+            "cool": "Dingin",
+            "unsupported": "N/A"
+        },
+        "thermal_hint": {
+            "hot": "Performance Lite aktif",
+            "warm": "Zona histeresis",
+            "cool": "Performa penuh tersedia"
+        },
+        "charging": "Pengisian",
+        "audio": "Audio",
+        "audio_active": "Aktif",
+        "audio_silent": "Senyap",
+        "screen": "Layar",
+        "screen_on": "Menyala",
+        "screen_off": "Mati",
+        "dnd": "Jangan Ganggu",
+        "dnd_priority": "Prioritas",
+        "dnd_silence": "Senyap Total",
+        "dnd_alarms": "Alarm Saja",
+        "battery_saver": "Hemat Baterai",
+        "battery_saver_on": "Aktif — profil hemat daya",
+        "battery_saver_off": "Tidak aktif"
     }
 }

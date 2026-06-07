@@ -132,7 +132,8 @@
     "navigation": {
         "home": "ホーム",
         "games": "ゲーム",
-        "settings": "設定"
+        "settings": "設定",
+        "monitor": "モニター"
     },
     "common": {
         "loading": "読み込み中",
@@ -142,5 +143,43 @@
         "cancel": "キャンセル",
         "warning": "警告",
         "ok": "OK"
+    },
+    "monitor_page": {
+        "title": "ライブモニター",
+        "live": "ライブ",
+        "section": {
+            "session": "セッション",
+            "thermal": "熱管理"
+        },
+        "profile_history": "プロファイル履歴（60秒）",
+        "focused_app": "フォーカスアプリ",
+        "thermal_headroom": "熱余裕",
+        "thermal_history": "熱履歴（60秒）",
+        "thermal_unsupported": "熱APIは非対応デバイスです（API 31+が必要）",
+        "thermal_label": {
+            "hot": "高温",
+            "warm": "温暖",
+            "cool": "正常",
+            "unsupported": "非対応"
+        },
+        "thermal_hint": {
+            "hot": "パフォーマンスLiteが有効",
+            "warm": "ヒステリシス範囲",
+            "cool": "フルパフォーマンス利用可能"
+        },
+        "charging": "充電中",
+        "audio": "オーディオ",
+        "audio_active": "再生中",
+        "audio_silent": "無音",
+        "screen": "画面",
+        "screen_on": "オン",
+        "screen_off": "オフ",
+        "dnd": "サイレントモード",
+        "dnd_priority": "優先",
+        "dnd_silence": "完全サイレント",
+        "dnd_alarms": "アラームのみ",
+        "battery_saver": "バッテリー節約",
+        "battery_saver_on": "有効 — 省電力プロファイル",
+        "battery_saver_off": "無効"
     }
 }

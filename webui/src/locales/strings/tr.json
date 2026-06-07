@@ -87,7 +87,8 @@
     "navigation": {
         "home": "Ev",
         "games": "Oyunlar",
-        "settings": "Ayarlar"
+        "settings": "Ayarlar",
+        "monitor": "Monitör"
     },
     "common": {
         "loading": "Yükleniyor",
@@ -142,5 +143,43 @@
             "initial_warn": "CPU yönetiminin Flux Tweaks tarafından otomatik olarak yönetildiğini unutmayın. Eğer bilgili bir kullanıcı değilseniz bunun elle yapılandırılması tavsiye edilmez.",
             "initial_warn_checkbox": "Bunu tekrar gösterme"
         }
+    },
+    "monitor_page": {
+        "title": "Canlı Monitör",
+        "live": "canlı",
+        "section": {
+            "session": "Oturum",
+            "thermal": "Termal"
+        },
+        "profile_history": "Profil geçmişi (60s)",
+        "focused_app": "Odaklanılan Uygulama",
+        "thermal_headroom": "termal boşluk",
+        "thermal_history": "Termal geçmiş (60s)",
+        "thermal_unsupported": "Termal API bu cihazda mevcut değil (API 31+ gerektirir)",
+        "thermal_label": {
+            "hot": "Sıcak",
+            "warm": "Ilık",
+            "cool": "Soğuk",
+            "unsupported": "Y/D"
+        },
+        "thermal_hint": {
+            "hot": "Performance Lite aktif",
+            "warm": "Histerezis bölgesi",
+            "cool": "Tam performans mevcut"
+        },
+        "charging": "Şarj",
+        "audio": "Ses",
+        "audio_active": "Aktif",
+        "audio_silent": "Sessiz",
+        "screen": "Ekran",
+        "screen_on": "Açık",
+        "screen_off": "Kapalı",
+        "dnd": "Rahatsız Etme",
+        "dnd_priority": "Öncelik",
+        "dnd_silence": "Tam Sessizlik",
+        "dnd_alarms": "Yalnızca Alarmlar",
+        "battery_saver": "Pil Tasarrufu",
+        "battery_saver_on": "Aktif — güç tasarrufu profili",
+        "battery_saver_off": "Devre dışı"
     }
 }

@@ -132,7 +132,8 @@
     "navigation": {
         "home": "Início",
         "games": "Jogos",
-        "settings": "Configurações"
+        "settings": "Configurações",
+        "monitor": "Monitor"
     },
     "common": {
         "loading": "Carregando",
@@ -142,5 +143,43 @@
         "cancel": "Cancelar",
         "warning": "Aviso",
         "ok": "OK"
+    },
+    "monitor_page": {
+        "title": "Monitor ao Vivo",
+        "live": "ao vivo",
+        "section": {
+            "session": "Sessão",
+            "thermal": "Térmica"
+        },
+        "profile_history": "Histórico de perfil (60s)",
+        "focused_app": "App em Foco",
+        "thermal_headroom": "margem térmica",
+        "thermal_history": "Histórico térmico (60s)",
+        "thermal_unsupported": "API térmica indisponível (requer API 31+)",
+        "thermal_label": {
+            "hot": "Quente",
+            "warm": "Morno",
+            "cool": "Frio",
+            "unsupported": "N/D"
+        },
+        "thermal_hint": {
+            "hot": "Performance Lite ativo",
+            "warm": "Zona de histerese",
+            "cool": "Desempenho completo disponível"
+        },
+        "charging": "Carregando",
+        "audio": "Áudio",
+        "audio_active": "Ativo",
+        "audio_silent": "Silencioso",
+        "screen": "Tela",
+        "screen_on": "Ligada",
+        "screen_off": "Desligada",
+        "dnd": "Não Perturbe",
+        "dnd_priority": "Prioridade",
+        "dnd_silence": "Silêncio Total",
+        "dnd_alarms": "Apenas Alarmes",
+        "battery_saver": "Economia de Bateria",
+        "battery_saver_on": "Ativo — perfil de economia",
+        "battery_saver_off": "Inativo"
     }
 }

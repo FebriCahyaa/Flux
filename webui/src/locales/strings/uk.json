@@ -138,7 +138,8 @@
     "navigation": {
         "home": "Головна",
         "games": "Ігри",
-        "settings": "Налаштування"
+        "settings": "Налаштування",
+        "monitor": "Монітор"
     },
     "common": {
         "loading": "Завантаження",
@@ -159,5 +160,43 @@
         "description": "Для застосування цих змін потрібне перезавантаження. Бажаєте перезавантажити зараз?",
         "reboot": "Перезавантажитися зараз",
         "later": "Зроби пізніше"
+    },
+    "monitor_page": {
+        "title": "Монітор у реальному часі",
+        "live": "наживо",
+        "section": {
+            "session": "Сесія",
+            "thermal": "Температура"
+        },
+        "profile_history": "Історія профілів (60с)",
+        "focused_app": "Активний застосунок",
+        "thermal_headroom": "тепловий запас",
+        "thermal_history": "Історія температури (60с)",
+        "thermal_unsupported": "Тепловий API недоступний (потрібен API 31+)",
+        "thermal_label": {
+            "hot": "Гаряче",
+            "warm": "Тепло",
+            "cool": "Норма",
+            "unsupported": "Н/Д"
+        },
+        "thermal_hint": {
+            "hot": "Performance Lite активний",
+            "warm": "Зона гістерезису",
+            "cool": "Повна продуктивність доступна"
+        },
+        "charging": "Зарядка",
+        "audio": "Аудіо",
+        "audio_active": "Активне",
+        "audio_silent": "Тихо",
+        "screen": "Екран",
+        "screen_on": "Увімкнено",
+        "screen_off": "Вимкнено",
+        "dnd": "Не турбувати",
+        "dnd_priority": "Пріоритет",
+        "dnd_silence": "Повна тиша",
+        "dnd_alarms": "Лише будильники",
+        "battery_saver": "Економія заряду",
+        "battery_saver_on": "Активна — профіль енергозбереження",
+        "battery_saver_off": "Неактивна"
     }
 }

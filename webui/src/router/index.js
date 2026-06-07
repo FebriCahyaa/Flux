@@ -5,6 +5,7 @@ import { WXEventHandler } from 'webuix'
 import Home from '@/views/Home.vue'
 import Games from '@/views/Games.vue'
 import Settings from '@/views/Settings.vue'
+import Monitor from '@/views/Monitor.vue'
 
 // Setting pages
 import LiteMode from '@/views/LiteMode.vue'
@@ -32,6 +33,11 @@ const routes = [
     path: '/settings',
     name: 'Settings',
     component: Settings,
+  },
+  {
+    path: '/monitor',
+    name: 'Monitor',
+    component: Monitor,
   },
 
   // Setting Pages
