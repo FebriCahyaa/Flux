@@ -1,16 +1,17 @@
 name: Sync SynthesisCore
 
 # Pulls the latest signed SynthesisCore release into prebuilt/ after verifying
-# its checksum and pinned signing certificate, and opens a pull request.
+# its checksum, pinned signing certificate (prebuilt/synthesiscore.cert.sha256)
+# and build provenance attestation, and opens a pull request.
 #
 # Triggers: daily, manually, or instantly via repository_dispatch
 # ("synthesiscore-release", sent by the SynthesisCore release workflow).
 #
-# Configuration (Settings → Secrets and variables → Actions):
-#   vars.SYNTHESISCORE_CERT_SHA256  required: pinned signing certificate digest
-#   vars.SYNTHESISCORE_REPOSITORY   optional: default FebriCahyaa/SynthesisCore
-#   vars.VERIFY_ATTESTATION         optional: "true" to require build provenance
-#   secrets.SYNTHESISCORE_TOKEN     optional: read token if SynthesisCore is private
+# Optional configuration (Settings → Secrets and variables → Actions):
+#   vars.SYNTHESISCORE_CERT_SHA256  overrides the committed pin (key rotation)
+#   vars.SYNTHESISCORE_REPOSITORY   default FebriCahyaa/SynthesisCore
+#   vars.VERIFY_ATTESTATION         "false" to skip the attestation check
+#   secrets.SYNTHESISCORE_TOKEN     read token, only if SynthesisCore becomes private
 
 on:
   schedule:
@@ -80,7 +81,8 @@ jobs:
 
           Verified by the sync workflow before this commit:
           - [x] SHA-256 matches the published checksum: \`$SHA256\`
-          - [x] Signed by exactly one certificate, matching the pinned \`SYNTHESISCORE_CERT_SHA256\`
+          - [x] Signed by exactly one certificate, matching \`prebuilt/synthesiscore.cert.sha256\`
+          - [x] Build provenance attestation verified (unless disabled with \`VERIFY_ATTESTATION=false\`)
 
           See the release notes for the changelog.
           EOF

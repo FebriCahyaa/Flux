@@ -4,6 +4,7 @@
 |---|---|
 | `synthesiscore.apk` | [SynthesisCore](https://github.com/FebriCahyaa/SynthesisCore), the system monitor fluxd reads its state from |
 | `synthesiscore.apk.sha256` | Pinned SHA-256 of the APK above |
+| `synthesiscore.cert.sha256` | Pinned SHA-256 of the SynthesisCore signing certificate (`CN=FebriCahyaa, O=SynthesisCore`) |
 | `synthesiscore.json` | Release tag, checksum and signing certificate of the synced APK |
 
 **Do not update these files by hand.** The `Sync SynthesisCore` workflow
@@ -11,9 +12,10 @@
 downloaded release APK passed every check:
 
 1. its SHA-256 matches the checksum published with the release;
-2. it is signed by exactly one certificate, equal to the pinned `SYNTHESISCORE_CERT_SHA256`
+2. it is signed by exactly one certificate, equal to the pin in `synthesiscore.cert.sha256`
    (a tampered or re-signed APK fails here even if its checksum file was replaced as well);
-3. optionally (`VERIFY_ATTESTATION=true`), its GitHub build provenance attestation verifies.
+3. its GitHub build provenance attestation (Sigstore) verifies, proving it was built by the
+   SynthesisCore release workflow from a commit in that repository.
 
 The checksum is then enforced twice more:
 
@@ -22,17 +24,27 @@ The checksum is then enforced twice more:
 - **On the device** — `service.sh` re-hashes the installed APK on every boot and never runs it as
   root if it was modified.
 
-## One-time setup
+## Setup
 
-1. In SynthesisCore, publish a release (its workflow signs the APK). The release notes show the
-   *Signing certificate SHA-256*; it is also attached as `SynthesisCore-vX.Y.Z.apk.cert.sha256`.
-2. In Flux: **Settings → Secrets and variables → Actions → Variables**, add
-   `SYNTHESISCORE_CERT_SHA256` with that value.
-3. Optional:
-   - `SYNTHESISCORE_TOKEN` (secret) — a read-only token, needed only if SynthesisCore is private.
-   - `FLUX_DISPATCH_TOKEN` (secret, in **SynthesisCore**) — a token allowed to dispatch workflows
-     on Flux, so a new release is synced immediately instead of at the next daily run.
-   - `VERIFY_ATTESTATION=true` (variable) — also require the build provenance attestation.
+Nothing is required: the certificate pin is committed here, and SynthesisCore is public, so the
+workflow's own token can read its releases. The daily run picks up new releases.
 
-To rotate the signing key, update `SYNTHESISCORE_CERT_SHA256` in the same change as the release
-signed with the new key; until then the sync refuses the new APK.
+Optional:
+
+- `FLUX_DISPATCH_TOKEN` (secret, in **SynthesisCore**) — a fine-grained token with *Actions:
+  write* (or *Contents: write*) on Flux, so a release is synced immediately.
+- `VERIFY_ATTESTATION=false` (variable) — skip the attestation check, e.g. for releases made
+  before the release workflow existed.
+- `SYNTHESISCORE_TOKEN` (secret) — a read-only token, only if SynthesisCore becomes private.
+
+The certificate pin is public information, not a secret. To read it from a signed APK:
+
+```shell
+apksigner verify --print-certs synthesiscore.apk | grep 'SHA-256 digest'
+```
+
+### Rotating the signing key
+
+Update `synthesiscore.cert.sha256` in a reviewed commit before (or together with) the first
+release signed with the new key; until then the sync refuses the new APK. The repository variable
+`SYNTHESISCORE_CERT_SHA256` can override the file temporarily.

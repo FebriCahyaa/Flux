@@ -109,8 +109,9 @@ ndk-build -j"$(nproc)"                       # NDK r29
 `prebuilt/synthesiscore.apk` runs as root, so it is protected end to end:
 
 1. **Sync** — the `Sync SynthesisCore` workflow fetches new releases and only opens a pull request
-   when the APK's SHA-256 matches the published checksum **and** its signing certificate matches
-   the pinned `SYNTHESISCORE_CERT_SHA256` (optionally also its build provenance attestation).
+   when the APK's SHA-256 matches the published checksum, its signing certificate matches the
+   pin committed in `prebuilt/synthesiscore.cert.sha256`, and its build provenance attestation
+   verifies.
 2. **Build** — the module build fails if the APK does not match its pinned checksum.
 3. **Install** — the installer verifies the checksum of every extracted file.
 4. **Boot** — `service.sh` re-checks the APK before every start and never runs a modified APK.

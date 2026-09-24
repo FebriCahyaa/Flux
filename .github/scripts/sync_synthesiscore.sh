@@ -5,17 +5,18 @@
 # Downloads SynthesisCore-<tag>.apk from a GitHub release and only accepts it if
 #   1. its SHA-256 matches the published .sha256 file, and
 #   2. it is signed by exactly one certificate whose SHA-256 digest equals the
-#      pinned SYNTHESISCORE_CERT_SHA256 (a tampered or re-signed APK fails here,
-#      even if the attacker also replaced the checksum file), and
-#   3. optionally, its GitHub build provenance attestation verifies.
+#      pinned certificate (a tampered or re-signed APK fails here, even if the
+#      attacker also replaced the checksum file), and
+#   3. its GitHub build provenance attestation verifies (unless disabled).
 # On success it updates prebuilt/synthesiscore.apk, the pinned checksum and the
 # manifest, and reports whether anything changed.
 #
 # Environment:
 #   SOURCE_REPO                owner/repo of SynthesisCore            (required)
-#   SYNTHESISCORE_CERT_SHA256  pinned signing certificate digest      (required)
+#   SYNTHESISCORE_CERT_SHA256  overrides the pin committed in
+#                              prebuilt/synthesiscore.cert.sha256
 #   REQUESTED_TAG              release tag, default: latest release
-#   VERIFY_ATTESTATION         "true" to also require an attestation
+#   VERIFY_ATTESTATION         "false" to skip the attestation check
 #   GH_TOKEN                   token that can read SOURCE_REPO releases
 #   GITHUB_OUTPUT              set by Actions; receives changed/tag/sha256
 # =============================================================================
@@ -26,6 +27,7 @@ PREBUILT_DIR="prebuilt"
 APK="$PREBUILT_DIR/synthesiscore.apk"
 PIN="$APK.sha256"
 MANIFEST="$PREBUILT_DIR/synthesiscore.json"
+CERT_PIN="$PREBUILT_DIR/synthesiscore.cert.sha256"
 
 fail() {
     echo "::error::$*" >&2
@@ -44,9 +46,11 @@ normalize_digest() {
 
 [[ -n "${SOURCE_REPO:-}" ]] || fail "SOURCE_REPO is not set"
 
-pinned_cert=$(normalize_digest "${SYNTHESISCORE_CERT_SHA256:-}")
+# The certificate pin is public data, committed and reviewed like code; the
+# repository variable only exists to override it during a key rotation.
+pinned_cert=$(normalize_digest "${SYNTHESISCORE_CERT_SHA256:-$(cat "$CERT_PIN" 2>/dev/null || true)}")
 if [[ ! "$pinned_cert" =~ ^[0-9a-f]{64}$ ]]; then
-    fail "Repository variable SYNTHESISCORE_CERT_SHA256 must hold the 64-hex SHA-256 digest of the SynthesisCore signing certificate (see prebuilt/README.md)"
+    fail "No valid signing certificate pin: $CERT_PIN must hold the 64-hex SHA-256 digest (see prebuilt/README.md)"
 fi
 
 tag="${REQUESTED_TAG:-}"
@@ -81,8 +85,8 @@ actual_cert=$(normalize_digest "$(sed -n 's/^Signer #1 certificate SHA-256 diges
 [[ "$actual_cert" == "$pinned_cert" ]] ||
     fail "Signing certificate $actual_cert does not match the pinned certificate $pinned_cert"
 
-# 3. Build provenance (optional)
-if [[ "${VERIFY_ATTESTATION:-false}" == "true" ]]; then
+# 3. Build provenance (on by default; SynthesisCore is public, so attestations exist)
+if [[ "${VERIFY_ATTESTATION:-true}" != "false" ]]; then
     gh attestation verify "$work/$asset" --repo "$SOURCE_REPO" >/dev/null ||
         fail "Build provenance attestation does not verify"
     echo "Attestation verified"
