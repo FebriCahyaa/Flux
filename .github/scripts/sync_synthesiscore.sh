@@ -78,10 +78,14 @@ build_tools="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}/build-tools"
 [[ -d "$build_tools" ]] || fail "Android build-tools not found (ANDROID_HOME)"
 apksigner="$build_tools/$(ls "$build_tools" | sort -V | tail -1)/apksigner"
 
-certs=$("$apksigner" verify --print-certs "$work/$asset") || fail "APK signature does not verify"
-signers=$(grep -c '^Signer #[0-9]* certificate SHA-256 digest:' <<<"$certs" || true)
-[[ "$signers" -eq 1 ]] || fail "Expected exactly one signer, found $signers"
-actual_cert=$(normalize_digest "$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' <<<"$certs")")
+certs=$("$apksigner" verify --verbose --print-certs "$work/$asset") || fail "APK signature does not verify"
+# Output is "Signer #1 certificate SHA-256 digest: ..." or, for v3-only APKs
+# (build-tools 37), "V3.0 Signer: certificate SHA-256 digest: ...".
+signers=$(sed -n 's/^Number of signers: //p' <<<"$certs")
+[[ -z "$signers" || "$signers" -eq 1 ]] || fail "Expected exactly one signer, found $signers"
+digests=$(sed -nE 's/^.*[Ss]igner.*certificate SHA-256 digest: ([0-9a-fA-F]{64})$/\1/p' <<<"$certs" | sort -u)
+[[ $(grep -c . <<<"$digests") -eq 1 ]] || fail "Expected exactly one signing certificate, got: ${digests:-none}"
+actual_cert=$(normalize_digest "$digests")
 [[ "$actual_cert" == "$pinned_cert" ]] ||
     fail "Signing certificate $actual_cert does not match the pinned certificate $pinned_cert"
 
