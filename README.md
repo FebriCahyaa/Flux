@@ -59,11 +59,25 @@ SynthesisCore (app_process)  ──status file──▶  fluxd (native daemon)  
 
 ## Installation
 
-1. Download the latest `flux-*.zip` from the `Build Flux Tweaks` workflow artifacts.
+1. Download the latest `flux-*.zip` from [Releases](https://github.com/FebriCahyaa/Flux/releases)
+   (or a development build from the `Build Flux Tweaks` workflow artifacts).
 2. Flash it in Magisk, KernelSU or APatch and reboot.
 3. Open the module's WebUI to review the game list and settings.
 
 The installer verifies the SHA-256 of every file it extracts and aborts on any mismatch.
+
+### Updates from the root manager
+
+`module.prop` points `updateJson` at [`update.json`](update.json). When a new release is
+published, Magisk, KernelSU and APatch show **Update** on the module card, display the changelog
+and download the zip directly from GitHub Releases. Pre-releases are not offered.
+
+### Publishing a release
+
+Run **Actions → Release → Run workflow** with a version such as `1.1.0` (or publish a release with
+tag `v1.1.0`). The workflow builds the zip with that version, attaches it with its SHA-256 and a
+changelog generated from Conventional Commits, then commits `update.json` and
+`update/changelog.md` so every installed module sees the update.
 
 ## Configuration
 
@@ -103,6 +117,7 @@ ndk-build -j"$(nproc)"                       # NDK r29
 ```
 
 `.github/scripts/compile_zip.sh` assembles the module; it expects to run in GitHub Actions.
+Both CI builds and releases use the shared `.github/actions/build-module` action.
 
 ## SynthesisCore and supply-chain security
 

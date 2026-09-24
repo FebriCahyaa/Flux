@@ -1,0 +1,35 @@
+name: Build Flux module
+description: Builds fluxd, the WebUI and the flashable zip (shared by CI and releases)
+
+outputs:
+  zip-name:
+    description: File name of the flashable zip in the workspace root
+    value: ${{ steps.zip.outputs.zipName }}
+
+runs:
+  using: composite
+  steps:
+    - name: NDK Setup
+      uses: nttld/setup-ndk@v1
+      with:
+        ndk-version: r29
+
+    - name: Bun Setup
+      uses: oven-sh/setup-bun@v2
+
+    - name: Build Flux Daemon
+      shell: bash
+      run: ndk-build -j"$(nproc --all)"
+
+    - name: Build WebUI
+      shell: bash
+      working-directory: webui
+      run: |
+        bun install --frozen-lockfile
+        bun run build
+        cp -r ./dist/* ../module/webroot
+
+    - name: Compile Flashable Zip
+      id: zip
+      shell: bash
+      run: bash .github/scripts/compile_zip.sh

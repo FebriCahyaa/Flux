@@ -1,0 +1,166 @@
+name: Release
+
+# Publishes a Flux Tweaks release that root managers offer as an update.
+#
+#  - "Run workflow" with a version (e.g. 1.1.0) creates tag v1.1.0 and the release.
+#  - Publishing a release in the GitHub UI (tag vX.Y.Z) does the same for that tag.
+#
+# The flashable zip, its SHA-256 and a changelog generated from Conventional
+# Commits are attached to the release. Then update.json (read by Magisk,
+# KernelSU and APatch through `updateJson` in module.prop) and
+# update/changelog.md are committed to the default branch, so installed
+# modules show "Update" and can download it directly from the root manager.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release, without "v" (e.g. 1.1.0)'
+        required: true
+      prerelease:
+        description: 'Pre-release (not offered as an update in root managers)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Build & Publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the release, push update.json
+    env:
+      TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || format('v{0}', inputs.version) }}
+      PRERELEASE: ${{ github.event_name == 'release' && github.event.release.prerelease || inputs.prerelease }}
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Validate tag
+        run: |
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.]+)?$ ]]; then
+            echo "::error::Tag '$TAG' must look like v1.1.0 or v1.1.0-rc.1"
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'release' && github.event.release.tag_name || github.sha }}
+          fetch-depth: 0 # versionCode and the changelog need the full history
+          submodules: true
+
+      - name: Refuse existing tag (manual release)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "::error::Tag $TAG already exists; publish a release for it instead"
+            exit 1
+          fi
+
+      - name: Set module version
+        run: echo "${TAG#v}" >version
+
+      - name: Build module
+        id: build
+        uses: ./.github/actions/build-module
+
+      - name: Checksum and notes
+        env:
+          ZIP: ${{ steps.build.outputs.zip-name }}
+        run: |
+          set -euo pipefail
+          sha256sum "$ZIP" >"$ZIP.sha256"
+          echo "ZIP_SHA256=$(cut -d' ' -f1 "$ZIP.sha256")" >>"$GITHUB_ENV"
+          echo "VERSION_CODE=$(git rev-list --count HEAD)" >>"$GITHUB_ENV"
+
+          target="$TAG"
+          [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]] && target="$GITHUB_SHA"
+          previous=$(git describe --tags --abbrev=0 "${target}^" 2>/dev/null || true)
+          bash .github/scripts/changelog.sh "$target" "$previous" \
+            | sed "s|/compare/\(.*\)\.\.\.${GITHUB_SHA}|/compare/\1...${TAG}|" >"$RUNNER_TEMP/changes.md"
+          {
+            echo "<!-- flux:auto -->"
+            echo "## What's Changed"
+            echo
+            cat "$RUNNER_TEMP/changes.md"
+            echo
+            echo "## Install"
+            echo
+            echo "Flash \`$ZIP\` in Magisk, KernelSU or APatch and reboot, or update from the root manager."
+            echo
+            echo "| File | SHA-256 |"
+            echo "|---|---|"
+            echo "| \`$ZIP\` | \`$(cut -d' ' -f1 "$ZIP.sha256")\` |"
+          } >"$RUNNER_TEMP/notes.md"
+
+      - name: Publish release
+        env:
+          ZIP: ${{ steps.build.outputs.zip-name }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            flags=()
+            [[ "$PRERELEASE" == "true" ]] && flags+=(--prerelease)
+            gh release create "$TAG" "$ZIP" "$ZIP.sha256" --target "$GITHUB_SHA" \
+              --title "Flux Tweaks $TAG" --notes-file "$RUNNER_TEMP/notes.md" "${flags[@]}"
+          else
+            gh release upload "$TAG" "$ZIP" "$ZIP.sha256" --clobber
+            gh release view "$TAG" --json body --jq .body | sed '/<!-- flux:auto -->/,$d' >"$RUNNER_TEMP/manual.md"
+            if [[ -n "$(tr -d '[:space:]' <"$RUNNER_TEMP/manual.md")" ]]; then
+              { cat "$RUNNER_TEMP/manual.md"; echo; cat "$RUNNER_TEMP/notes.md"; } >"$RUNNER_TEMP/body.md"
+            else
+              cp "$RUNNER_TEMP/notes.md" "$RUNNER_TEMP/body.md"
+            fi
+            gh release edit "$TAG" --notes-file "$RUNNER_TEMP/body.md"
+          fi
+
+      - name: Publish update.json for root managers
+        # Pre-releases are not offered as updates.
+        if: env.PRERELEASE != 'true'
+        env:
+          ZIP: ${{ steps.build.outputs.zip-name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          raw="https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$DEFAULT_BRANCH"
+          zip_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/download/$TAG/$ZIP"
+
+          # Separate worktree: the build left modified files in the workspace.
+          git fetch --depth=1 origin "$DEFAULT_BRANCH"
+          git worktree add --detach "$RUNNER_TEMP/publish" "origin/$DEFAULT_BRANCH"
+          cd "$RUNNER_TEMP/publish"
+
+          mkdir -p update
+          {
+            echo "# Flux Tweaks $TAG"
+            echo
+            sed 's/^### /#### /' "$RUNNER_TEMP/changes.md"
+          } >update/changelog.md
+
+          python3 - "$TAG" "$VERSION_CODE" "$zip_url" "$raw/update/changelog.md" "$ZIP_SHA256" <<'PY'
+          import json, sys
+          tag, code, zip_url, changelog, sha = sys.argv[1:]
+          json.dump({
+              "version": tag,
+              "versionCode": int(code),
+              "zipUrl": zip_url,
+              "changelog": changelog,
+              "sha256": sha,
+          }, open("update.json", "w"), indent=2)
+          open("update.json", "a").write("\n")
+          PY
+          echo "${TAG#v}" >version
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add update.json update/changelog.md version
+          git commit -m "chore(release): publish $TAG to root managers [skip ci]" -m "versionCode $VERSION_CODE"
+          git push origin "HEAD:$DEFAULT_BRANCH"

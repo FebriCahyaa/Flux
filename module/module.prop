@@ -4,6 +4,6 @@ version=
 versionCode=
 author=FebriCahyaa
 description=Adaptive gaming and battery optimization framework.
-updateJson=
+updateJson=https://raw.githubusercontent.com/FebriCahyaa/Flux/main/update.json
 banner=banner.webp
 webuiIcon=webroot/icon.webp

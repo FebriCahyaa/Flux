@@ -36,33 +36,15 @@ jobs:
           fetch-depth: 0
           submodules: true
 
-      - name: NDK Setup
-        uses: nttld/setup-ndk@v1
-        with:
-          ndk-version: r29
-
-      - name: Bun Setup
-        uses: oven-sh/setup-bun@v2
-
-      - name: Build Flux Daemon
-        run: ndk-build -j$(nproc --all)
-
-      - name: Build WebUI
-        working-directory: webui
-        run: |
-          bun install
-          bun run build
-          cp -r ./dist/* ../module/webroot
-
-      - name: Compile Flashable Zip
+      - name: Build module
         id: compileZip
-        run: bash .github/scripts/compile_zip.sh
+        uses: ./.github/actions/build-module
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v6
         with:
           name: flux-build
-          path: ${{ steps.compileZip.outputs.zipName }}
+          path: ${{ steps.compileZip.outputs.zip-name }}
 
       - name: Upload To Telegram
         # Secrets cannot be tested in `if:` (a step's own env is not visible there
@@ -77,7 +59,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           TITLE: Flux Tweaks
           JOB_STATUS: ${{ job.status }}
-          ZIP_NAME: ${{ steps.compileZip.outputs.zipName }}
+          ZIP_NAME: ${{ steps.compileZip.outputs.zip-name }}
         run: |
           export VERSION=$(git rev-list --count HEAD)
           bash .github/scripts/telegram_bot.sh "$ZIP_NAME" "$JOB_STATUS"

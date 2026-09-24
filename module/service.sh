@@ -42,8 +42,8 @@ echo "$default_gov" >$MODULE_CONFIG/default_cpu_gov
 }
 
 # Wait until boot completed
-while [ -z "$(getprop sys.boot_completed)" ]; do
-	sleep 40
+while [ "$(getprop sys.boot_completed)" != "1" ]; do
+	sleep 2
 done
 
 # Handle case when 'default_gov' is performance
