@@ -247,6 +247,18 @@ struct DaemonState {
 }
 
 /**
+ * @brief Returns the latest PowerManager thermal status (0 = none .. 6 = shutdown).
+ * @return -1 when the cache is not populated or SynthesisCore does not report it.
+ */
+[[nodiscard]] static int get_thermal_level() {
+    SynthesisCore status;
+    if (!synthesis_core_cache.get(status)) {
+        return -1;
+    }
+    return status.thermal_level;
+}
+
+/**
  * @brief Returns the PID of @p package_name, or 0 on failure.
  */
 [[nodiscard]] static pid_t pidof_game(const std::string &package_name) {
@@ -397,7 +409,11 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
 
     const bool config_lite = active_game->lite_mode || config_store.get_preferences().enforce_lite_mode;
     const float thermal     = get_thermal_headroom();
-    const bool thermal_lite = (thermal >= 0.0f && thermal < THERMAL_LITE_THRESHOLD);
+    // Prefer headroom; when the thermal HAL does not provide it (-1), fall back to
+    // the coarser thermal status level so thermal protection still works.
+    const int thermal_level = get_thermal_level();
+    const bool thermal_lite = (thermal >= 0.0f) ? (thermal < THERMAL_LITE_THRESHOLD)
+                                                : (thermal_level >= THERMAL_LEVEL_LITE_THRESHOLD);
 
     if (config_lite) {
         // Config-forced lite mode: always lite, ignore thermal.
@@ -414,16 +430,16 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
         const auto now     = std::chrono::steady_clock::now();
         const auto elapsed = now - state.last_thermal_switch_tp;
         if (state.cur_mode == PERFORMANCE_PROFILE && elapsed < THERMAL_SWITCH_DEBOUNCE) {
-            LOGD("Thermal headroom {:.2f} < threshold but debounce active ({:.1f}s remaining), holding profile",
-                 thermal,
+            LOGD("Thermal pressure (headroom {:.2f}, level {}) but debounce active ({:.1f}s remaining), holding profile",
+                 thermal, thermal_level,
                  std::chrono::duration<double>(THERMAL_SWITCH_DEBOUNCE - elapsed).count());
             return true;
         }
 
         state.cur_mode              = PERFORMANCE_LITE_PROFILE;
         state.last_thermal_switch_tp = now;
-        LOGW("Thermal headroom {:.2f} < {:.2f} — downgrading to performance_lite for {}",
-             thermal, THERMAL_LITE_THRESHOLD, state.active_package);
+        LOGW("Thermal pressure (headroom {:.2f}, level {}) — downgrading to performance_lite for {}",
+             thermal, thermal_level, state.active_package);
         apply_performance_lite_profile(state.active_package, game_pid);
 
     } else {

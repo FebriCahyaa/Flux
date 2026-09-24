@@ -26,6 +26,11 @@ export const useMonitorStore = defineStore('monitor', () => {
   const thermalApiAvailable = ref(false)
   const kernelIsGki         = ref(false)
   const synthesisVersion    = ref(0)     // 0 = not read yet; 1 = field absent (older APK)
+  // Protocol 3 fields; null = not reported by this SynthesisCore/device
+  const thermalLevel        = ref(null)  // 0 (none) .. 6 (shutdown)
+  const batteryLevel        = ref(null)  // percent
+  const batteryTemp         = ref(null)  // °C
+  const callActive          = ref(false)
 
   // ── History arrays (for sparkline charts) ──────────────────────────────────
   // Each entry: { t: timestamp_ms, v: number }
@@ -119,7 +124,7 @@ export const useMonitorStore = defineStore('monitor', () => {
 
   /**
    * Parse the line-oriented synthesis_core.json format:
-   *   synthesis_version 2   (absent on older APKs → treated as 1)
+   *   synthesis_version 3   (absent on older APKs → treated as 1)
    *   focused_app <pkg> <pid> <uid>
    *   screen_awake 1
    *   battery_saver 0
@@ -129,10 +134,18 @@ export const useMonitorStore = defineStore('monitor', () => {
    *   audio_active 0
    *   thermal_api_available 1
    *   kernel_is_gki 1
+   *   thermal_level 0       (protocol 3+)
+   *   battery_level 87      (protocol 3+)
+   *   battery_temp 34.5     (protocol 3+)
+   *   call_active 0         (protocol 3+)
    */
   function parseSynthesisCore(raw) {
     if (!raw) return
     let version = 1
+    let level = null
+    let battery = null
+    let temp = null
+    let call = false
     for (const line of raw.split('\n')) {
       const parts = line.trim().split(/\s+/)
       if (parts.length < 2) continue
@@ -173,9 +186,31 @@ export const useMonitorStore = defineStore('monitor', () => {
         case 'synthesis_version':
           version = parseInt(parts[1]) || 1
           break
+        case 'thermal_level': {
+          const v = parseInt(parts[1])
+          level = isNaN(v) ? null : v
+          break
+        }
+        case 'battery_level': {
+          const v = parseInt(parts[1])
+          battery = isNaN(v) ? null : v
+          break
+        }
+        case 'battery_temp': {
+          const v = parseFloat(parts[1])
+          temp = isNaN(v) ? null : v
+          break
+        }
+        case 'call_active':
+          call = parts[1] === '1'
+          break
       }
     }
     synthesisVersion.value = version
+    thermalLevel.value = level
+    batteryLevel.value = battery
+    batteryTemp.value = temp
+    callActive.value = call
   }
 
   async function readCurrentProfile() {
@@ -216,6 +251,10 @@ export const useMonitorStore = defineStore('monitor', () => {
     thermalApiAvailable,
     kernelIsGki,
     synthesisVersion,
+    thermalLevel,
+    batteryLevel,
+    batteryTemp,
+    callActive,
     // computed
     synthesisOutdated,
     thermalSupported,

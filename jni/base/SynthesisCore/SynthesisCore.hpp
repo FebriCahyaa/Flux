@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <cmath>
 #include <cstdio>
 #include <mutex>
 #include <string>
@@ -35,6 +36,11 @@ struct SynthesisCore {
     bool audio_active = false;
     bool thermal_api_available = false; ///< true when getThermalHeadroom() resolved on API 31+
     bool kernel_is_gki = false;         ///< true when kernel reports GKI (-androidXX- in uname -r)
+    // Protocol 3. Absent fields keep these "unsupported" defaults.
+    int thermal_level = -1;             ///< PowerManager thermal status 0 (none) .. 6 (shutdown)
+    int battery_level = -1;             ///< battery capacity in percent
+    float battery_temp = NAN;           ///< battery temperature in degrees Celsius
+    bool call_active = false;           ///< phone call / VoIP audio mode active
 };
 
 namespace SynthesisCoreReader {

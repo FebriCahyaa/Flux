@@ -53,6 +53,9 @@ enum FluxProfileMode : char {
 /// PERFORMANCE_PROFILE to PERFORMANCE_LITE_PROFILE.
 /// Value in [0.0, 1.0] — 0.20 means "less than 20% headroom remaining".
 static constexpr float THERMAL_LITE_THRESHOLD = 0.20f;
+/// Fallback when headroom is unsupported: PowerManager thermal status at or above
+/// THERMAL_STATUS_SEVERE (3) is treated like low headroom.
+static constexpr int THERMAL_LEVEL_LITE_THRESHOLD = 3;
 
 /// Thermal headroom at which the daemon upgrades back to PERFORMANCE_PROFILE.
 /// Hysteresis gap prevents rapid oscillation between tiers.

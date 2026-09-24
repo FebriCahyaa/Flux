@@ -103,6 +103,30 @@ bool read(SynthesisCore &out, const char *path) {
             parsed_any = true;
             continue;
         }
+
+        if (sscanf(line, "thermal_level %d", &ival) == 1) {
+            out.thermal_level = ival;
+            parsed_any = true;
+            continue;
+        }
+
+        if (sscanf(line, "battery_level %d", &ival) == 1) {
+            out.battery_level = ival;
+            parsed_any = true;
+            continue;
+        }
+
+        if (sscanf(line, "battery_temp %f", &fval) == 1) {
+            out.battery_temp = fval;
+            parsed_any = true;
+            continue;
+        }
+
+        if (sscanf(line, "call_active %d", &ival) == 1) {
+            out.call_active = (ival != 0);
+            parsed_any = true;
+            continue;
+        }
     }
 
     fclose(fp);
