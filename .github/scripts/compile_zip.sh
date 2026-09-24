@@ -19,6 +19,16 @@ release_code="$(git rev-list HEAD --count)-$(git rev-parse --short HEAD)-release
 sed -i "s/version=.*/version=$version ($release_code)/" module/module.prop
 sed -i "s/versionCode=.*/versionCode=$version_code/" module/module.prop
 
+# Refuse to package a prebuilt that does not match its pinned checksum.
+# prebuilt/synthesiscore.apk.sha256 is written by the sync workflow only after
+# the APK's checksum and signing certificate were verified.
+pinned_sha="$(cat prebuilt/synthesiscore.apk.sha256 2>/dev/null)"
+actual_sha="$(sha256sum prebuilt/synthesiscore.apk | cut -d' ' -f1)"
+if [ -z "$pinned_sha" ] || [ "$pinned_sha" != "$actual_sha" ]; then
+	echo "::error::prebuilt/synthesiscore.apk ($actual_sha) does not match its pinned checksum ($pinned_sha)" >&2
+	exit 1
+fi
+
 # Copy module files
 cp -r ./libs module
 cp -r ./scripts/* module/system/bin

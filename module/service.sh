@@ -134,7 +134,23 @@ exempt_synthesiscore
 # Powerkeeper or other battery management on MIUI/HyperOS ROMs may kill the
 # app_process companion daemon. The watchdog loop detects this and restarts it
 # so fluxd always has a live Java lock to wait on.
+# ── SynthesisCore integrity ──────────────────────────────────────────────────
+# The APK runs as root, so it is only started when it still matches the checksum
+# verified at install time. A modified APK is never executed.
+verify_synthesiscore() {
+	local expected actual
+	expected=$(cat "$MODDIR/synthesiscore.apk.sha256" 2>/dev/null)
+	actual=$(sha256sum "$MODDIR/synthesiscore.apk" 2>/dev/null | cut -d' ' -f1)
+	[ -n "$expected" ] && [ "$expected" = "$actual" ] && return 0
+
+	echo "$(date): SynthesisCore integrity check FAILED (expected ${expected:-none}, got ${actual:-none}); not starting it. Reinstall Flux." \
+		>>"$MODULE_CONFIG/sysmon.log"
+	return 1
+}
+
 start_synthesiscore() {
+	verify_synthesiscore || return 1
+
 	# Remove stale lock from a previous session so tryLock() succeeds immediately.
 	rm -f "$MODULE_CONFIG/java.lock"
 
@@ -171,6 +187,7 @@ synthesiscore_version() {
 }
 
 resolve_binder_codes() {
+	verify_synthesiscore || return 1
 	timeout 15 app_process \
 		-Djava.class.path="$MODDIR/synthesiscore.apk" / \
 		--nice-name=FluxBinderResolver \
@@ -221,7 +238,8 @@ resolve_binder_codes_when_supported &
 		if ! synthesiscore_alive; then
 			echo "$(date): SynthesisCore died, restarting..." >> "$MODULE_CONFIG/sysmon.log"
 			exempt_synthesiscore
-			start_synthesiscore
+			# A failed integrity check will not fix itself: stop watching.
+			start_synthesiscore || break
 			sleep 2
 		fi
 	done

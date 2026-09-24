@@ -1,0 +1,90 @@
+name: Sync SynthesisCore
+
+# Pulls the latest signed SynthesisCore release into prebuilt/ after verifying
+# its checksum and pinned signing certificate, and opens a pull request.
+#
+# Triggers: daily, manually, or instantly via repository_dispatch
+# ("synthesiscore-release", sent by the SynthesisCore release workflow).
+#
+# Configuration (Settings → Secrets and variables → Actions):
+#   vars.SYNTHESISCORE_CERT_SHA256  required: pinned signing certificate digest
+#   vars.SYNTHESISCORE_REPOSITORY   optional: default FebriCahyaa/SynthesisCore
+#   vars.VERIFY_ATTESTATION         optional: "true" to require build provenance
+#   secrets.SYNTHESISCORE_TOKEN     optional: read token if SynthesisCore is private
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to sync (default: latest)'
+        required: false
+  repository_dispatch:
+    types: [synthesiscore-release]
+
+concurrency:
+  group: sync-synthesiscore
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    name: Verify & Sync
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write        # push the sync branch
+      pull-requests: write   # open the pull request
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download and verify release
+        id: sync
+        env:
+          SOURCE_REPO: ${{ vars.SYNTHESISCORE_REPOSITORY || 'FebriCahyaa/SynthesisCore' }}
+          SYNTHESISCORE_CERT_SHA256: ${{ vars.SYNTHESISCORE_CERT_SHA256 }}
+          VERIFY_ATTESTATION: ${{ vars.VERIFY_ATTESTATION }}
+          REQUESTED_TAG: ${{ github.event.client_payload.tag || inputs.tag }}
+          GH_TOKEN: ${{ secrets.SYNTHESISCORE_TOKEN || github.token }}
+        run: bash .github/scripts/sync_synthesiscore.sh
+
+      - name: Open pull request
+        if: steps.sync.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.sync.outputs.tag }}
+          SHA256: ${{ steps.sync.outputs.sha256 }}
+          SOURCE_REPO: ${{ vars.SYNTHESISCORE_REPOSITORY || 'FebriCahyaa/SynthesisCore' }}
+        run: |
+          set -euo pipefail
+          branch="sync/synthesiscore-$TAG"
+          base="${GITHUB_REF_NAME}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C "$branch"
+          git add prebuilt/synthesiscore.apk prebuilt/synthesiscore.apk.sha256 prebuilt/synthesiscore.json
+          git commit -m "chore(prebuilt): sync SynthesisCore $TAG" -m "SHA-256: $SHA256"
+          git push --force-with-lease origin "$branch"
+
+          if [[ -n "$(gh pr list --head "$branch" --state open --json number --jq '.[].number')" ]]; then
+            echo "Pull request for $branch already open; branch updated"
+            exit 0
+          fi
+
+          body=$(cat <<EOF
+          Syncs \`prebuilt/synthesiscore.apk\` to [SynthesisCore $TAG]($GITHUB_SERVER_URL/$SOURCE_REPO/releases/tag/$TAG).
+
+          Verified by the sync workflow before this commit:
+          - [x] SHA-256 matches the published checksum: \`$SHA256\`
+          - [x] Signed by exactly one certificate, matching the pinned \`SYNTHESISCORE_CERT_SHA256\`
+
+          See the release notes for the changelog.
+          EOF
+          )
+          gh pr create --base "$base" --head "$branch" \
+            --title "chore(prebuilt): sync SynthesisCore $TAG" \
+            --body "$body"
