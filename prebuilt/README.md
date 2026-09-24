@@ -31,8 +31,10 @@ workflow's own token can read its releases. The daily run picks up new releases.
 
 Optional:
 
-- `FLUX_DISPATCH_TOKEN` (secret, in **SynthesisCore**) — a fine-grained token with *Actions:
-  write* (or *Contents: write*) on Flux, so a release is synced immediately.
+- `FLUX_DISPATCH_TOKEN` (secret, in **SynthesisCore**) — a fine-grained token with repository
+  access *Only select repositories → FebriCahyaa/Flux* and the permission *Contents: Read and
+  write* (required by `repository_dispatch`), so a release is synced immediately. When it expires
+  the release still succeeds and the daily sync takes over.
 - `VERIFY_ATTESTATION=false` (variable) — skip the attestation check, e.g. for releases made
   before the release workflow existed.
 - `SYNTHESISCORE_TOKEN` (secret) — a read-only token, only if SynthesisCore becomes private.
