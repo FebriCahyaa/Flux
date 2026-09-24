@@ -65,14 +65,19 @@ jobs:
           path: ${{ steps.compileZip.outputs.zipName }}
 
       - name: Upload To Telegram
-        if: env.CHAT_ID != '' && env.BOT_TOKEN != ''
+        # Secrets cannot be tested in `if:` (a step's own env is not visible there
+        # either), so the script skips itself when they are missing.
+        if: always() && github.event_name != 'pull_request'
         env:
           CHAT_ID: ${{ secrets.CHAT_ID }}
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          TG_DEV_ID: ${{ secrets.TELEGRAM_DEV_ID }}
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
           COMMIT_URL: ${{ github.event.head_commit.url }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           TITLE: Flux Tweaks
+          JOB_STATUS: ${{ job.status }}
+          ZIP_NAME: ${{ steps.compileZip.outputs.zipName }}
         run: |
           export VERSION=$(git rev-list --count HEAD)
-          bash .github/scripts/telegram_bot.sh ${{ steps.compileZip.outputs.zipName }}
+          bash .github/scripts/telegram_bot.sh "$ZIP_NAME" "$JOB_STATUS"
