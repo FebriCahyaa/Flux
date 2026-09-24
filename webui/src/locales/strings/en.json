@@ -84,6 +84,10 @@
       "license": "License",
       "description": "Flux Tweaks is a high-performance Magisk module engineered by FebriCahyaa, targeting Snapdragon SoCs with intelligent profiling, thermal awareness, and game-level CPU/GPU tuning. Built on a C++ daemon, Kotlin/Compose companion app, and a Vue 3 WebUI.",
       "tagline": "Performance, evolved."
+    },
+    "flux_sched": {
+      "title": "Flux Sched",
+      "description": "Scheduler priority for games using uclamp (modern kernels)"
     }
   },
   "game_settings": {
@@ -217,5 +221,13 @@
     "thermal_unsupported_title": "Thermal API Unavailable",
     "thermal_gki_note": "GKI kernels may not expose thermal headroom API",
     "profile_active": "Active"
+  },
+  "flux_sched": {
+    "title": "Flux Sched",
+    "toggle_title": "Enable Flux Sched",
+    "supported": "Supported: this kernel exposes uclamp cgroups.",
+    "unsupported": "Not supported: this kernel has no uclamp cgroups. Flux Sched has no effect here.",
+    "brief": "While a game runs, Flux Sched raises the minimum CPU capacity of the foreground app and caps what background apps may request, so the game gets the fast cores first. This replaces the older schedtune boost, which modern (GKI) kernels no longer have. The stock values are saved and restored as soon as you leave the game.",
+    "apply_note": "Changes take effect the next time a profile is applied, for example when a game starts."
   }
 }

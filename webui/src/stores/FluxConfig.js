@@ -21,6 +21,8 @@ export const useFluxConfigStore = defineStore('fluxConfig', () => {
     () => config.value?.preferences?.use_device_mitigation ?? false,
   )
   const isDisableTweaksEnabled = computed(() => config.value?.preferences?.disable_tweaks ?? false)
+  // Missing key = enabled, matching the daemon default
+  const isFluxSchedEnabled = computed(() => config.value?.preferences?.flux_sched ?? true)
   const balanceGovernor = computed(() => config.value?.cpu_governor?.balance ?? 'schedutil')
   const powersaveGovernor = computed(() => config.value?.cpu_governor?.powersave ?? 'schedutil')
 
@@ -75,6 +77,9 @@ export const useFluxConfigStore = defineStore('fluxConfig', () => {
     if (config.value.preferences.disable_tweaks === undefined) {
       config.value.preferences.disable_tweaks = false
     }
+    if (config.value.preferences.flux_sched === undefined) {
+      config.value.preferences.flux_sched = true
+    }
     if (config.value.preferences.enforce_lite_mode === undefined) {
       config.value.preferences.enforce_lite_mode = false
     }
@@ -105,6 +110,11 @@ export const useFluxConfigStore = defineStore('fluxConfig', () => {
   function setDisableTweaks(enabled) {
     ensureConfigStructure()
     config.value.preferences.disable_tweaks = enabled
+  }
+
+  function setFluxSched(enabled) {
+    ensureConfigStructure()
+    config.value.preferences.flux_sched = enabled
   }
 
   function setBalanceGovernor(governor) {
@@ -174,6 +184,7 @@ export const useFluxConfigStore = defineStore('fluxConfig', () => {
     logLevel,
     isDeviceMitigationEnabled,
     isDisableTweaksEnabled,
+    isFluxSchedEnabled,
     balanceGovernor,
     powersaveGovernor,
     isLoaded,
@@ -184,6 +195,7 @@ export const useFluxConfigStore = defineStore('fluxConfig', () => {
     setLogLevel,
     setDeviceMitigation,
     setDisableTweaks,
+    setFluxSched,
     setBalanceGovernor,
     setPowersaveGovernor,
     setCpuGovernorProfile,

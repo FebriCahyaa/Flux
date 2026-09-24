@@ -645,6 +645,84 @@ tensor_powersave() {
 }
 
 ###################################
+# Flux Sched (uclamp)
+###################################
+
+# Scheduler prioritisation for the foreground app on kernels with utilization
+# clamping (uclamp, Linux 5.3+ / all GKI kernels), where /dev/stune no longer
+# exists. Uses the Android cpuctl cgroups:
+#   top-app      uclamp.min raises the capacity floor of the game's tasks, so the
+#                scheduler places them on faster cores and cpufreq ramps sooner;
+#                uclamp.latency_sensitive (Android common kernel) prefers idle CPUs
+#   background / system-background
+#                uclamp.max caps how much capacity background work may request,
+#                so it cannot pull frequencies up while a game runs
+#
+# The original value and file mode of every node are saved once per boot and
+# restored when leaving a game, so the PowerHAL and init can manage uclamp
+# again outside of games. Set FLUX_SCHED_DISABLED=1 to only restore.
+
+FLUX_SCHED_ROOT="/dev/cpuctl"
+# /dev is tmpfs: the backup survives daemon restarts but not a reboot.
+FLUX_SCHED_BACKUP="/dev/.flux_sched_orig"
+FLUX_SCHED_GROUPS="top-app foreground background system-background"
+FLUX_SCHED_ATTRS="cpu.uclamp.min cpu.uclamp.max cpu.uclamp.latency_sensitive"
+
+flux_sched_supported() {
+	[ -f "$FLUX_SCHED_ROOT/top-app/cpu.uclamp.min" ]
+}
+
+# Save "<node> <mode> <value>" for every existing node, once per boot.
+flux_sched_backup() {
+	flux_sched_supported || return 0
+	[ -f "$FLUX_SCHED_BACKUP" ] && return 0
+
+	tmp="$FLUX_SCHED_BACKUP.tmp"
+	: >"$tmp"
+	for group in $FLUX_SCHED_GROUPS; do
+		for attr in $FLUX_SCHED_ATTRS; do
+			node="$FLUX_SCHED_ROOT/$group/$attr"
+			[ -f "$node" ] || continue
+			echo "$node $(stat -c %a "$node") $(cat "$node")" >>"$tmp"
+		done
+	done
+	mv "$tmp" "$FLUX_SCHED_BACKUP"
+}
+
+# Restore saved values and file modes (undoes the 444 lock set by apply).
+flux_sched_restore() {
+	[ -f "$FLUX_SCHED_BACKUP" ] || return 0
+	while read -r node mode value; do
+		[ -f "$node" ] || continue
+		chmod 644 "$node" >/dev/null 2>&1
+		echo "$value" >"$node" 2>/dev/null
+		chmod "$mode" "$node" >/dev/null 2>&1
+	done <"$FLUX_SCHED_BACKUP"
+}
+
+# flux_sched <performance|lite|powersave|balance>
+flux_sched() {
+	flux_sched_supported || return 0
+	flux_sched_backup
+	flux_sched_restore
+	[ -n "$FLUX_SCHED_DISABLED" ] && return 0
+
+	# top_min: top-app capacity floor (%); bg_max: background capacity cap (%)
+	case "$1" in
+	performance) top_min=20 bg_max=50 latency=1 ;;
+	lite) top_min=5 bg_max=40 latency=1 ;; # thermal tier: less heat from boosting
+	powersave) top_min="" bg_max=30 latency=0 ;;
+	*) return 0 ;; # balance: stock values
+	esac
+
+	[ -n "$top_min" ] && apply "$top_min" "$FLUX_SCHED_ROOT/top-app/cpu.uclamp.min"
+	apply "$latency" "$FLUX_SCHED_ROOT/top-app/cpu.uclamp.latency_sensitive"
+	for group in background system-background; do
+		apply "$bg_max" "$FLUX_SCHED_ROOT/$group/cpu.uclamp.max"
+	done
+}
+
+###################################
 # Main Performance scripts
 ###################################
 
@@ -765,6 +843,9 @@ perfcommon() {
 	for dir in /sys/class/thermal/thermal_zone*; do
 		apply "step_wise" "$dir/policy"
 	done
+
+	# Snapshot stock uclamp values before any profile changes them
+	flux_sched_backup
 }
 
 performance_profile() {
@@ -797,6 +878,13 @@ performance_profile() {
 
 		# Mark top-app as boosted, find high-performing CPUs
 		apply 1 /dev/stune/top-app/schedtune.boost
+	fi
+
+	# uclamp equivalent of the stune boost above for 5.x/GKI kernels
+	if [ $LITE_MODE -eq 1 ]; then
+		flux_sched lite
+	else
+		flux_sched performance
 	fi
 
 	# Oppo/Oplus/Realme Touchpanel
@@ -879,6 +967,9 @@ balance_profile() {
 		apply 0 /dev/stune/top-app/schedtune.boost
 	fi
 
+	# Back to stock uclamp values
+	flux_sched balance
+
 	# Oppo/Oplus/Realme Touchpanel
 	tp_path="/proc/touchpanel"
 	if [ -d "$tp_path" ]; then
@@ -925,6 +1016,9 @@ powersave_profile() {
 
 	# Allow cores to go idle, we are not concerned with prioritizing latency
     [ -d "/dev/stune/" ] && apply 1 /dev/stune/top-app/schedtune.prefer_idle
+
+	# Cap background capacity to save power
+	flux_sched powersave
 
 	# Enable battery saver module
 	[ -f /sys/module/battery_saver/parameters/enabled ] && {

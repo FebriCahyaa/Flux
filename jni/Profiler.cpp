@@ -61,6 +61,11 @@ void set_profiler_env_vars() {
         LOGD_TAG("Profiler", "Set mitigation env var: {}", env_var);
     }
 
+    // Flux Sched is on by default; the profiler only restores stock uclamp values when disabled
+    if (!prefs.flux_sched) {
+        setenv("FLUX_SCHED_DISABLED", "1", 1);
+    }
+
     // Set CPU Governor variables
     FluxConfigStore::CPUGovernor cpu_governor_preference = config_store.get_cpu_governor();
     setenv("FLUX_BALANCED_CPUGOV", cpu_governor_preference.balance.c_str(), 1);

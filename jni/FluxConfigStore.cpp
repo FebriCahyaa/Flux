@@ -76,6 +76,7 @@ bool FluxConfigStore::save_config(const std::string &config_path) {
     prefs_obj.AddMember("enforce_lite_mode", config_.preferences.enforce_lite_mode, allocator);
     prefs_obj.AddMember("use_device_mitigation", config_.preferences.use_device_mitigation, allocator);
     prefs_obj.AddMember("disable_tweaks", config_.preferences.disable_tweaks, allocator);
+    prefs_obj.AddMember("flux_sched", config_.preferences.flux_sched, allocator);
     prefs_obj.AddMember("log_level", config_.preferences.log_level, allocator);
     doc.AddMember("preferences", prefs_obj, allocator);
 
@@ -165,6 +166,7 @@ bool FluxConfigStore::create_default_config() {
             .enforce_lite_mode = false,
             .use_device_mitigation = false,
             .disable_tweaks = false,
+            .flux_sched = true,
             .log_level = 4
         },
         .cpu_governor = {
@@ -199,6 +201,10 @@ bool FluxConfigStore::parse_config(const rapidjson::Document &doc) {
 
         if (prefs.HasMember("disable_tweaks") && prefs["disable_tweaks"].IsBool()) {
             new_config.preferences.disable_tweaks = prefs["disable_tweaks"].GetBool();
+        }
+
+        if (prefs.HasMember("flux_sched") && prefs["flux_sched"].IsBool()) {
+            new_config.preferences.flux_sched = prefs["flux_sched"].GetBool();
         }
 
         if (prefs.HasMember("log_level") && prefs["log_level"].IsInt()) {

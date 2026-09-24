@@ -33,6 +33,7 @@ public:
         bool enforce_lite_mode = false;
         bool use_device_mitigation = false;
         bool disable_tweaks = false;
+        bool flux_sched = true; ///< uclamp scheduler prioritisation (scripts/flux_profiler.sh)
         int log_level = 4;
     };
 

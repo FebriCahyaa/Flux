@@ -84,6 +84,10 @@
       "license": "Lisensi",
       "description": "Flux Tweaks adalah modul Magisk performa tinggi yang dikembangkan oleh FebriCahyaa, menargetkan SoC Snapdragon dengan profiling cerdas, kesadaran termal, dan penyetelan CPU/GPU tingkat game. Dibangun di atas daemon C++, aplikasi pendamping Kotlin/Compose, dan WebUI Vue 3.",
       "tagline": "Performa, berevolusi."
+    },
+    "flux_sched": {
+      "title": "Flux Sched",
+      "description": "Prioritas scheduler untuk game memakai uclamp (kernel modern)"
     }
   },
   "game_settings": {
@@ -220,5 +224,13 @@
     "thermal_unsupported_title": "API Termal Tidak Tersedia",
     "thermal_gki_note": "Kernel GKI mungkin tidak mengekspos API thermal headroom",
     "profile_active": "Aktif"
+  },
+  "flux_sched": {
+    "title": "Flux Sched",
+    "toggle_title": "Aktifkan Flux Sched",
+    "supported": "Didukung: kernel ini menyediakan cgroup uclamp.",
+    "unsupported": "Tidak didukung: kernel ini tidak punya cgroup uclamp. Flux Sched tidak berpengaruh di sini.",
+    "brief": "Selama game berjalan, Flux Sched menaikkan kapasitas CPU minimum untuk aplikasi di depan dan membatasi permintaan aplikasi latar belakang, sehingga game mendapat core cepat lebih dulu. Ini pengganti boost schedtune lama yang sudah tidak ada di kernel modern (GKI). Nilai bawaan disimpan dan dikembalikan begitu kamu keluar dari game.",
+    "apply_note": "Perubahan berlaku saat profil berikutnya diterapkan, misalnya ketika game dimulai."
   }
 }
