@@ -154,6 +154,31 @@ synthesiscore_alive() {
 	[ -n "$pid" ] && kill -0 "$pid" 2>/dev/null
 }
 
+# ── Resolve binder transaction codes (one-shot) ──────────────────────────────
+# Transaction codes differ between Android versions and ROMs. SynthesisCore's
+# --resolve mode looks them up once per boot so native code can issue binder
+# calls directly. Entries missing on this ROM are logged and omitted.
+# Runs in the background under a timeout so it can never block boot.
+resolve_binder_codes() {
+	timeout 15 app_process \
+		-Djava.class.path="$MODDIR/synthesiscore.apk" / \
+		--nice-name=FluxBinderResolver \
+		com.febricahyaa.synthesiscore.MainKt \
+		--resolve "$MODULE_CONFIG/binder_codes" \
+		>>"$MODULE_CONFIG/sysmon.log" 2>&1 <<-EOF
+		android.os.IPowerManager.Stub::TRANSACTION_isInteractive
+		android.os.IPowerManager.Stub::TRANSACTION_isPowerSaveMode
+		android.app.INotificationManager.Stub::TRANSACTION_getZenMode
+		android.media.IAudioService.Stub::TRANSACTION_isMusicActive
+		android.os.IThermalService.Stub::TRANSACTION_getThermalHeadroom
+		android.os.IThermalService.Stub::TRANSACTION_getCurrentThermalStatus
+		android.app.IActivityTaskManager.Stub::TRANSACTION_getFocusedRootTaskInfo
+	EOF
+}
+
+rm -f "$MODULE_CONFIG/binder_codes"
+resolve_binder_codes &
+
 start_synthesiscore
 sleep 1  # Buffer for lock acquisition
 
