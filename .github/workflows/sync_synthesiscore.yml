@@ -19,7 +19,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag to sync (default: latest)'
+        description: 'Release tag to sync, e.g. v2.1.0 (empty or "latest" = newest release)'
         required: false
   repository_dispatch:
     types: [synthesiscore-release]

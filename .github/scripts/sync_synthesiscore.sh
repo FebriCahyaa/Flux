@@ -15,7 +15,7 @@
 #   SOURCE_REPO                owner/repo of SynthesisCore            (required)
 #   SYNTHESISCORE_CERT_SHA256  overrides the pin committed in
 #                              prebuilt/synthesiscore.cert.sha256
-#   REQUESTED_TAG              release tag, default: latest release
+#   REQUESTED_TAG              release tag; empty or "latest" = latest release
 #   VERIFY_ATTESTATION         "false" to skip the attestation check
 #   GH_TOKEN                   token that can read SOURCE_REPO releases
 #   GITHUB_OUTPUT              set by Actions; receives changed/tag/sha256
@@ -53,7 +53,9 @@ if [[ ! "$pinned_cert" =~ ^[0-9a-f]{64}$ ]]; then
     fail "No valid signing certificate pin: $CERT_PIN must hold the 64-hex SHA-256 digest (see prebuilt/README.md)"
 fi
 
-tag="${REQUESTED_TAG:-}"
+tag=$(tr -d '[:space:]' <<<"${REQUESTED_TAG:-}")
+# An empty input or "latest" means the most recent (non pre-release) release.
+[[ "${tag,,}" == "latest" ]] && tag=""
 if [[ -z "$tag" ]]; then
     tag=$(gh release view --repo "$SOURCE_REPO" --json tagName --jq .tagName) ||
         fail "Could not find the latest release of $SOURCE_REPO"
