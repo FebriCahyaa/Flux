@@ -87,6 +87,21 @@ jobs:
           See the release notes for the changelog.
           EOF
           )
-          gh pr create --base "$base" --head "$branch" \
+          if ! gh pr create --base "$base" --head "$branch" \
             --title "chore(prebuilt): sync SynthesisCore $TAG" \
-            --body "$body"
+            --body "$body"; then
+            # Usually "GitHub Actions is not permitted to create or approve pull
+            # requests" (Settings → Actions → General). The verified branch is
+            # pushed, so hand over a one-click link instead of failing.
+            compare="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/compare/$base...$branch?expand=1"
+            echo "::warning::Could not open the pull request automatically. Open it here: $compare"
+            {
+              echo "### Verified SynthesisCore $TAG is ready"
+              echo
+              echo "The APK passed all checks and was pushed to \`$branch\`, but GitHub Actions"
+              echo "is not allowed to open pull requests in this repository."
+              echo
+              echo "**[Open the pull request]($compare)**, or allow it once under"
+              echo "*Settings → Actions → General → Allow GitHub Actions to create and approve pull requests*."
+            } >>"$GITHUB_STEP_SUMMARY"
+          fi
