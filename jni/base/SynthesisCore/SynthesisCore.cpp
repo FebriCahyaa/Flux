@@ -31,12 +31,19 @@ bool read(SynthesisCore &out, const char *path) {
 
     out = {}; // zero-init defaults
     out.thermal_headroom = -1.0f; // sentinel: unsupported until parsed
+    out.synthesis_version = 1;    // older APKs do not write the field
     bool parsed_any = false;
 
     char line[256];
     while (fgets(line, sizeof(line), fp)) {
         char val1[128] = {};
         int ival = 0;
+
+        if (sscanf(line, "synthesis_version %d", &ival) == 1) {
+            out.synthesis_version = ival;
+            parsed_any = true;
+            continue;
+        }
 
         // focused_app <package> <pid> <uid>
         int pid = 0, uid = 0;

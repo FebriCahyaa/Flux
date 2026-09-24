@@ -159,6 +159,17 @@ synthesiscore_alive() {
 # --resolve mode looks them up once per boot so native code can issue binder
 # calls directly. Entries missing on this ROM are logged and omitted.
 # Runs in the background under a timeout so it can never block boot.
+#
+# Only runs when the running APK reports synthesis_version >= SYNTHESIS_MIN_VERSION:
+# an older APK does not understand --resolve and would treat it as an output path.
+SYNTHESIS_MIN_VERSION=2  # keep in sync with SYNTHESIS_CORE_MIN_VERSION in jni/include/Flux.hpp
+
+synthesiscore_version() {
+	local ver
+	ver=$(sed -n 's/^synthesis_version \([0-9][0-9]*\)$/\1/p' "$MODULE_CONFIG/synthesis_core.json" 2>/dev/null)
+	echo "${ver:-1}"
+}
+
 resolve_binder_codes() {
 	timeout 15 app_process \
 		-Djava.class.path="$MODDIR/synthesiscore.apk" / \
@@ -176,11 +187,32 @@ resolve_binder_codes() {
 	EOF
 }
 
-rm -f "$MODULE_CONFIG/binder_codes"
-resolve_binder_codes &
+resolve_binder_codes_when_supported() {
+	# Wait (max ~10 s) for the fresh daemon to write its status file.
+	local i=0
+	while [ "$i" -lt 20 ] && ! grep -q '^synthesis_version ' "$MODULE_CONFIG/synthesis_core.json" 2>/dev/null; do
+		sleep 0.5
+		i=$((i + 1))
+	done
+
+	local ver
+	ver=$(synthesiscore_version)
+	if [ "$ver" -ge "$SYNTHESIS_MIN_VERSION" ]; then
+		resolve_binder_codes
+	else
+		echo "$(date): SynthesisCore synthesis_version $ver < $SYNTHESIS_MIN_VERSION, skipping binder code resolve" \
+			>>"$MODULE_CONFIG/sysmon.log"
+	fi
+}
+
+# Drop status/codes from the previous boot so the version check only sees
+# output written by the APK that is about to start.
+rm -f "$MODULE_CONFIG/binder_codes" "$MODULE_CONFIG/synthesis_core.json"
 
 start_synthesiscore
 sleep 1  # Buffer for lock acquisition
+
+resolve_binder_codes_when_supported &
 
 # Watchdog: restart SynthesisCore if killed (runs in background)
 (

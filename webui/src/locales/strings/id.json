@@ -191,6 +191,7 @@
     "thermal_headroom": "ruang termal",
     "thermal_history": "Riwayat termal (60d)",
     "thermal_unsupported": "API thermal tidak tersedia di perangkat ini (butuh API 31+)",
+    "synthesis_outdated": "SynthesisCore sudah usang (protokol v{version}). Silakan pasang ulang modul Flux terbaru.",
     "thermal_label": {
       "hot": "Panas",
       "warm": "Hangat",

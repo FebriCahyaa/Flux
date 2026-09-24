@@ -188,6 +188,7 @@
     "thermal_headroom": "headroom",
     "thermal_history": "Thermal history (60s)",
     "thermal_unsupported": "Thermal headroom API not available on this device (requires API 31+)",
+    "synthesis_outdated": "SynthesisCore is outdated (protocol v{version}). Please reinstall the latest Flux module.",
     "thermal_label": {
       "hot": "Hot",
       "warm": "Warm",

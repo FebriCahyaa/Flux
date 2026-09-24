@@ -4,6 +4,10 @@ import * as KernelSU from '@/helpers/KernelSU'
 
 const configPath = '/data/adb/.config/flux'
 
+// Minimum SynthesisCore synthesis_version this module expects.
+// Keep in sync with SYNTHESIS_CORE_MIN_VERSION in jni/include/Flux.hpp.
+const SYNTHESIS_MIN_VERSION = 2
+
 // How many data points to keep in history (each tick = 1s → 60 points = 1 min)
 const HISTORY_MAX = 60
 
@@ -21,6 +25,7 @@ export const useMonitorStore = defineStore('monitor', () => {
   const currentProfile      = ref('initializing')
   const thermalApiAvailable = ref(false)
   const kernelIsGki         = ref(false)
+  const synthesisVersion    = ref(0)     // 0 = not read yet; 1 = field absent (older APK)
 
   // ── History arrays (for sparkline charts) ──────────────────────────────────
   // Each entry: { t: timestamp_ms, v: number }
@@ -40,6 +45,11 @@ export const useMonitorStore = defineStore('monitor', () => {
    * thermalApiAvailable=false  → API absent (SDK < 31 or method missing)
    * thermalApiAvailable=true + thermalHeadroom=-1 → API present but NaN (rare)
    */
+  /** true when the running SynthesisCore APK is older than this module expects */
+  const synthesisOutdated = computed(() =>
+    synthesisVersion.value > 0 && synthesisVersion.value < SYNTHESIS_MIN_VERSION
+  )
+
   const thermalSupported = computed(() =>
     thermalApiAvailable.value && thermalHeadroom.value >= 0
   )
@@ -109,6 +119,7 @@ export const useMonitorStore = defineStore('monitor', () => {
 
   /**
    * Parse the line-oriented synthesis_core.json format:
+   *   synthesis_version 2   (absent on older APKs → treated as 1)
    *   focused_app <pkg> <pid> <uid>
    *   screen_awake 1
    *   battery_saver 0
@@ -121,6 +132,7 @@ export const useMonitorStore = defineStore('monitor', () => {
    */
   function parseSynthesisCore(raw) {
     if (!raw) return
+    let version = 1
     for (const line of raw.split('\n')) {
       const parts = line.trim().split(/\s+/)
       if (parts.length < 2) continue
@@ -158,8 +170,12 @@ export const useMonitorStore = defineStore('monitor', () => {
         case 'kernel_is_gki':
           kernelIsGki.value = parts[1] === '1'
           break
+        case 'synthesis_version':
+          version = parseInt(parts[1]) || 1
+          break
       }
     }
+    synthesisVersion.value = version
   }
 
   async function readCurrentProfile() {
@@ -199,7 +215,9 @@ export const useMonitorStore = defineStore('monitor', () => {
     currentProfile,
     thermalApiAvailable,
     kernelIsGki,
+    synthesisVersion,
     // computed
+    synthesisOutdated,
     thermalSupported,
     thermalLabel,
     thermalPercent,

@@ -25,9 +25,24 @@
 #include <GameRegistry.hpp>
 #include <SynthesisCore.hpp>
 
+#include <atomic>
+
 // signal_daemon_update and signal_daemon_stop are defined in Main.cpp
 extern void signal_daemon_update();
 extern void signal_daemon_stop();
+
+/**
+ * @brief Warn once per daemon lifetime when the SynthesisCore APK is older than
+ *        this build of Flux expects (e.g. a stale prebuilt synthesiscore.apk).
+ */
+static void check_synthesis_core_version(const SynthesisCore &status) {
+    static std::atomic<bool> warned{false};
+    if (status.synthesis_version >= SYNTHESIS_CORE_MIN_VERSION || warned.exchange(true)) return;
+
+    LOGW_TAG("SynthesisCore", "Outdated SynthesisCore: synthesis_version {} < required {}",
+             status.synthesis_version, SYNTHESIS_CORE_MIN_VERSION);
+    notify("SynthesisCore is outdated. Please reinstall the latest Flux module.");
+}
 
 enum WatchContext {
     WATCH_CONTEXT_GAMELIST,
@@ -69,6 +84,7 @@ void on_json_modified(const struct inotify_event *event, const std::string &path
 
         SynthesisCore status;
         if (SynthesisCoreReader::read(status, path.c_str())) {
+            check_synthesis_core_version(status);
             synthesis_core_cache.update(status);
             signal_daemon_update(); // Wake up the daemon immediately
         } else {
@@ -82,8 +98,10 @@ void on_json_modified(const struct inotify_event *event, const std::string &path
         signal_daemon_stop();
     };
 
-    // React immediately after the writer has closed the file
-    if (event->mask & IN_CLOSE_WRITE) {
+    // React immediately after the writer has closed the file, or after an atomic
+    // write (tmp file + rename) moved a new version into place. A rename only
+    // raises IN_MOVED_TO on the target name; IN_CLOSE_WRITE fires on the tmp file.
+    if (event->mask & (IN_CLOSE_WRITE | IN_MOVED_TO)) {
         switch (context) {
             case WATCH_CONTEXT_GAMELIST: OnGamelistModified(path); break;
             case WATCH_CONTEXT_CONFIG: OnConfigModified(path); break;
@@ -116,6 +134,8 @@ bool init_file_watcher(InotifyWatcher &watcher) {
         // Seed the cache with whatever is already on-disk (if any)
         {
             SynthesisCore initial;
+            // No version check here: the file may be left over from the previous boot
+            // (possibly written by an older APK) before SynthesisCore rewrites it.
             if (SynthesisCoreReader::read(initial)) {
                 synthesis_core_cache.update(initial);
                 LOGD_TAG("InotifyHandler", "Pre-seeded SynthesisCoreCache from existing status file");

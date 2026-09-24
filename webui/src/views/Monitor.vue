@@ -29,6 +29,14 @@
           {{ monitorStore.lastError }}
         </div>
 
+        <!-- Outdated SynthesisCore banner -->
+        <div
+          v-if="monitorStore.synthesisOutdated"
+          class="bg-error-container text-on-error-container rounded-2xl px-4 py-3 text-xs"
+        >
+          {{ $t('monitor_page.synthesis_outdated', { version: monitorStore.synthesisVersion }) }}
+        </div>
+
         <!-- ── Session Card ──────────────────────────────────────────────── -->
         <div class="session-card bg-secondary-container rounded-2xl p-4 text-on-secondary-container">
           <p class="text-xs font-semibold uppercase tracking-widest opacity-60 mb-3">

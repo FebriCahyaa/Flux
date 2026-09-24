@@ -23,6 +23,7 @@
 #include <Flux.hpp>
 
 struct SynthesisCore {
+    int synthesis_version = 1; ///< Output protocol version; 1 when the field is absent (older APK)
     std::string focused_app;
     pid_t focused_pid = 0;
     uid_t focused_uid = 0;
