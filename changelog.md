@@ -65,6 +65,14 @@
   restores its thermal changes, and the device report / *Save log* include HiCo's state and log
 
 ### Fixed
+- **Performance Lite never engaged in games**: the audio guard ran before the game profile and
+  returned whenever audio played — always, in a game — so thermal pressure was never checked
+  in-game (field report: 94 °C CPU, 0 s in Lite). The game tier is evaluated first again; the
+  guard only holds the performance tier while no game is in focus, and logs that once
+- **FPS read as 1–5 in lobbies**: the Snapdragon source counted frames sent to the panel, which
+  drops when the ROM lowers the refresh rate on a still screen. Sessions now measure the game's
+  own frames from SurfaceFlinger (`dumpsys SurfaceFlinger --latency` on the game's layer, run
+  without a shell); the panel rate stays as the fallback
 - Monitor: the profile and thermal history charts never drew a line (SVG polylines do not accept
   percentages). The profile history, a flat line most of the time, is removed; the thermal
   headroom chart now uses the shared chart component and only appears once it has samples
