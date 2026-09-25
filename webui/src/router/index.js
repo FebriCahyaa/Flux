@@ -6,6 +6,7 @@ import Home from '@/views/Home.vue'
 import Games from '@/views/Games.vue'
 import Settings from '@/views/Settings.vue'
 import Monitor from '@/views/Monitor.vue'
+import SessionDetail from '@/views/SessionDetail.vue'
 
 // Setting pages
 import LiteMode from '@/views/LiteMode.vue'
@@ -44,6 +45,11 @@ const routes = [
   },
 
   // Setting Pages
+  {
+    path: '/monitor/session/:id',
+    name: 'SessionDetail',
+    component: SessionDetail,
+  },
   {
     path: '/games/:packageName',
     name: 'GameSettings',

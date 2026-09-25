@@ -284,5 +284,43 @@
       "description": "Memberi thread kerja game prioritas CPU dan penyimpanan lebih tinggi dari aplikasi lain. Thread yang sudah dipercepat Android tidak diubah."
     },
     "apply_note": "Perubahan berlaku saat profil diterapkan berikutnya, misalnya saat game dimulai."
+  },
+  "sessions": {
+    "recording": "Merekam",
+    "fps_chart": "FPS satu menit terakhir",
+    "fps_unavailable": "Perangkat ini tidak menyediakan penghitung frame rate, jadi hanya waktu bermain dan suhu yang direkam.",
+    "avg": "Rata-rata",
+    "low1": "1% low",
+    "min": "Min",
+    "median": "Median",
+    "drops": "Drop",
+    "stability": "Stabilitas",
+    "battery": "Baterai",
+    "max": "maks",
+    "avg_fps": "FPS rata-rata",
+    "history_title": "Sesi game",
+    "empty": "Mainkan game dari daftarmu: setiap sesi muncul di sini dengan waktu bermain, FPS dan suhu.",
+    "drops_count": "tanpa drop | {n} drop | {n} drop",
+    "drop_seconds": "{n} dtk di bawah 80% median",
+    "stability_hint": "detik dalam 90% dari median",
+    "lite_time": "{time} di Performance Lite",
+    "lite_hint": "Flux menurunkan profil karena perangkat panas (diarsir di grafik)",
+    "fps_over_time": "Frame rate",
+    "temp_over_time": "Suhu",
+    "chart_note": "Garis putus-putus: batas drop",
+    "not_found": "Sesi ini sudah tidak ada di riwayat.",
+    "source": {
+      "fpsgo": "sumber: MediaTek FPSGO (proses game)",
+      "display": "sumber: frame rate layar",
+      "surfaceflinger": "sumber: frame SurfaceFlinger",
+      "none": "tidak ada sumber FPS"
+    },
+    "verdict": {
+      "smooth": "Lancar",
+      "some_drops": "Ada drop",
+      "unstable": "Tidak stabil",
+      "no_fps": "Tanpa data FPS",
+      "hot": "Panas"
+    }
   }
 }

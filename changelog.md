@@ -3,6 +3,13 @@
 ## Unreleased
 
 ### New
+- **Game session stats**: play time, FPS (average, 1% low, drops, stability) and CPU / battery
+  temperatures for every game session, recorded by fluxd once per second (paused while the
+  screen is off). The Monitor shows the running session live with a 60-second FPS chart and
+  keeps a history of the last 30 sessions, each with frame-rate and temperature charts and the
+  time spent in Performance Lite
+- **Monitor redesign**: live session card, session history and detail pages in the Material 3
+  Expressive style
 - **Flux Boost** (Settings → Flux Boost): memory headroom, storage latency and game thread
   priority while gaming, beyond the Encore profile. Each part can be switched off; values are only
   raised and the stock values are restored when the game exits

@@ -281,5 +281,43 @@
       "description": "Gives the game's worker threads higher CPU and storage priority than other apps. Threads Android already boosts are left alone."
     },
     "apply_note": "Changes take effect the next time a profile is applied, for example when a game starts."
+  },
+  "sessions": {
+    "recording": "Recording",
+    "fps_chart": "FPS over the last minute",
+    "fps_unavailable": "This device exposes no frame-rate counter, so only play time and temperatures are recorded.",
+    "avg": "Avg",
+    "low1": "1% low",
+    "min": "Min",
+    "median": "Median",
+    "drops": "Drops",
+    "stability": "Stability",
+    "battery": "Battery",
+    "max": "max",
+    "avg_fps": "avg FPS",
+    "history_title": "Game sessions",
+    "empty": "Play a game from your list: each session appears here with play time, FPS and temperatures.",
+    "drops_count": "no drops | {n} drop | {n} drops",
+    "drop_seconds": "{n} s below 80% of the median",
+    "stability_hint": "seconds within 90% of the median",
+    "lite_time": "{time} in Performance Lite",
+    "lite_hint": "Flux lowered the profile because the device got hot (shaded in the charts)",
+    "fps_over_time": "Frame rate",
+    "temp_over_time": "Temperature",
+    "chart_note": "Dashed line: drop threshold",
+    "not_found": "This session is no longer in the history.",
+    "source": {
+      "fpsgo": "source: MediaTek FPSGO (game process)",
+      "display": "source: display frame rate",
+      "surfaceflinger": "source: SurfaceFlinger frames",
+      "none": "no FPS source"
+    },
+    "verdict": {
+      "smooth": "Smooth",
+      "some_drops": "Some drops",
+      "unstable": "Unstable",
+      "no_fps": "No FPS data",
+      "hot": "Ran hot"
+    }
   }
 }

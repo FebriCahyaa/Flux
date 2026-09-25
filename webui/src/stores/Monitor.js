@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { useSessionsStore } from '@/stores/Sessions'
 import { ref, computed } from 'vue'
 import * as KernelSU from '@/helpers/KernelSU'
 
@@ -108,7 +109,7 @@ export const useMonitorStore = defineStore('monitor', () => {
   }
 
   async function tick() {
-    await Promise.all([readSynthesisCore(), readCurrentProfile()])
+    await Promise.all([readSynthesisCore(), readCurrentProfile(), useSessionsStore().readLive()])
     recordHistory()
   }
 
