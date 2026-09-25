@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### New
+- **HiCo Thermal sync**: when HiCo is installed and not switched off, Flux leaves the thermal
+  zone governors and MediaTek EARA thermal to HiCo, so HiCo's safety guard controls them and
+  restores the exact stock values
 - **Touch response on every device**: Android's InputReader and InputDispatcher threads join the
   game's top-app cgroups while gaming (restored afterwards). The panel's own game mode is still
   used on OPPO / realme / OnePlus, and now on Samsung panels whose driver lists `set_game_mode`

@@ -84,6 +84,19 @@ apply_gki() {
 # Detect at script startup
 detect_kernel_type
 
+# HiCo Thermal owns the thermal layer when it is installed and not switched off:
+# it unlocks thermal during games under its own safety guard and restores the
+# exact stock values afterwards. Flux then leaves thermal nodes alone, so the
+# two never write the same node and HiCo's guard is not bypassed.
+hico_active() {
+	[ -f /data/adb/modules/hico/module.prop ] || return 1
+	[ -f /data/adb/modules/hico/disable ] && return 1
+	[ -f /data/adb/modules/hico/remove ] && return 1
+	! grep -q '^mode=off' /data/adb/.config/hico/hico.conf 2>/dev/null
+}
+HICO_ACTIVE=0
+hico_active && HICO_ACTIVE=1
+
 # Just a note that lite mode is now controlled by script arg, check case
 # statement on the EOF and performance_profile() function.
 
@@ -336,8 +349,8 @@ mediatek_performance() {
 		devfreq_mid_perf /sys/class/devfreq/mtk-dvfsrc-devfreq
 	fi
 
-	# Eara Thermal
-	apply 0 /sys/kernel/eara_thermal/enable
+	# Eara Thermal (HiCo's MediaTek backend handles it when installed)
+	[ "$HICO_ACTIVE" -eq 0 ] && apply 0 /sys/kernel/eara_thermal/enable
 }
 
 snapdragon_performance() {
@@ -524,7 +537,7 @@ mediatek_normal() {
 	devfreq_unlock /sys/class/devfreq/mtk-dvfsrc-devfreq
 
 	# Eara Thermal
-	apply 1 /sys/kernel/eara_thermal/enable
+	[ "$HICO_ACTIVE" -eq 0 ] && apply 1 /sys/kernel/eara_thermal/enable
 }
 
 snapdragon_normal() {
@@ -1304,8 +1317,9 @@ perfcommon() {
 		apply 0 /sys/kernel/ems/eas_disable 2>/dev/null || true
 	fi
 
-	# Set thermal governor to step_wise (works on both GKI and Non-GKI)
-	for dir in /sys/class/thermal/thermal_zone*; do
+	# Set thermal governor to step_wise (works on both GKI and Non-GKI).
+	# Skipped with HiCo: it switches and restores the zone governors itself.
+	[ "$HICO_ACTIVE" -eq 0 ] && for dir in /sys/class/thermal/thermal_zone*; do
 		apply "step_wise" "$dir/policy"
 	done
 
