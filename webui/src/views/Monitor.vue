@@ -113,7 +113,7 @@
           </p>
 
           <!-- Profile row -->
-          <div class="flex items-center gap-3 mb-4">
+          <div class="flex items-center gap-3">
             <div
               class="w-11 h-11 rounded-full flex items-center justify-center shrink-0 profile-icon-ring"
               :class="profileBgClass"
@@ -129,29 +129,6 @@
                 {{ profileStatusText }}
               </span>
             </div>
-          </div>
-
-          <!-- Profile sparkline -->
-          <div class="mb-1">
-            <p class="text-xs opacity-50 mb-1 font-medium">{{ $t('monitor_page.profile_history') }}</p>
-            <svg width="100%" height="36" class="overflow-visible">
-              <defs>
-                <linearGradient id="profileGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="currentColor" stop-opacity="0.3"/>
-                  <stop offset="100%" stop-color="currentColor" stop-opacity="0"/>
-                </linearGradient>
-              </defs>
-              <polyline
-                v-if="profileSparkPoints"
-                :points="profileSparkPoints"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                opacity="0.7"
-              />
-            </svg>
           </div>
 
           <div class="border-t border-current opacity-10 my-3" />
@@ -216,37 +193,19 @@
               </div>
             </div>
 
-            <!-- Thermal sparkline -->
-            <div class="bg-surface-container-high rounded-xl p-3">
-              <p class="text-xs text-on-surface-variant opacity-60 mb-2 font-medium">{{ $t('monitor_page.thermal_history') }}</p>
-              <svg width="100%" height="44" class="overflow-visible">
-                <defs>
-                  <linearGradient :id="`thermalGrad`" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" :stop-color="thermalSparkColor" stop-opacity="0.4"/>
-                    <stop offset="100%" :stop-color="thermalSparkColor" stop-opacity="0"/>
-                  </linearGradient>
-                </defs>
-                <!-- Threshold lines -->
-                <line x1="0" :y1="thresholdY(0.20)" x2="100%" :y2="thresholdY(0.20)"
-                  stroke="currentColor" stroke-width="0.5" stroke-dasharray="4,4" opacity="0.2"/>
-                <line x1="0" :y1="thresholdY(0.35)" x2="100%" :y2="thresholdY(0.35)"
-                  stroke="currentColor" stroke-width="0.5" stroke-dasharray="4,4" opacity="0.2"/>
-                <!-- Filled area -->
-                <polygon v-if="thermalAreaPoints" :points="thermalAreaPoints" :fill="`url(#thermalGrad)`"/>
-                <!-- Data line -->
-                <polyline
-                  v-if="thermalSparkPoints"
-                  :points="thermalSparkPoints"
-                  fill="none"
-                  :stroke="thermalSparkColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-              <div class="flex justify-between text-xs text-on-surface-variant opacity-40 mt-1 font-mono">
-                <span>−60s</span><span>now</span>
-              </div>
+            <!-- Thermal headroom over the last minute (shown once there are samples) -->
+            <div v-if="thermalChart.length > 1" class="bg-surface-container-high rounded-xl px-3 pt-2 pb-1">
+              <p class="text-xs text-on-surface-variant opacity-60 font-medium">
+                {{ $t('monitor_page.thermal_history') }}
+              </p>
+              <LineChart
+                :series="[{ values: thermalChart, color: thermalSparkColor, area: true }]"
+                :height="72"
+                :min="0"
+                :max="100"
+                unit="%"
+                :label="$t('monitor_page.thermal_history')"
+              />
             </div>
           </div>
 
@@ -530,21 +489,6 @@ const profileStatusText = computed(() => {
   return t('monitor_page.profile_active')
 })
 
-// Profile sparkline
-const SPARK_H = 36
-const SPARK_PROFILE_MAX = 4
-
-const profileSparkPoints = computed(() => {
-  const pts = monitorStore.profileHistory
-  if (pts.length < 2) return ''
-  const n = pts.length
-  return pts.map((p, i) => {
-    const x = (i / (n - 1)) * 100
-    const y = SPARK_H - (p.v / SPARK_PROFILE_MAX) * SPARK_H
-    return `${x}%,${y}`
-  }).join(' ')
-})
-
 // ── Thermal ──────────────────────────────────────────────────────────────────
 
 const thermalValueClass = computed(() => {
@@ -588,36 +532,10 @@ const thermalSparkColor = computed(() => {
   return 'var(--color-primary, #ffb0cc)'
 })
 
-const SPARK_THERMAL_H = 44
-
-function thresholdY(v) {
-  return SPARK_THERMAL_H - v * SPARK_THERMAL_H
-}
-
-const thermalSparkPoints = computed(() => {
-  const pts = monitorStore.thermalHistory.filter(p => p.v >= 0)
-  if (pts.length < 2) return ''
-  const n = pts.length
-  return pts.map((p, i) => {
-    const x = (i / (n - 1)) * 100
-    const y = SPARK_THERMAL_H - p.v * SPARK_THERMAL_H
-    return `${x}%,${y}`
-  }).join(' ')
-})
-
-const thermalAreaPoints = computed(() => {
-  const pts = monitorStore.thermalHistory.filter(p => p.v >= 0)
-  if (pts.length < 2) return ''
-  const n = pts.length
-  const linePoints = pts.map((p, i) => {
-    const x = (i / (n - 1)) * 100
-    const y = SPARK_THERMAL_H - p.v * SPARK_THERMAL_H
-    return `${x}%,${y}`
-  })
-  const first = `0%,${SPARK_THERMAL_H}`
-  const last = `100%,${SPARK_THERMAL_H}`
-  return `${first} ${linePoints.join(' ')} ${last}`
-})
+// Headroom samples of the last minute, in percent (unsupported samples dropped)
+const thermalChart = computed(() =>
+  monitorStore.thermalHistory.filter(p => p.v >= 0).map(p => Math.round(p.v * 100)),
+)
 
 // ── Zen mode label ────────────────────────────────────────────────────────────
 

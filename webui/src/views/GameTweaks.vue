@@ -19,13 +19,31 @@
           <h1 class="m3-headline text-4xl text-on-surface">{{ $t('game_tweaks.title') }}</h1>
         </div>
 
-        <p class="text-sm text-on-surface-variant leading-relaxed px-1 mb-6">
+        <p class="text-sm text-on-surface-variant leading-relaxed px-1 mb-4">
           {{ $t('game_tweaks.brief') }}
         </p>
 
+        <!-- Kernel the tweaks adapt to -->
+        <div v-if="caps" class="kernel-card mb-5">
+          <span class="kernel-badge shape-cookie6" :class="kernelTone">
+            <ChipsetIcon :size="22" />
+          </span>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-on-surface">
+              {{ $t(`game_tweaks.kernel.${kernelType}.title`) }}
+            </p>
+            <p class="text-xs text-on-surface-variant mt-0.5 truncate font-mono">
+              {{ caps.kernel }}
+            </p>
+            <p class="text-xs text-on-surface-variant mt-1.5 leading-relaxed">
+              {{ $t(`game_tweaks.kernel.${kernelType}.description`) }}
+            </p>
+          </div>
+        </div>
+
         <div class="mb-6">
           <div
-            v-for="(item, i) in items"
+            v-for="(item, i) in visibleItems"
             :key="item.key"
             class="md3-list m3-enter"
             :style="{ animationDelay: `${i * 50}ms` }"
@@ -39,18 +57,21 @@
                   <span class="text-sm font-semibold text-on-surface">{{
                     $t(`game_tweaks.${item.key}.title`)
                   }}</span>
-                  <span
-                    v-if="item.key === 'touch_tweaks' && touchSupported === false"
-                    class="tag bg-surface-container-highest text-on-surface-variant"
-                    >{{ $t('game_tweaks.not_supported') }}</span
-                  >
-                  <span v-else-if="item.tag" class="tag" :class="item.tagTone">{{
+                  <span v-if="item.tag" class="tag" :class="item.tagTone">{{
                     $t(`game_tweaks.tags.${item.tag}`)
                   }}</span>
                 </span>
                 <span class="block text-xs text-on-surface-variant mt-1 leading-relaxed">{{
                   $t(`game_tweaks.${item.key}.description`)
                 }}</span>
+                <span v-if="partsOf(item.key).length" class="flex flex-wrap gap-1 mt-2">
+                  <span
+                    v-for="part in partsOf(item.key)"
+                    :key="part"
+                    class="tag bg-surface-container-highest text-on-surface"
+                    >{{ $t(`game_tweaks.parts.${part}`) }}</span
+                  >
+                </span>
               </span>
               <ToggleSwitch
                 :id="`tweak-${item.key}`"
@@ -58,6 +79,19 @@
                 @update:modelValue="(v) => toggle(item, v)"
               />
             </div>
+          </div>
+        </div>
+
+        <!-- Tweaks this device cannot use are hidden -->
+        <div v-if="hiddenItems.length" class="hidden-card mb-4">
+          <EyeOffIcon class="shrink-0 text-on-surface-variant" :size="20" />
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-on-surface">
+              {{ $t('game_tweaks.hidden_title', { n: hiddenItems.length }) }}
+            </p>
+            <p class="text-xs text-on-surface-variant mt-1 leading-relaxed">
+              {{ hiddenItems.map((i) => $t(`game_tweaks.${i.key}.title`)).join(' · ') }}
+            </p>
           </div>
         </div>
 
@@ -73,12 +107,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { exec } from 'kernelsu'
 import { useFluxConfigStore } from '@/stores/FluxConfig'
 import { useNotifyStore } from '@/stores/Notify'
+import { useCapabilitiesStore } from '@/stores/Capabilities'
 
 import ArrowLeftIcon from '@/components/icons/ArrowLeft.vue'
 import GamesIcon from '@/components/icons/Games.vue'
@@ -86,6 +120,9 @@ import WifiIcon from '@/components/icons/Wifi.vue'
 import TouchTapIcon from '@/components/icons/TouchTap.vue'
 import SpeedIcon from '@/components/icons/Speed.vue'
 import SparkleIcon from '@/components/icons/Sparkle.vue'
+import LayersIcon from '@/components/icons/Layers.vue'
+import ChipsetIcon from '@/components/icons/Chipset.vue'
+import EyeOffIcon from '@/components/icons/EyeOff.vue'
 import InformationOutlineIcon from '@/components/icons/InformationOutline.vue'
 import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
 
@@ -93,31 +130,57 @@ const router = useRouter()
 const { t } = useI18n()
 const fluxConfigStore = useFluxConfigStore()
 const notify = useNotifyStore()
+const capabilities = useCapabilitiesStore()
 
-// Keys match FluxConfigStore::Preferences in fluxd. `confirmOn` asks before enabling.
+// Keys match FluxConfigStore::Preferences in fluxd. `confirmOn` asks before enabling;
+// `cap` names the capabilities (flux_utility capabilities) the tweak needs.
+const CHIPSET_PARTS = ['core_ctl', 'sched_boost', 'kgsl', 'mali', 'workqueue']
+const TOUCH_PARTS = ['input', 'touchpanel', 'sec_touch']
+
 const items = [
   {
     key: 'net_tweaks',
+    cap: 'net',
     icon: WifiIcon,
     shape: 'shape-cookie9',
     tone: 'bg-primary-container text-on-primary-container',
   },
   {
     key: 'touch_tweaks',
+    cap: TOUCH_PARTS,
     icon: TouchTapIcon,
     shape: 'shape-flower',
     tone: 'bg-secondary-container text-on-secondary-container',
-    tag: 'oplus',
+    tag: 'all_devices',
     tagTone: 'bg-secondary-container text-on-secondary-container',
   },
   {
     key: 'game_refresh_rate',
+    cap: 'refresh',
     icon: SpeedIcon,
     shape: 'shape-sunny',
     tone: 'bg-tertiary-container text-on-tertiary-container',
     tag: 'battery',
     tagTone: 'bg-tertiary-container text-on-tertiary-container',
     confirmOn: true,
+  },
+  {
+    key: 'surface_boost',
+    cap: 'surface',
+    icon: LayersIcon,
+    shape: 'shape-clover4',
+    tone: 'bg-primary-container text-on-primary-container',
+    tag: 'all_devices',
+    tagTone: 'bg-primary-container text-on-primary-container',
+  },
+  {
+    key: 'chipset_boost',
+    cap: CHIPSET_PARTS,
+    icon: ChipsetIcon,
+    shape: 'shape-burst',
+    tone: 'bg-tertiary-container text-on-tertiary-container',
+    tag: 'not_lite',
+    tagTone: 'bg-tertiary-container text-on-tertiary-container',
   },
   {
     key: 'drop_caches',
@@ -128,7 +191,26 @@ const items = [
 ]
 
 const values = reactive({ ...fluxConfigStore.gameTweaks })
-const touchSupported = ref(null)
+
+const caps = computed(() => capabilities.caps)
+const visibleItems = computed(() => items.filter((i) => capabilities.supports(i.cap)))
+const hiddenItems = computed(() => items.filter((i) => !capabilities.supports(i.cap)))
+const detected = (list) => list.filter((p) => caps.value?.[p])
+const partsOf = (key) =>
+  ({ chipset_boost: detected(CHIPSET_PARTS), touch_tweaks: detected(TOUCH_PARTS) })[key] || []
+const kernelType = computed(() =>
+  ['gki', 'non_gki', 'legacy'].includes(caps.value?.kernel_type)
+    ? caps.value.kernel_type
+    : 'unknown',
+)
+const kernelTone = computed(
+  () =>
+    ({
+      gki: 'bg-primary-container text-on-primary-container',
+      non_gki: 'bg-secondary-container text-on-secondary-container',
+      legacy: 'bg-tertiary-container text-on-tertiary-container',
+    })[kernelType.value] || 'bg-surface-container-highest text-on-surface',
+)
 
 onMounted(async () => {
   try {
@@ -137,12 +219,7 @@ onMounted(async () => {
   } catch (error) {
     console.error('Failed to load game tweaks:', error)
   }
-  try {
-    const { errno } = await exec('test -d /proc/touchpanel')
-    touchSupported.value = errno === 0
-  } catch {
-    touchSupported.value = null
-  }
+  capabilities.load()
 })
 
 async function toggle(item, enabled) {
@@ -154,9 +231,6 @@ async function toggle(item, enabled) {
       confirmText: t('common.enable'),
     })
     if (!ok) return
-  }
-  if (enabled && item.key === 'touch_tweaks' && touchSupported.value === false) {
-    notify.warn(t('game_tweaks.touch_tweaks.unsupported_note'))
   }
 
   values[item.key] = enabled
@@ -193,6 +267,29 @@ function goBack() {
 .item-badge {
   width: 40px;
   height: 40px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.kernel-card,
+.hidden-card {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 16px 18px;
+  border-radius: 24px;
+  background: var(--color-surface-container);
+}
+
+.hidden-card {
+  background: transparent;
+  border: 1px dashed var(--color-outline-variant);
+}
+
+.kernel-badge {
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
   flex-shrink: 0;

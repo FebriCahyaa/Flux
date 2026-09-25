@@ -31,26 +31,42 @@ SOC=$(<$MODULE_CONFIG/soc_recognition)
 DEFAULT_CPU_GOV="$FLUX_BALANCED_CPUGOV"
 
 # ──────────────────────────────────────────────────────────────────────────────
-# GKI / Non-GKI Detection
+# Kernel type: GKI / Non-GKI / Legacy
 #
-# GKI (Generic Kernel Image) kernels ship with a standardised interface and
-# may lack vendor-specific tunables (e.g. /proc/ppm, dcvs, EARA, vendor
-# cgroup hierarchies).  We detect GKI by checking the kernel version string:
-# GKI kernels include "-android<ver>-" in `uname -r`, e.g.:
-#   5.15.123-android13-8-00123-g...
-# Non-GKI kernels typically carry an OEM/device suffix instead, e.g.:
-#   4.19.191-perf+  or  5.10.149-qcom-le
+# GKI (Generic Kernel Image, Android 12+ on Linux 5.10 and later) kernels are
+# built from the Android common kernel and tagged "-android<release>-" in
+# `uname -r`, e.g. 5.15.123-android13-8-00123-g...  Vendor features live in
+# loadable modules (WALT, core_ctl, kgsl), scheduler tunables moved from
+# /proc/sys/kernel to debugfs (Linux 5.13+), and uclamp replaces schedtune.
+#
+# Non-GKI kernels are vendor/OEM trees (e.g. 4.19.191-perf+, 5.4.210-qgki).
+# "android11-5.4" builds are GKI 1.0 and still vendor-specific, so they count
+# as Non-GKI here.
+#
+# Legacy kernels are older than 4.19 (msm-3.18 / 4.4 / 4.9 era, HMP or early
+# EAS with schedtune). Every tweak below still checks that its node exists.
 # ──────────────────────────────────────────────────────────────────────────────
 
 detect_kernel_type() {
 	KERNEL_VER=$(uname -r)
-	if echo "$KERNEL_VER" | grep -qE "\-android[0-9]+-"; then
+	kmaj=${KERNEL_VER%%.*}
+	kmin=${KERNEL_VER#*.}
+	kmin=${kmin%%.*}
+	case "$kmaj$kmin" in '' | *[!0-9]*) kmaj=0 kmin=0 ;; esac
+	KVER=$((kmaj * 100 + kmin))
+
+	IS_GKI=0
+	if [ "$KVER" -ge 510 ] && echo "$KERNEL_VER" | grep -qE -- "-android(1[2-9]|[2-9][0-9])-"; then
 		IS_GKI=1
+		KERNEL_TYPE=gki
+	elif [ "$KVER" -lt 419 ]; then
+		KERNEL_TYPE=legacy
 	else
-		IS_GKI=0
+		KERNEL_TYPE=non_gki
 	fi
-	# Cache result for logging / daemon consumption
-	echo "$IS_GKI" > "$MODULE_CONFIG/is_gki"
+	# Cache result for logging / daemon / WebUI consumption
+	echo "$IS_GKI" >"$MODULE_CONFIG/is_gki"
+	echo "$KERNEL_TYPE" >"$MODULE_CONFIG/kernel_type"
 }
 
 # Wrapper: apply only on Non-GKI kernels
@@ -67,6 +83,19 @@ apply_gki() {
 
 # Detect at script startup
 detect_kernel_type
+
+# HiCo Thermal owns the thermal layer when it is installed and not switched off:
+# it unlocks thermal during games under its own safety guard and restores the
+# exact stock values afterwards. Flux then leaves thermal nodes alone, so the
+# two never write the same node and HiCo's guard is not bypassed.
+hico_active() {
+	[ -f /data/adb/modules/hico/module.prop ] || return 1
+	[ -f /data/adb/modules/hico/disable ] && return 1
+	[ -f /data/adb/modules/hico/remove ] && return 1
+	! grep -q '^mode=off' /data/adb/.config/hico/hico.conf 2>/dev/null
+}
+HICO_ACTIVE=0
+hico_active && HICO_ACTIVE=1
 
 # Just a note that lite mode is now controlled by script arg, check case
 # statement on the EOF and performance_profile() function.
@@ -88,6 +117,14 @@ write() {
 	[ ! -f "$2" ] && return 1
 	chmod 644 "$2" >/dev/null 2>&1
 	echo "$1" >"$2" 2>/dev/null
+}
+
+# sched_feature <FEATURE>: debugfs moved the file in Linux 5.13
+# (/sys/kernel/debug/sched_features -> /sys/kernel/debug/sched/features)
+sched_feature() {
+	for f in /sys/kernel/debug/sched_features /sys/kernel/debug/sched/features; do
+		[ -f "$f" ] && echo "$1" >"$f" 2>/dev/null
+	done
 }
 
 change_cpu_gov() {
@@ -312,8 +349,8 @@ mediatek_performance() {
 		devfreq_mid_perf /sys/class/devfreq/mtk-dvfsrc-devfreq
 	fi
 
-	# Eara Thermal
-	apply 0 /sys/kernel/eara_thermal/enable
+	# Eara Thermal (HiCo's MediaTek backend handles it when installed)
+	[ "$HICO_ACTIVE" -eq 0 ] && apply 0 /sys/kernel/eara_thermal/enable
 }
 
 snapdragon_performance() {
@@ -500,7 +537,7 @@ mediatek_normal() {
 	devfreq_unlock /sys/class/devfreq/mtk-dvfsrc-devfreq
 
 	# Eara Thermal
-	apply 1 /sys/kernel/eara_thermal/enable
+	[ "$HICO_ACTIVE" -eq 0 ] && apply 1 /sys/kernel/eara_thermal/enable
 }
 
 snapdragon_normal() {
@@ -780,7 +817,8 @@ flux_block_queues() {
 }
 
 flux_vm() {
-	nodes="/proc/sys/vm/watermark_scale_factor /proc/sys/vm/dirty_ratio /proc/sys/vm/dirty_background_ratio"
+	nodes="/proc/sys/vm/watermark_scale_factor /proc/sys/vm/dirty_ratio /proc/sys/vm/dirty_background_ratio \
+/sys/kernel/mm/ksm/run"
 	# shellcheck disable=SC2086
 	flux_boost_save vm $nodes
 	flux_boost_restore vm
@@ -788,6 +826,9 @@ flux_vm() {
 	raise_to 50 /proc/sys/vm/watermark_scale_factor
 	raise_to 30 /proc/sys/vm/dirty_ratio
 	raise_to 10 /proc/sys/vm/dirty_background_ratio
+	# Pause KSM page merging (ksmd scans memory in the background;
+	# Documentation/admin-guide/mm/ksm.rst: 0 stops it, merged pages stay merged)
+	apply 0 /sys/kernel/mm/ksm/run
 }
 
 flux_io() {
@@ -883,7 +924,35 @@ flux_net() {
 }
 
 # Touch panel game mode (OPPO / Realme / OnePlus touchpanel driver). flux_touch <on|off>
+# Samsung touch firmware commands (sec_cmd): the driver lists what it supports
+# in cmd_list, so "set_game_mode" is only sent when the panel has it.
+SEC_TSP=/sys/class/sec/tsp
+FLUX_SEC_GAME=/dev/.flux_sec_game
+
+sec_touch_game_mode() {
+	grep -qw set_game_mode "$SEC_TSP/cmd_list" 2>/dev/null
+}
+
+# flux_touch <on|off>: input threads on all devices, plus the panel's own game
+# mode where the vendor driver has one (OPPO / realme / OnePlus, Samsung)
 flux_touch() {
+	if [ "$1" = on ] && [ -z "$FLUX_TOUCH_DISABLED" ]; then
+		flux_input boost
+	else
+		flux_input restore
+	fi
+
+	# Samsung sec_ts / stm_ts: only switched off again if Flux switched it on
+	if sec_touch_game_mode; then
+		if [ "$1" = on ] && [ -z "$FLUX_TOUCH_DISABLED" ]; then
+			echo "set_game_mode,1" >"$SEC_TSP/cmd" 2>/dev/null && : >"$FLUX_SEC_GAME"
+		elif [ -f "$FLUX_SEC_GAME" ]; then
+			echo "set_game_mode,0" >"$SEC_TSP/cmd" 2>/dev/null
+			rm -f "$FLUX_SEC_GAME"
+		fi
+	fi
+
+	# OPPO / realme / OnePlus (oplus touchpanel driver)
 	tp_path="/proc/touchpanel"
 	[ -d "$tp_path" ] || return 0
 	if [ "$1" = on ] && [ -z "$FLUX_TOUCH_DISABLED" ]; then
@@ -950,6 +1019,190 @@ change_gpu_gov() {
 	else
 		flux_boost_restore gpugov
 	fi
+}
+
+###################################
+# Surface boost (all devices)
+###################################
+
+# Frames are composed by SurfaceFlinger and the hardware composer HAL (HWC).
+# Android keeps them in the foreground/system cgroups; while a game runs their
+# threads are moved into the top-app cgroups, so they get the same CPUs,
+# schedtune boost (Non-GKI / Legacy) or uclamp floor (GKI, see Flux Sched) as
+# the game. This is the same cgroup v1 "tasks" interface Android's own
+# task profiles use (Documentation/admin-guide/cgroup-v1/cpusets.rst): writing
+# a TID moves only that thread. Every thread's previous group is saved and
+# restored when leaving the game.
+
+FLUX_SURFACE_BACKUP=/dev/.flux_surface
+FLUX_INPUT_BACKUP=/dev/.flux_input
+
+# flux_cgroup_restore <backup>: every thread back to the group it came from
+flux_cgroup_restore() {
+	[ -f "$1" ] || return 0
+	while read -r tid dir path; do
+		[ -d "/proc/$tid" ] && echo "$tid" >"$dir${path%/}/tasks" 2>/dev/null
+	done <"$1"
+	rm -f "$1"
+}
+
+# flux_cgroup_top_app <backup> <tid>...: move threads into the top-app groups,
+# recording "<tid> <cgroup root> <previous path>" for each controller
+flux_cgroup_top_app() {
+	backup=$1
+	shift
+	for tid in "$@"; do
+		[ -f "/proc/$tid/cgroup" ] || continue
+		# cgroup v1 lines: "<id>:<controllers>:<path>"
+		while IFS=: read -r _ ctrl path; do
+			case "$ctrl" in
+			cpuset) dir=/dev/cpuset ;;
+			schedtune) dir=/dev/stune ;;
+			cpu | cpu,cpuacct) dir=/dev/cpuctl ;;
+			*) continue ;;
+			esac
+			[ "$path" = /top-app ] && continue
+			[ -f "$dir/top-app/tasks" ] || continue
+			echo "$tid $dir $path" >>"$backup"
+			echo "$tid" >"$dir/top-app/tasks" 2>/dev/null
+		done <"/proc/$tid/cgroup"
+	done
+}
+
+# All thread IDs of the given processes
+process_tids() {
+	for pid in "$@"; do
+		for task in /proc/"$pid"/task/*; do
+			[ -d "$task" ] && echo "${task##*/}"
+		done
+	done
+}
+
+# flux_surface <boost|restore>
+flux_surface() {
+	flux_cgroup_restore "$FLUX_SURFACE_BACKUP"
+	[ "$1" = boost ] && [ -z "$FLUX_SURFACE_DISABLED" ] || return 0
+	[ -f /dev/cpuset/top-app/tasks ] || return 0
+
+	pids="$(pidof surfaceflinger) $(pgrep -f 'graphics\.composer|display\.composer' 2>/dev/null)"
+	: >"$FLUX_SURFACE_BACKUP"
+	# shellcheck disable=SC2046,SC2086
+	flux_cgroup_top_app "$FLUX_SURFACE_BACKUP" $(process_tids $pids)
+}
+
+# Touch input on every device: Android reads and dispatches touch events on
+# two system_server threads, InputReader and InputDispatcher
+# (frameworks/native/services/inputflinger). They join the game's top-app
+# groups like SurfaceFlinger above, so a touch reaches the game without
+# waiting for a slow or parked core.
+flux_input() {
+	flux_cgroup_restore "$FLUX_INPUT_BACKUP"
+	[ "$1" = boost ] && [ -z "$FLUX_TOUCH_DISABLED" ] || return 0
+	[ -f /dev/cpuset/top-app/tasks ] || return 0
+
+	: >"$FLUX_INPUT_BACKUP"
+	for pid in $(pidof system_server); do
+		for task in /proc/"$pid"/task/*; do
+			case "$(cat "$task/comm" 2>/dev/null)" in
+			InputReader | InputDispatcher) flux_cgroup_top_app "$FLUX_INPUT_BACKUP" "${task##*/}" ;;
+			esac
+		done
+	done
+}
+
+###################################
+# Chipset boost (vendor kernel interfaces)
+###################################
+
+# Vendor knobs that Qualcomm's and ARM's own performance services drive, set
+# for the whole game session instead of per touch/launch. Older chipsets
+# benefit most: their cores are parked aggressively and the GPU power-collapses
+# between frames. Only in the full performance profile (not Lite); every node
+# is saved first and restored when leaving the game.
+#
+#   core_ctl      Qualcomm core control (msm kernels, WALT module on GKI):
+#                 min_cpus = max_cpus keeps every core of a cluster online
+#   sched_boost   Qualcomm WALT/HMP boost, the knob the QTI PerfHAL uses:
+#                 2 = conservative (top-app on big cores, background stays);
+#                 HMP kernels only accept 0/1, so 1 is used there
+#   kgsl          Adreno power control (kgsl_pwrctrl): keep bus, rail and
+#                 clocks on and skip nap between frames
+#   workqueue     per-CPU kernel workqueues instead of power-efficient ones
+#   Mali kbase    ARM Mali power_policy: always_on instead of coarse_demand
+#                 (Exynos is handled in exynos_performance already)
+
+FLUX_MALI_BACKUP=/dev/.flux_mali_policy
+
+sched_boost_node() {
+	for node in /proc/sys/walt/sched_boost /proc/sys/kernel/sched_boost; do
+		[ -f "$node" ] && {
+			echo "$node"
+			return 0
+		}
+	done
+	return 1
+}
+
+mali_policy_nodes() {
+	find /sys/devices/platform/ -maxdepth 3 -name power_policy -path "*mali*" 2>/dev/null
+}
+
+flux_chipset_restore() {
+	flux_boost_restore chipset
+	[ -f "$FLUX_MALI_BACKUP" ] || return 0
+	while read -r node policy; do
+		[ -f "$node" ] && echo "$policy" >"$node" 2>/dev/null
+	done <"$FLUX_MALI_BACKUP"
+	rm -f "$FLUX_MALI_BACKUP"
+}
+
+# flux_chipset <boost|restore>
+flux_chipset() {
+	flux_chipset_restore
+	[ "$1" = boost ] && [ -z "$FLUX_CHIPSET_DISABLED" ] && [ "$LITE_MODE" -eq 0 ] || return 0
+
+	# Qualcomm core_ctl
+	for dir in /sys/devices/system/cpu/cpu*/core_ctl; do
+		[ -f "$dir/min_cpus" ] && [ -f "$dir/max_cpus" ] || continue
+		flux_boost_save chipset "$dir/min_cpus"
+		apply "$(cat "$dir/max_cpus")" "$dir/min_cpus"
+	done
+
+	# Qualcomm sched_boost
+	if node=$(sched_boost_node); then
+		flux_boost_save chipset "$node"
+		apply 2 "$node"
+		[ "$(cat "$node" 2>/dev/null)" = 2 ] || apply 1 "$node"
+	fi
+
+	# Adreno kgsl power control
+	kgsl=/sys/class/kgsl/kgsl-3d0
+	if [ -d "$kgsl" ]; then
+		flux_boost_save chipset $kgsl/force_bus_on $kgsl/force_rail_on $kgsl/force_no_nap
+		apply 1 $kgsl/force_bus_on
+		apply 1 $kgsl/force_rail_on
+		apply 1 $kgsl/force_no_nap
+	fi
+
+	# Per-CPU instead of "power efficient" unbound workqueues: kernel work
+	# (e.g. display and input drivers' deferred work) runs on the CPU that
+	# queued it instead of being moved to an idle little core
+	# (kernel/workqueue.c, CONFIG_WQ_POWER_EFFICIENT_DEFAULT)
+	wq=/sys/module/workqueue/parameters/power_efficient
+	if [ -f "$wq" ]; then
+		flux_boost_save chipset "$wq"
+		apply N "$wq"
+	fi
+
+	# ARM Mali kbase power policy; the file lists all policies, the active one in brackets
+	[ "$SOC" = 3 ] && return 0
+	: >"$FLUX_MALI_BACKUP"
+	for node in $(mali_policy_nodes); do
+		cur=$(sed -n 's/.*\[\([a-z_]*\)\].*/\1/p' "$node" 2>/dev/null)
+		{ [ -n "$cur" ] && grep -qw always_on "$node"; } || continue
+		echo "$node $cur" >>"$FLUX_MALI_BACKUP"
+		echo always_on >"$node" 2>/dev/null
+	done
 }
 
 ###################################
@@ -1037,6 +1290,15 @@ perfcommon() {
 
 		# Use standard eBPF-based network path if available
 		apply 1 /proc/sys/net/core/bpf_jit_enable 2>/dev/null || true
+
+		# Linux 5.13+ moved the CFS tunables set above from /proc/sys/kernel to
+		# debugfs; same values. Kernels with EEVDF (6.6+) no longer have the
+		# granularity knobs, so those writes are skipped there.
+		sched_dbg=/sys/kernel/debug/sched
+		apply 32 $sched_dbg/nr_migrate
+		apply 50000 $sched_dbg/migration_cost_ns
+		apply 1000000 $sched_dbg/min_granularity_ns
+		apply 1500000 $sched_dbg/wakeup_granularity_ns
 	fi
 
 	# ── Non-GKI (OEM/vendor kernel) specific tweaks ──────────────────────────
@@ -1055,8 +1317,9 @@ perfcommon() {
 		apply 0 /sys/kernel/ems/eas_disable 2>/dev/null || true
 	fi
 
-	# Set thermal governor to step_wise (works on both GKI and Non-GKI)
-	for dir in /sys/class/thermal/thermal_zone*; do
+	# Set thermal governor to step_wise (works on both GKI and Non-GKI).
+	# Skipped with HiCo: it switches and restores the zone governors itself.
+	[ "$HICO_ACTIVE" -eq 0 ] && for dir in /sys/class/thermal/thermal_zone*; do
 		apply "step_wise" "$dir/policy"
 	done
 
@@ -1080,13 +1343,11 @@ performance_profile() {
 	# Disable split lock mitigation
 	apply 0 /proc/sys/kernel/split_lock_mitigate
 
-	if [ -f "/sys/kernel/debug/sched_features" ]; then
-		# Consider scheduling tasks that are eager to run
-		apply NEXT_BUDDY /sys/kernel/debug/sched_features
+	# Consider scheduling tasks that are eager to run
+	sched_feature NEXT_BUDDY
 
-		# Some sources report large latency spikes during large migrations
-		apply NO_TTWU_QUEUE /sys/kernel/debug/sched_features
-	fi
+	# Some sources report large latency spikes during large migrations
+	sched_feature NO_TTWU_QUEUE
 
 	if [ -d "/dev/stune/" ]; then
 		# Prefer to schedule top-app tasks on idle CPUs
@@ -1114,6 +1375,12 @@ performance_profile() {
 
 	# The performance tweaks below drive the GPU; keep the kernel's governor under them.
 	change_gpu_gov ""
+
+	# SurfaceFlinger / composer on the game's cgroups (switchable: Game tweaks → Surface)
+	flux_surface boost
+
+	# core_ctl, sched_boost, GPU power rails (switchable: Game tweaks → Chipset; not in Lite)
+	flux_chipset boost
 
 	# Memory tweak
 	apply 80 /proc/sys/vm/vfs_cache_pressure
@@ -1170,13 +1437,11 @@ balance_profile() {
 	# Enable split lock mitigation
 	apply 1 /proc/sys/kernel/split_lock_mitigate
 
-	if [ -f "/sys/kernel/debug/sched_features" ]; then
-		# Consider scheduling tasks that are eager to run
-		apply NEXT_BUDDY /sys/kernel/debug/sched_features
+	# Consider scheduling tasks that are eager to run
+	sched_feature NEXT_BUDDY
 
-		# Schedule tasks on their origin CPU if possible
-		apply TTWU_QUEUE /sys/kernel/debug/sched_features
-	fi
+	# Schedule tasks on their origin CPU if possible
+	sched_feature TTWU_QUEUE
 
 	if [ -d "/dev/stune/" ]; then
 		# We are not concerned with prioritizing latency
@@ -1195,6 +1460,10 @@ balance_profile() {
 	# Touch panel back to normal, refresh rate back to the user's setting
 	flux_touch off
 	flux_refresh restore
+
+	# Composer threads and vendor chipset knobs back to where they were
+	flux_surface restore
+	flux_chipset restore
 
 	# Re-evaluate the network switch (it may have changed since boot)
 	flux_net

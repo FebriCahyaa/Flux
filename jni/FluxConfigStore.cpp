@@ -84,6 +84,8 @@ bool FluxConfigStore::save_config(const std::string &config_path) {
     prefs_obj.AddMember("touch_tweaks", config_.preferences.touch_tweaks, allocator);
     prefs_obj.AddMember("game_refresh_rate", config_.preferences.game_refresh_rate, allocator);
     prefs_obj.AddMember("drop_caches", config_.preferences.drop_caches, allocator);
+    prefs_obj.AddMember("surface_boost", config_.preferences.surface_boost, allocator);
+    prefs_obj.AddMember("chipset_boost", config_.preferences.chipset_boost, allocator);
     prefs_obj.AddMember("log_level", config_.preferences.log_level, allocator);
     doc.AddMember("preferences", prefs_obj, allocator);
 
@@ -192,6 +194,8 @@ bool FluxConfigStore::create_default_config() {
             .touch_tweaks = true,
             .game_refresh_rate = false,
             .drop_caches = true,
+            .surface_boost = true,
+            .chipset_boost = true,
             .log_level = 4
         },
         .cpu_governor = {
@@ -240,7 +244,9 @@ bool FluxConfigStore::parse_config(const rapidjson::Document &doc) {
                                          std::pair{"net_tweaks", &Preferences::net_tweaks},
                                          std::pair{"touch_tweaks", &Preferences::touch_tweaks},
                                          std::pair{"game_refresh_rate", &Preferences::game_refresh_rate},
-                                         std::pair{"drop_caches", &Preferences::drop_caches}}) {
+                                         std::pair{"drop_caches", &Preferences::drop_caches},
+                                         std::pair{"surface_boost", &Preferences::surface_boost},
+                                         std::pair{"chipset_boost", &Preferences::chipset_boost}}) {
             if (prefs.HasMember(key) && prefs[key].IsBool()) {
                 new_config.preferences.*field = prefs[key].GetBool();
             }

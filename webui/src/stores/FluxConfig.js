@@ -35,6 +35,8 @@ export const useFluxConfigStore = defineStore('fluxConfig', () => {
     touch_tweaks: config.value?.preferences?.touch_tweaks ?? true,
     game_refresh_rate: config.value?.preferences?.game_refresh_rate ?? false,
     drop_caches: config.value?.preferences?.drop_caches ?? true,
+    surface_boost: config.value?.preferences?.surface_boost ?? true,
+    chipset_boost: config.value?.preferences?.chipset_boost ?? true,
   }))
   // Empty = keep the kernel's own GPU governor
   const gpuGovernor = computed(() => ({
@@ -145,7 +147,15 @@ export const useFluxConfigStore = defineStore('fluxConfig', () => {
   }
 
   function setGameTweak(key, enabled) {
-    if (!['net_tweaks', 'touch_tweaks', 'game_refresh_rate', 'drop_caches'].includes(key)) return
+    const keys = [
+      'net_tweaks',
+      'touch_tweaks',
+      'game_refresh_rate',
+      'drop_caches',
+      'surface_boost',
+      'chipset_boost',
+    ]
+    if (!keys.includes(key)) return
     ensureConfigStructure()
     config.value.preferences[key] = enabled
   }

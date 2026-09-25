@@ -43,6 +43,8 @@ public:
         bool touch_tweaks = true;       ///< touch panel game mode (OPPO / Realme / OnePlus)
         bool game_refresh_rate = false; ///< hold the panel at its highest refresh rate while gaming
         bool drop_caches = true;        ///< drop the page cache when a game starts
+        bool surface_boost = true;      ///< SurfaceFlinger / composer threads on the top-app cgroups while gaming
+        bool chipset_boost = true;      ///< core_ctl, sched_boost and GPU power-rail tuning while gaming
         int log_level = 4;
     };
 
