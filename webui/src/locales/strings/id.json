@@ -347,10 +347,9 @@
       "session": "Sesi",
       "thermal": "Termal"
     },
-    "profile_history": "Riwayat profil (60d)",
     "focused_app": "Aplikasi Aktif",
-    "thermal_headroom": "ruang termal",
-    "thermal_history": "Riwayat termal (60d)",
+    "thermal_headroom": "Sisa ruang termal",
+    "thermal_history": "Ruang termal, 1 menit terakhir",
     "thermal_unsupported": "API thermal tidak tersedia di perangkat ini (butuh API 31+)",
     "synthesis_outdated": "SynthesisCore sudah usang (protokol v{version}). Silakan pasang ulang modul Flux terbaru.",
     "thermal_label": {

@@ -62,6 +62,9 @@
   restores its thermal changes, and the device report / *Save log* include HiCo's state and log
 
 ### Fixed
+- Monitor: the profile and thermal history charts never drew a line (SVG polylines do not accept
+  percentages). The profile history, a flat line most of the time, is removed; the thermal
+  headroom chart now uses the shared chart component and only appears once it has samples
 - A switched-off Flux feature could stay off after being turned back on: clearing the previous
   `FLUX_*` variables skipped every second one
 - Uninstalling now restores the kernel values Flux changed during a game instead of only
