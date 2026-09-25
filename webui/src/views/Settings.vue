@@ -10,274 +10,99 @@
 
     <div class="scrollbar-hidden pb-safe-nav flex-1 min-h-0 overflow-y-scroll">
       <div class="max-w-3xl mx-auto p-5 py-1">
-
-        <!-- Preferences -->
-        <div class="px-4 py-2 mb-1">
-          <h2 class="text-sm font-semibold text-primary">
-            {{ $t('settings_page.section.preferences') }}
-          </h2>
-        </div>
-
-        <div class="space-y-1.5 mb-4">
-          <div class="md3-list">
-            <RippleComponent @click="openLiteModeView" class="md3-list-item" tabindex="0">
-              <div class="flex items-center justify-between px-5 py-4">
-                <div class="flex items-center gap-4 min-w-0 flex-1">
-                  <div class="w-10 h-10 shape-cookie9 bg-primary-container flex items-center justify-center shrink-0">
-                    <FeatherIcon class="w-5 h-5 text-on-primary-container" />
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <h3 class="text-sm font-semibold text-on-surface">{{ $t('settings_page.lite_mode.title') }}</h3>
-                    <p class="text-xs text-on-surface-variant mt-1 line-clamp-2">{{ $t('settings_page.lite_mode.description') }}</p>
-                  </div>
-                </div>
-                <div class="w-7 h-7 rounded-full bg-surface-dim flex items-center justify-center shrink-0 ms-3">
-                  <ChevronRightIcon class="text-on-surface-variant shrink-0 rtl:rotate-180" :size="22" />
-                </div>
-              </div>
-            </RippleComponent>
+        <template v-for="section in sections" :key="section.key">
+          <div class="px-4 py-2 mb-1">
+            <h2 class="text-sm font-semibold text-primary">
+              {{ $t(`settings_page.section.${section.key}`) }}
+            </h2>
           </div>
 
-          <div class="md3-list">
-            <RippleComponent @click="openDisableTweaksView" class="md3-list-item" tabindex="0">
-              <div class="flex items-center justify-between px-5 py-4">
-                <div class="flex items-center gap-4 min-w-0 flex-1">
-                  <div class="w-10 h-10 shape-cookie9 bg-primary-container flex items-center justify-center shrink-0">
-                    <TuneIcon class="w-5 h-5 text-on-primary-container" />
+          <div class="mb-4">
+            <div v-for="item in section.items" :key="item.key" class="md3-list">
+              <RippleComponent @click="item.run" class="md3-list-item" tabindex="0">
+                <div class="flex items-center justify-between px-5 py-4">
+                  <div class="flex items-center gap-4 min-w-0 flex-1">
+                    <div class="entry-badge" :class="[item.shape, item.tone]">
+                      <component :is="item.icon" :size="20" />
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <h3 class="text-sm font-semibold text-on-surface">
+                        {{ $t(`settings_page.${item.key}.title`) }}
+                      </h3>
+                      <p class="text-xs text-on-surface-variant mt-1 line-clamp-2">
+                        {{
+                          item.subtitle
+                            ? item.subtitle()
+                            : $t(`settings_page.${item.key}.description`)
+                        }}
+                      </p>
+                    </div>
                   </div>
-                  <div class="flex-1 min-w-0">
-                    <h3 class="text-sm font-semibold text-on-surface">{{ $t('settings_page.disable_tweaks.title') }}</h3>
-                    <p class="text-xs text-on-surface-variant mt-1 line-clamp-2">{{ $t('settings_page.disable_tweaks.description') }}</p>
+                  <span
+                    v-if="item.status && item.status()"
+                    class="status ms-3"
+                    :class="item.status().tone"
+                    >{{ item.status().label }}</span
+                  >
+                  <div
+                    v-else
+                    class="w-7 h-7 rounded-full bg-surface-dim flex items-center justify-center shrink-0 ms-3"
+                  >
+                    <ChevronRightIcon
+                      class="text-on-surface-variant shrink-0 rtl:rotate-180"
+                      :size="22"
+                    />
                   </div>
                 </div>
-                <div class="w-7 h-7 rounded-full bg-surface-dim flex items-center justify-center shrink-0 ms-3">
-                  <ChevronRightIcon class="text-on-surface-variant shrink-0 rtl:rotate-180" :size="22" />
-                </div>
-              </div>
-            </RippleComponent>
+              </RippleComponent>
+            </div>
           </div>
-
-          <div class="md3-list">
-            <RippleComponent @click="openFluxSchedView" class="md3-list-item" tabindex="0">
-              <div class="flex items-center justify-between px-5 py-4">
-                <div class="flex items-center gap-4 min-w-0 flex-1">
-                  <div class="w-10 h-10 shape-cookie9 bg-primary-container flex items-center justify-center shrink-0">
-                    <ChipsetIcon class="w-5 h-5 text-on-primary-container" />
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <h3 class="text-sm font-semibold text-on-surface">{{ $t('settings_page.flux_sched.title') }}</h3>
-                    <p class="text-xs text-on-surface-variant mt-1 line-clamp-2">{{ $t('settings_page.flux_sched.description') }}</p>
-                  </div>
-                </div>
-                <div class="w-7 h-7 rounded-full bg-surface-dim flex items-center justify-center shrink-0 ms-3">
-                  <ChevronRightIcon class="text-on-surface-variant shrink-0 rtl:rotate-180" :size="22" />
-                </div>
-              </div>
-            </RippleComponent>
-          </div>
-
-          <div class="md3-list">
-            <RippleComponent @click="openFluxBoostView" class="md3-list-item" tabindex="0">
-              <div class="flex items-center justify-between px-5 py-4">
-                <div class="flex items-center gap-4 min-w-0 flex-1">
-                  <div class="w-10 h-10 shape-cookie9 bg-primary-container flex items-center justify-center shrink-0">
-                    <BoltChargeIcon class="w-5 h-5 text-on-primary-container" />
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <h3 class="text-sm font-semibold text-on-surface">{{ $t('settings_page.flux_boost.title') }}</h3>
-                    <p class="text-xs text-on-surface-variant mt-1 line-clamp-2">{{ $t('settings_page.flux_boost.description') }}</p>
-                  </div>
-                </div>
-                <div class="w-7 h-7 rounded-full bg-surface-dim flex items-center justify-center shrink-0 ms-3">
-                  <ChevronRightIcon class="text-on-surface-variant shrink-0 rtl:rotate-180" :size="22" />
-                </div>
-              </div>
-            </RippleComponent>
-          </div>
-
-          <div class="md3-list">
-            <RippleComponent @click="openLanguageView" class="md3-list-item" tabindex="0">
-              <div class="flex items-center justify-between px-5 py-4">
-                <div class="flex items-center gap-4 min-w-0 flex-1">
-                  <div class="w-10 h-10 shape-cookie9 bg-primary-container flex items-center justify-center shrink-0">
-                    <LanguageIcon class="w-5 h-5 text-on-primary-container" />
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <h3 class="text-sm font-semibold text-on-surface">{{ $t('settings_page.language.title') }}</h3>
-                    <p class="text-xs text-on-surface-variant mt-1">{{ currentLanguage }}</p>
-                  </div>
-                </div>
-                <div class="w-7 h-7 rounded-full bg-surface-dim flex items-center justify-center shrink-0 ms-3">
-                  <ChevronRightIcon class="text-on-surface-variant shrink-0 rtl:rotate-180" :size="22" />
-                </div>
-              </div>
-            </RippleComponent>
-          </div>
-        </div>
-
-        <!-- System -->
-        <div class="px-4 py-2 mb-1">
-          <h2 class="text-sm font-semibold text-primary">
-            {{ $t('settings_page.section.system') }}
-          </h2>
-        </div>
-
-        <div class="space-y-1.5 mb-4">
-          <div class="md3-list">
-            <RippleComponent @click="openDeviceMitigationView" class="md3-list-item" tabindex="0">
-              <div class="flex items-center justify-between px-5 py-4">
-                <div class="flex items-center gap-4 min-w-0 flex-1">
-                  <div class="w-10 h-10 shape-cookie9 bg-primary-container flex items-center justify-center shrink-0">
-                    <BugIcon class="w-5 h-5 text-on-primary-container" />
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <h3 class="text-sm font-semibold text-on-surface">{{ $t('settings_page.device_mitigation.title') }}</h3>
-                    <p class="text-xs text-on-surface-variant mt-1 line-clamp-2">{{ $t('settings_page.device_mitigation.description') }}</p>
-                  </div>
-                </div>
-                <div class="w-7 h-7 rounded-full bg-surface-dim flex items-center justify-center shrink-0 ms-3">
-                  <ChevronRightIcon class="text-on-surface-variant shrink-0 rtl:rotate-180" :size="22" />
-                </div>
-              </div>
-            </RippleComponent>
-          </div>
-
-          <div class="md3-list">
-            <RippleComponent @click="openCpuGovernorView" class="md3-list-item" tabindex="0">
-              <div class="flex items-center justify-between px-5 py-4">
-                <div class="flex items-center gap-4 min-w-0 flex-1">
-                  <div class="w-10 h-10 shape-cookie9 bg-primary-container flex items-center justify-center shrink-0">
-                    <ChipsetIcon class="w-5 h-5 text-on-primary-container" />
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <h3 class="text-sm font-semibold text-on-surface">{{ $t('settings_page.cpu_governor.title') }}</h3>
-                    <p class="text-xs text-on-surface-variant mt-1 line-clamp-2">{{ $t('settings_page.cpu_governor.description') }}</p>
-                  </div>
-                </div>
-                <div class="w-7 h-7 rounded-full bg-surface-dim flex items-center justify-center shrink-0 ms-3">
-                  <ChevronRightIcon class="text-on-surface-variant shrink-0 rtl:rotate-180" :size="22" />
-                </div>
-              </div>
-            </RippleComponent>
-          </div>
-
-          <div class="md3-list">
-            <RippleComponent @click="openLogLvlView" class="md3-list-item" tabindex="0">
-              <div class="flex items-center justify-between px-5 py-4">
-                <div class="flex items-center gap-4 min-w-0 flex-1">
-                  <div class="w-10 h-10 shape-cookie9 bg-primary-container flex items-center justify-center shrink-0">
-                    <TextIcon class="w-5 h-5 text-on-primary-container" />
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <h3 class="text-sm font-semibold text-on-surface">{{ $t('settings_page.log_level.title') }}</h3>
-                    <p class="text-xs text-on-surface-variant mt-1 line-clamp-2">{{ $t('settings_page.log_level.description') }}</p>
-                  </div>
-                </div>
-                <div class="w-7 h-7 rounded-full bg-surface-dim flex items-center justify-center shrink-0 ms-3">
-                  <ChevronRightIcon class="text-on-surface-variant shrink-0 rtl:rotate-180" :size="22" />
-                </div>
-              </div>
-            </RippleComponent>
-          </div>
-        </div>
-
-        <!-- Others -->
-        <div class="px-4 py-2 mb-1">
-          <h2 class="text-sm font-semibold text-primary">
-            {{ $t('settings_page.section.others') }}
-          </h2>
-        </div>
-
-        <div class="space-y-1.5 mb-4">
-          <div class="md3-list">
-            <RippleComponent @click="openExportModal" class="md3-list-item" tabindex="0">
-              <div class="flex items-center justify-between px-5 py-4">
-                <div class="flex items-center gap-4 min-w-0 flex-1">
-                  <div class="w-10 h-10 shape-cookie9 bg-primary-container flex items-center justify-center shrink-0">
-                    <ContentSaveIcon class="w-5 h-5 text-on-primary-container" />
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <h3 class="text-sm font-semibold text-on-surface">{{ $t('settings_page.save_log.title') }}</h3>
-                    <p class="text-xs text-on-surface-variant mt-1 line-clamp-2">{{ $t('settings_page.save_log.description') }}</p>
-                  </div>
-                </div>
-                <div class="w-7 h-7 rounded-full bg-surface-dim flex items-center justify-center shrink-0 ms-3">
-                  <ChevronRightIcon class="text-on-surface-variant shrink-0 rtl:rotate-180" :size="22" />
-                </div>
-              </div>
-            </RippleComponent>
-          </div>
-
-          <div class="md3-list">
-            <RippleComponent @click="createShortcut" class="md3-list-item" tabindex="0">
-              <div class="flex items-center justify-between px-5 py-4">
-                <div class="flex items-center gap-4 min-w-0 flex-1">
-                  <div class="w-10 h-10 shape-cookie9 bg-primary-container flex items-center justify-center shrink-0">
-                    <HomePlusIcon class="w-5 h-5 text-on-primary-container" />
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <h3 class="text-sm font-semibold text-on-surface">{{ $t('settings_page.create_shortcut.title') }}</h3>
-                    <p class="text-xs text-on-surface-variant mt-1 line-clamp-2">{{ $t('settings_page.create_shortcut.description') }}</p>
-                  </div>
-                </div>
-                <div class="w-7 h-7 rounded-full bg-surface-dim flex items-center justify-center shrink-0 ms-3">
-                  <ChevronRightIcon class="text-on-surface-variant shrink-0 rtl:rotate-180" :size="22" />
-                </div>
-              </div>
-            </RippleComponent>
-          </div>
-
-          <div class="md3-list">
-            <RippleComponent @click="openAboutView" class="md3-list-item" tabindex="0">
-              <div class="flex items-center justify-between px-5 py-4">
-                <div class="flex items-center gap-4 min-w-0 flex-1">
-                  <div class="w-10 h-10 shape-cookie9 bg-primary-container flex items-center justify-center shrink-0">
-                    <InformationOutlineIcon class="text-on-primary-container" :size="20" />
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <h3 class="text-sm font-semibold text-on-surface">{{ $t('settings_page.section.about') }}</h3>
-                    <p class="text-xs text-on-surface-variant mt-1 line-clamp-2">{{ $t('settings_page.about.entry') }}</p>
-                  </div>
-                </div>
-                <div class="w-7 h-7 rounded-full bg-surface-dim flex items-center justify-center shrink-0 ms-3">
-                  <ChevronRightIcon class="text-on-surface-variant shrink-0 rtl:rotate-180" :size="22" />
-                </div>
-              </div>
-            </RippleComponent>
-          </div>
-        </div>
-
+        </template>
       </div>
     </div>
 
     <!-- Export Modal -->
-    <Modal :show="showExportModal" :title="$t('settings_page.save_log.title')" @close="closeExportModal"
-      :closeOnOutsideClick="false">
+    <Modal
+      :show="showExportModal"
+      :title="$t('settings_page.save_log.title')"
+      @close="closeExportModal"
+      :closeOnOutsideClick="false"
+    >
       <div class="px-4 pb-2">
         <div v-if="exportStatus === 'loading'" class="flex flex-col items-center gap-4 py-6">
           <LoadingSpinner :size="40" class="text-primary" />
-          <p class="text-on-surface-variant text-sm">{{ $t('settings_page.save_log.exporting') }}</p>
+          <p class="text-on-surface-variant text-sm">
+            {{ $t('settings_page.save_log.exporting') }}
+          </p>
         </div>
 
         <div v-else-if="exportStatus === 'success'" class="flex flex-col items-center gap-3 py-4">
           <CheckCircle :size="48" class="text-primary" />
-          <p class="text-on-surface font-medium text-center">{{ $t('settings_page.save_log.success') }}</p>
-          <p class="text-on-surface-variant text-xs break-all text-center bg-surface-container-low px-4 py-3 rounded-xl w-full font-mono">
+          <p class="text-on-surface font-medium text-center">
+            {{ $t('settings_page.save_log.success') }}
+          </p>
+          <p
+            class="text-on-surface-variant text-xs break-all text-center bg-surface-container-low px-4 py-3 rounded-xl w-full font-mono"
+          >
             {{ exportPath }}
           </p>
         </div>
 
         <div v-else-if="exportStatus === 'error'" class="flex flex-col items-center gap-3 py-4">
           <ErrorIcon :size="48" class="text-error" />
-          <p class="text-on-surface font-medium text-center">{{ $t('settings_page.save_log.failure') }}</p>
+          <p class="text-on-surface font-medium text-center">
+            {{ $t('settings_page.save_log.failure') }}
+          </p>
           <p class="text-on-surface-variant text-sm text-center">{{ exportErrorMsg }}</p>
         </div>
       </div>
 
       <template #actions>
         <div v-if="exportStatus !== 'loading'" class="flex gap-2">
-          <button @click="closeExportModal"
-            class="px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/10 rounded-full transition-colors">
+          <button
+            @click="closeExportModal"
+            class="px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/10 rounded-full transition-colors"
+          >
             {{ exportStatus === 'success' ? $t('common.ok') : $t('common.cancel') }}
           </button>
         </div>
@@ -287,20 +112,19 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useLanguageStore } from '@/stores/Language'
+import { useFluxConfigStore } from '@/stores/FluxConfig'
 
 import RippleComponent from '@/components/ui/Ripple.vue'
 import ChevronRightIcon from '@/components/icons/ChevronRight.vue'
 import LanguageIcon from '@/components/icons/Language.vue'
-import FeatherIcon from '@/components/icons/Feather.vue'
 import TuneIcon from '@/components/icons/Tune.vue'
 import ChipsetIcon from '@/components/icons/Chipset.vue'
 import BoltChargeIcon from '@/components/icons/BoltCharge.vue'
 import InformationOutlineIcon from '@/components/icons/InformationOutline.vue'
-import BugIcon from '@/components/icons/Bug.vue'
 import TextIcon from '@/components/icons/Text.vue'
 import HomePlusIcon from '@/components/icons/HomePlus.vue'
 import ContentSaveIcon from '@/components/icons/ContentSave.vue'
@@ -308,6 +132,11 @@ import ErrorIcon from '@/components/icons/Error.vue'
 import Modal from '@/components/ui/Modal.vue'
 import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 import CheckCircle from '@/components/icons/CheckCircle.vue'
+import LeafIcon from '@/components/icons/Leaf.vue'
+import PauseIcon from '@/components/icons/Pause.vue'
+import GamesIcon from '@/components/icons/Games.vue'
+import GpuIcon from '@/components/icons/Gpu.vue'
+import ShieldIcon from '@/components/icons/Shield.vue'
 
 import * as KernelSU from '@/helpers/KernelSU'
 import { exec } from 'kernelsu'
@@ -331,19 +160,143 @@ const currentLanguage = computed(() => {
   }
 })
 
-const openLiteModeView = () => router.push('/settings/lite_mode')
-const openLanguageView = () => router.push('/settings/language')
-const openDeviceMitigationView = () => router.push('/settings/device_mitigation')
-const openCpuGovernorView = () => router.push('/settings/cpu_governor')
-const openLogLvlView = () => router.push('/settings/log_level')
-const openDisableTweaksView = () => router.push('/settings/disable_tweaks')
-const openFluxSchedView = () => router.push('/settings/flux_sched')
-const openFluxBoostView = () => router.push('/settings/flux_boost')
-const openAboutView = () => router.push('/settings/about')
-const createShortcut = () => KernelSU.createShortcut()
+const fluxConfigStore = useFluxConfigStore()
+onMounted(() => {
+  if (!fluxConfigStore.isLoaded) fluxConfigStore.loadConfig().catch(() => {})
+})
 
+const go = (path) => () => router.push(`/settings/${path}`)
+const tone = {
+  primary: 'bg-primary-container text-on-primary-container',
+  secondary: 'bg-secondary-container text-on-secondary-container',
+  tertiary: 'bg-tertiary-container text-on-tertiary-container',
+  error: 'bg-error-container text-on-error-container',
+  neutral: 'bg-surface-container-highest text-on-surface',
+}
+// A small "On" pill on switches that change how every game runs.
+const onPill = (value, danger = false) =>
+  value
+    ? {
+        label: t('common.on'),
+        tone: danger ? 'bg-error text-on-error' : 'bg-primary text-on-primary',
+      }
+    : null
 
-const openExportModal = () => {
+// Each entry gets its own shape and colour so the list is easy to scan.
+const sections = computed(() => [
+  {
+    key: 'preferences',
+    items: [
+      {
+        key: 'lite_mode',
+        icon: LeafIcon,
+        shape: 'shape-flower',
+        tone: tone.secondary,
+        run: go('lite_mode'),
+        status: () => onPill(fluxConfigStore.isLiteModeEnabled),
+      },
+      {
+        key: 'game_tweaks',
+        icon: GamesIcon,
+        shape: 'shape-cookie12',
+        tone: tone.tertiary,
+        run: go('game_tweaks'),
+      },
+      {
+        key: 'flux_boost',
+        icon: BoltChargeIcon,
+        shape: 'shape-burst',
+        tone: tone.primary,
+        run: go('flux_boost'),
+      },
+      {
+        key: 'flux_sched',
+        icon: TuneIcon,
+        shape: 'shape-pentagon',
+        tone: tone.secondary,
+        run: go('flux_sched'),
+      },
+      {
+        key: 'disable_tweaks',
+        icon: PauseIcon,
+        shape: 'shape-cookie6',
+        tone: tone.error,
+        run: go('disable_tweaks'),
+        status: () => onPill(fluxConfigStore.isDisableTweaksEnabled, true),
+      },
+      {
+        key: 'language',
+        icon: LanguageIcon,
+        shape: 'shape-circle',
+        tone: tone.neutral,
+        run: go('language'),
+        subtitle: () => currentLanguage.value,
+      },
+    ],
+  },
+  {
+    key: 'system',
+    items: [
+      {
+        key: 'cpu_governor',
+        icon: ChipsetIcon,
+        shape: 'shape-cookie12',
+        tone: tone.tertiary,
+        run: go('cpu_governor'),
+      },
+      {
+        key: 'gpu_governor',
+        icon: GpuIcon,
+        shape: 'shape-sunny',
+        tone: tone.secondary,
+        run: go('gpu_governor'),
+      },
+      {
+        key: 'device_mitigation',
+        icon: ShieldIcon,
+        shape: 'shape-clover4',
+        tone: tone.primary,
+        run: go('device_mitigation'),
+      },
+      {
+        key: 'log_level',
+        icon: TextIcon,
+        shape: 'shape-cookie4',
+        tone: tone.neutral,
+        run: go('log_level'),
+      },
+    ],
+  },
+  {
+    key: 'others',
+    items: [
+      {
+        key: 'save_log',
+        icon: ContentSaveIcon,
+        shape: 'shape-cookie9',
+        tone: tone.primary,
+        run: openExportModal,
+      },
+      {
+        key: 'create_shortcut',
+        icon: HomePlusIcon,
+        shape: 'shape-flower',
+        tone: tone.tertiary,
+        run: () => KernelSU.createShortcut(),
+      },
+      {
+        key: 'about',
+        icon: InformationOutlineIcon,
+        shape: 'shape-sunny',
+        tone: tone.secondary,
+        run: go('about'),
+        subtitle: () => t('settings_page.about.entry'),
+      },
+    ],
+  },
+])
+
+function openExportModal() {
   exportStatus.value = 'loading'
   exportPath.value = ''
   exportErrorMsg.value = ''
@@ -357,7 +310,7 @@ const openExportModal = () => {
           exportErrorMsg.value = stderr.trim()
         } else {
           exportStatus.value = 'success'
-          exportPath.value = stdout.trim()
+          exportPath.value = stdout.trim().split('\n').pop()
         }
       })
       .catch((err) => {
@@ -381,6 +334,22 @@ const closeExportModal = () => {
 </script>
 
 <style scoped>
+.entry-badge {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.status {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
 .line-clamp-2 {
   display: -webkit-box;
   line-clamp: 2;
@@ -388,5 +357,4 @@ const closeExportModal = () => {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-
 </style>

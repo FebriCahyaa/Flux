@@ -52,6 +52,8 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFluxConfigStore } from '@/stores/FluxConfig'
+import { useNotifyStore } from '@/stores/Notify'
+import { useI18n } from 'vue-i18n'
 import { exec } from 'kernelsu'
 
 import ArrowLeftIcon from '@/components/icons/ArrowLeft.vue'
@@ -62,6 +64,8 @@ const UCLAMP_NODE = '/dev/cpuctl/top-app/cpu.uclamp.min'
 
 const router = useRouter()
 const fluxConfigStore = useFluxConfigStore()
+const notify = useNotifyStore()
+const { t } = useI18n()
 
 const isFluxSchedEnabled = ref(true)
 const isSupported = ref(null) // null = not checked yet
@@ -93,9 +97,13 @@ async function toggleFluxSched(enabled) {
     }
     fluxConfigStore.setFluxSched(enabled)
     await fluxConfigStore.saveConfig()
+    notify.success(
+      t(enabled ? 'game_tweaks.saved_on' : 'game_tweaks.saved_off', { name: 'Flux Sched' }),
+    )
   } catch (error) {
     console.error('Failed to set Flux Sched:', error)
     isFluxSchedEnabled.value = fluxConfigStore.isFluxSchedEnabled
+    notify.error(t('notify.save_failed'))
   }
 }
 

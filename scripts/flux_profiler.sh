@@ -851,6 +851,108 @@ flux_boost() {
 }
 
 ###################################
+# Game tweaks: network, touch, refresh rate, GPU governor
+###################################
+
+# Each part can be switched off in the WebUI (Settings → Game tweaks); a part
+# that is off is restored to the values saved before Flux first changed it.
+
+FLUX_NET_NODES="/proc/sys/net/ipv4/tcp_congestion_control /proc/sys/net/ipv4/tcp_low_latency \
+/proc/sys/net/ipv4/tcp_ecn /proc/sys/net/ipv4/tcp_fastopen /proc/sys/net/ipv4/tcp_sack \
+/proc/sys/net/ipv4/tcp_timestamps"
+
+# Low-latency TCP (congestion control, ECN, Fast Open). FLUX_NET_DISABLED: stock values.
+flux_net() {
+	# shellcheck disable=SC2086
+	flux_boost_save net $FLUX_NET_NODES
+	if [ -n "$FLUX_NET_DISABLED" ]; then
+		flux_boost_restore net
+		return 0
+	fi
+	for algo in bbr3 bbr2 bbrplus bbr westwood cubic; do
+		if grep -q "$algo" /proc/sys/net/ipv4/tcp_available_congestion_control; then
+			apply "$algo" /proc/sys/net/ipv4/tcp_congestion_control
+			break
+		fi
+	done
+	apply 1 /proc/sys/net/ipv4/tcp_low_latency
+	apply 1 /proc/sys/net/ipv4/tcp_ecn
+	apply 3 /proc/sys/net/ipv4/tcp_fastopen
+	apply 1 /proc/sys/net/ipv4/tcp_sack
+	apply 0 /proc/sys/net/ipv4/tcp_timestamps
+}
+
+# Touch panel game mode (OPPO / Realme / OnePlus touchpanel driver). flux_touch <on|off>
+flux_touch() {
+	tp_path="/proc/touchpanel"
+	[ -d "$tp_path" ] || return 0
+	if [ "$1" = on ] && [ -z "$FLUX_TOUCH_DISABLED" ]; then
+		apply 1 $tp_path/game_switch_enable
+		apply 0 $tp_path/oplus_tp_limit_enable
+		apply 0 $tp_path/oppo_tp_limit_enable
+		apply 1 $tp_path/oplus_tp_direction
+		apply 1 $tp_path/oppo_tp_direction
+	else
+		apply 0 $tp_path/game_switch_enable
+		apply 1 $tp_path/oplus_tp_limit_enable
+		apply 1 $tp_path/oppo_tp_limit_enable
+		apply 0 $tp_path/oplus_tp_direction
+		apply 0 $tp_path/oppo_tp_direction
+	fi
+}
+
+# Highest refresh rate while gaming (opt-in: FLUX_REFRESH_ENABLED). flux_refresh <boost|restore>
+FLUX_REFRESH_BACKUP="/dev/.flux_refresh_orig"
+flux_refresh() {
+	if [ "$1" = boost ] && [ -n "$FLUX_REFRESH_ENABLED" ]; then
+		max=$(dumpsys display 2>/dev/null | grep -oE 'fps=[0-9]+(\.[0-9]+)?' | cut -d= -f2 | sort -rn | head -n 1)
+		max=${max%%.*}
+		case "$max" in '' | *[!0-9]*) return 0 ;; esac
+		[ "$max" -ge 60 ] || return 0
+		[ -f "$FLUX_REFRESH_BACKUP" ] ||
+			echo "$(settings get system peak_refresh_rate) $(settings get system min_refresh_rate)" >"$FLUX_REFRESH_BACKUP"
+		settings put system peak_refresh_rate "$max"
+		settings put system min_refresh_rate "$max"
+		return 0
+	fi
+	[ -f "$FLUX_REFRESH_BACKUP" ] || return 0
+	read -r peak min <"$FLUX_REFRESH_BACKUP"
+	for pair in "peak_refresh_rate:$peak" "min_refresh_rate:$min"; do
+		key=${pair%%:*}
+		val=${pair#*:}
+		if [ -z "$val" ] || [ "$val" = null ]; then
+			settings delete system "$key" >/dev/null 2>&1
+		else
+			settings put system "$key" "$val"
+		fi
+	done
+	rm -f "$FLUX_REFRESH_BACKUP"
+}
+
+# GPU devfreq governor node (Adreno kgsl, Mali / PowerVR / Xclipse devfreq)
+gpu_governor_node() {
+	for node in /sys/class/kgsl/kgsl-3d0/devfreq/governor /sys/class/devfreq/*gpu*/governor \
+		/sys/class/devfreq/*mali*/governor /sys/class/devfreq/*g3d*/governor; do
+		[ -f "$node" ] && {
+			echo "$node"
+			return 0
+		}
+	done
+	return 1
+}
+
+# change_gpu_gov <governor>: empty or unavailable keeps the kernel's own governor.
+change_gpu_gov() {
+	node=$(gpu_governor_node) || return 0
+	flux_boost_save gpugov "$node"
+	if [ -n "$1" ] && grep -qw -- "$1" "${node%/governor}/available_governors" 2>/dev/null; then
+		apply "$1" "$node"
+	else
+		flux_boost_restore gpugov
+	fi
+}
+
+###################################
 # Main Performance scripts
 ###################################
 
@@ -876,19 +978,8 @@ perfcommon() {
 		apply 0 "$dir/queue/add_random"
 	done &
 
-	# Networking tweaks
-	for algo in bbr3 bbr2 bbrplus bbr westwood cubic; do
-		if grep -q "$algo" /proc/sys/net/ipv4/tcp_available_congestion_control; then
-			apply "$algo" /proc/sys/net/ipv4/tcp_congestion_control
-			break
-		fi
-	done
-
-	apply 1 /proc/sys/net/ipv4/tcp_low_latency
-	apply 1 /proc/sys/net/ipv4/tcp_ecn
-	apply 3 /proc/sys/net/ipv4/tcp_fastopen
-	apply 1 /proc/sys/net/ipv4/tcp_sack
-	apply 0 /proc/sys/net/ipv4/tcp_timestamps
+	# Networking tweaks (switchable: Game tweaks → Network)
+	flux_net
 
 	# Limit max perf event processing time to this much CPU usage
 	apply 3 /proc/sys/kernel/perf_cpu_time_max_percent
@@ -1015,15 +1106,14 @@ performance_profile() {
 	# Memory, block queues and game thread priority (Flux Boost)
 	flux_boost boost
 
-	# Oppo/Oplus/Realme Touchpanel
-	tp_path="/proc/touchpanel"
-	if [ -d "$tp_path" ]; then
-		apply 1 $tp_path/game_switch_enable
-		apply 0 $tp_path/oplus_tp_limit_enable
-		apply 0 $tp_path/oppo_tp_limit_enable
-		apply 1 $tp_path/oplus_tp_direction
-		apply 1 $tp_path/oppo_tp_direction
-	fi
+	# Touch panel game mode (switchable: Game tweaks → Touch)
+	flux_touch on
+
+	# Highest refresh rate while gaming (opt-in)
+	flux_refresh boost
+
+	# The performance tweaks below drive the GPU; keep the kernel's governor under them.
+	change_gpu_gov ""
 
 	# Memory tweak
 	apply 80 /proc/sys/vm/vfs_cache_pressure
@@ -1063,7 +1153,8 @@ performance_profile() {
 	6) tegra_performance ;;
 	esac
 
-	echo 3 >/proc/sys/vm/drop_caches
+	# Free the page cache for the game (switchable: Game tweaks → Clear memory cache)
+	[ -z "$FLUX_DROP_CACHES_DISABLED" ] && echo 3 >/proc/sys/vm/drop_caches
 }
 
 balance_profile() {
@@ -1101,15 +1192,12 @@ balance_profile() {
 	# Flux Boost off: vendor memory / block queue values, game threads back to their priority
 	flux_boost restore
 
-	# Oppo/Oplus/Realme Touchpanel
-	tp_path="/proc/touchpanel"
-	if [ -d "$tp_path" ]; then
-		apply 0 $tp_path/game_switch_enable
-		apply 1 $tp_path/oplus_tp_limit_enable
-		apply 1 $tp_path/oppo_tp_limit_enable
-		apply 0 $tp_path/oplus_tp_direction
-		apply 0 $tp_path/oppo_tp_direction
-	fi
+	# Touch panel back to normal, refresh rate back to the user's setting
+	flux_touch off
+	flux_refresh restore
+
+	# Re-evaluate the network switch (it may have changed since boot)
+	flux_net
 
 	# Memory Tweaks
 	apply 120 /proc/sys/vm/vfs_cache_pressure
@@ -1140,6 +1228,9 @@ balance_profile() {
 	5) tensor_normal ;;
 	6) tegra_normal ;;
 	esac
+
+	# GPU governor for daily use (empty = the kernel's own)
+	change_gpu_gov "$FLUX_BALANCED_GPUGOV"
 }
 
 powersave_profile() {
@@ -1171,6 +1262,9 @@ powersave_profile() {
 	5) tensor_powersave ;;
 	6) tegra_powersave ;;
 	esac
+
+	# GPU governor for powersave (empty = the kernel's own)
+	change_gpu_gov "$FLUX_POWERSAVE_GPUGOV"
 }
 
 ###################################

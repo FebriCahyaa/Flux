@@ -80,6 +80,10 @@ bool FluxConfigStore::save_config(const std::string &config_path) {
     prefs_obj.AddMember("flux_vm", config_.preferences.flux_vm, allocator);
     prefs_obj.AddMember("flux_io", config_.preferences.flux_io, allocator);
     prefs_obj.AddMember("game_priority", config_.preferences.game_priority, allocator);
+    prefs_obj.AddMember("net_tweaks", config_.preferences.net_tweaks, allocator);
+    prefs_obj.AddMember("touch_tweaks", config_.preferences.touch_tweaks, allocator);
+    prefs_obj.AddMember("game_refresh_rate", config_.preferences.game_refresh_rate, allocator);
+    prefs_obj.AddMember("drop_caches", config_.preferences.drop_caches, allocator);
     prefs_obj.AddMember("log_level", config_.preferences.log_level, allocator);
     doc.AddMember("preferences", prefs_obj, allocator);
 
@@ -88,6 +92,12 @@ bool FluxConfigStore::save_config(const std::string &config_path) {
     cpu_gov_obj.AddMember("balance", rapidjson::Value(config_.cpu_governor.balance.c_str(), allocator).Move(), allocator);
     cpu_gov_obj.AddMember("powersave", rapidjson::Value(config_.cpu_governor.powersave.c_str(), allocator).Move(), allocator);
     doc.AddMember("cpu_governor", cpu_gov_obj, allocator);
+
+    // Serialize GPU governor
+    rapidjson::Value gpu_gov_obj(rapidjson::kObjectType);
+    gpu_gov_obj.AddMember("balance", rapidjson::Value(config_.gpu_governor.balance.c_str(), allocator).Move(), allocator);
+    gpu_gov_obj.AddMember("powersave", rapidjson::Value(config_.gpu_governor.powersave.c_str(), allocator).Move(), allocator);
+    doc.AddMember("gpu_governor", gpu_gov_obj, allocator);
 
     rapidjson::StringBuffer buffer;
     rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
@@ -115,6 +125,11 @@ FluxConfigStore::ConfigData FluxConfigStore::get_config() const {
 FluxConfigStore::Preferences FluxConfigStore::get_preferences() const {
     std::lock_guard<std::mutex> lock(mutex_);
     return config_.preferences;
+}
+
+FluxConfigStore::GPUGovernor FluxConfigStore::get_gpu_governor() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return config_.gpu_governor;
 }
 
 FluxConfigStore::CPUGovernor FluxConfigStore::get_cpu_governor() const {
@@ -173,12 +188,17 @@ bool FluxConfigStore::create_default_config() {
             .flux_vm = true,
             .flux_io = true,
             .game_priority = true,
+            .net_tweaks = true,
+            .touch_tweaks = true,
+            .game_refresh_rate = false,
+            .drop_caches = true,
             .log_level = 4
         },
         .cpu_governor = {
             .balance = default_governor,
             .powersave = default_governor
-        }
+        },
+        .gpu_governor = {}
     };
     // clang-format on
 
@@ -216,7 +236,11 @@ bool FluxConfigStore::parse_config(const rapidjson::Document &doc) {
         // Flux Boost switches; missing keys (older configs) keep their defaults.
         for (const auto &[key, field] : {std::pair{"flux_vm", &Preferences::flux_vm},
                                          std::pair{"flux_io", &Preferences::flux_io},
-                                         std::pair{"game_priority", &Preferences::game_priority}}) {
+                                         std::pair{"game_priority", &Preferences::game_priority},
+                                         std::pair{"net_tweaks", &Preferences::net_tweaks},
+                                         std::pair{"touch_tweaks", &Preferences::touch_tweaks},
+                                         std::pair{"game_refresh_rate", &Preferences::game_refresh_rate},
+                                         std::pair{"drop_caches", &Preferences::drop_caches}}) {
             if (prefs.HasMember(key) && prefs[key].IsBool()) {
                 new_config.preferences.*field = prefs[key].GetBool();
             }
@@ -237,6 +261,17 @@ bool FluxConfigStore::parse_config(const rapidjson::Document &doc) {
 
         if (gov.HasMember("powersave") && gov["powersave"].IsString()) {
             new_config.cpu_governor.powersave = gov["powersave"].GetString();
+        }
+    }
+
+    // Parse GPU governor (absent in older configs: keep the kernel's governor)
+    if (doc.HasMember("gpu_governor") && doc["gpu_governor"].IsObject()) {
+        const rapidjson::Value &gov = doc["gpu_governor"];
+        if (gov.HasMember("balance") && gov["balance"].IsString()) {
+            new_config.gpu_governor.balance = gov["balance"].GetString();
+        }
+        if (gov.HasMember("powersave") && gov["powersave"].IsString()) {
+            new_config.gpu_governor.powersave = gov["powersave"].GetString();
         }
     }
 

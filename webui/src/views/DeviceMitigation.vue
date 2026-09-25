@@ -104,6 +104,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useFluxConfigStore } from '@/stores/FluxConfig'
+import { useNotifyStore } from '@/stores/Notify'
 import * as KernelSU from '@/helpers/KernelSU'
 
 import ArrowLeftIcon from '@/components/icons/ArrowLeft.vue'
@@ -120,6 +121,7 @@ const FALLBACK_ITEMS = ['DISABLE_DDR_TWEAK', 'NO_PERFORMANCE_CPUGOV', 'QCOM_NO_G
 const router = useRouter()
 const { t, te } = useI18n()
 const fluxConfigStore = useFluxConfigStore()
+const notify = useNotifyStore()
 
 const enabled = ref(false)
 const items = ref(FALLBACK_ITEMS)
@@ -174,9 +176,15 @@ async function toggle(value) {
     if (!fluxConfigStore.isLoaded) await fluxConfigStore.loadConfig()
     fluxConfigStore.setDeviceMitigation(value)
     await fluxConfigStore.saveConfig()
+    notify.success(
+      t(value ? 'game_tweaks.saved_on' : 'game_tweaks.saved_off', {
+        name: t('settings_page.device_mitigation.title'),
+      }),
+    )
   } catch (error) {
     console.error('Failed to set device mitigation:', error)
     enabled.value = fluxConfigStore.isDeviceMitigationEnabled
+    notify.error(t('notify.save_failed'))
   }
 }
 

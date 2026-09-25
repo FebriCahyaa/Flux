@@ -29,6 +29,26 @@ change_cpu_gov() {
 	echo "$1" | tee /sys/devices/system/cpu/cpufreq/policy*/scaling_governor >/dev/null
 }
 
+# change_gpu_gov <governor>: live GPU governor change from the WebUI. The
+# kernel's own governor is kept in the same backup file the profiler uses, so
+# an empty governor (or the next balanced/powersave profile) can restore it.
+change_gpu_gov() {
+	backup=/dev/.flux_boost_orig
+	for node in /sys/class/kgsl/kgsl-3d0/devfreq/governor /sys/class/devfreq/*gpu*/governor \
+		/sys/class/devfreq/*mali*/governor /sys/class/devfreq/*g3d*/governor; do
+		[ -f "$node" ] || continue
+		grep -q "^gpugov $node " "$backup" 2>/dev/null ||
+			echo "gpugov $node $(stat -c %a "$node") $(cat "$node")" >>"$backup"
+		gov="$1"
+		if [ -z "$gov" ] || ! grep -qw -- "$gov" "${node%/governor}/available_governors" 2>/dev/null; then
+			gov=$(awk -v n="$node" '$1 == "gpugov" && $2 == n { print $4; exit }' "$backup")
+		fi
+		chmod 644 "$node"
+		echo "$gov" >"$node"
+		return 0
+	done
+}
+
 # Best-effort ROM family from well-known vendor properties.
 # Custom ROMs for Xiaomi devices often keep vendor props such as
 # ro.miui.ui.version.name, so the props alone do not mean MIUI/HyperOS: also
@@ -149,7 +169,9 @@ save_logs() {
 	report_dir="$MODULE_CONFIG/flux_bugreport_temp"
 	mkdir -p "$report_dir/pstore"
 
-	log_file="flux_bugreport_$(date +"%Y-%m-%d_%H_%M").tar.gz"
+	device=$(getprop ro.product.vendor.device)
+	[ -z "$device" ] && device=$(getprop ro.product.device)
+	log_file="flux_bugreport_${device:-device}_$(date +"%Y-%m-%d_%H-%M-%S").tar.gz"
 	SOC="Unknown"
 
 	case $(<$MODULE_CONFIG/soc_recognition) in
@@ -175,6 +197,41 @@ save_logs() {
 		echo ""
 		[ -f "$MODULE_CONFIG/flux.log" ] && cat "$MODULE_CONFIG/flux.log"
 	} >"$report_dir/flux.log"
+
+	# Earlier parts of the log: rotated at 2 MB (flux.1.log) and the previous boot (flux.prev.log)
+	for f in flux.1.log flux.prev.log; do
+		[ -f "$MODULE_CONFIG/$f" ] && cp "$MODULE_CONFIG/$f" "$report_dir/"
+	done
+
+	# Settings and state: what Flux was configured to do and what it was doing
+	mkdir -p "$report_dir/state"
+	for f in config.json device_mitigation.json current_profile gameinfo synthesis_core.json \
+		session_live.json sessions.json soc_recognition binder_codes monitor_mode; do
+		[ -f "$MODULE_CONFIG/$f" ] && cp "$MODULE_CONFIG/$f" "$report_dir/state/"
+	done
+	[ -f "$MODULE_CONFIG/gamelist.json" ] && echo "$(grep -c '"lite_mode"' "$MODULE_CONFIG/gamelist.json") games" >"$report_dir/state/gamelist_count.txt"
+	# Stock values saved by Flux Sched / Flux Boost, and the boosted game threads
+	for f in .flux_sched_orig .flux_boost_orig .flux_game_prio; do
+		[ -f "/dev/$f" ] && cp "/dev/$f" "$report_dir/state/${f#.}.txt"
+	done
+	{
+		for p in ro.product.vendor.device ro.product.model ro.build.display.id ro.modversion \
+			ro.mi.os.version.name ro.mi.os.version.incremental ro.miui.ui.version.name \
+			ro.lineage.version ro.build.version.release ro.build.version.incremental ro.product.cpu.abilist; do
+			echo "$p=$(getprop "$p")"
+		done
+		echo "uptime=$(cat /proc/uptime)"
+	} >"$report_dir/state/props.txt"
+
+	# HiCo Thermal (Flux add-on), when installed
+	hicod=/data/adb/modules/hico/system/bin/hicod
+	if [ -x "$hicod" ]; then
+		{
+			echo "== status"; "$hicod" status
+			echo; echo "== device"; "$hicod" device
+			echo; echo "== monitor"; "$hicod" monitor --once
+		} >"$report_dir/hico_state.txt" 2>&1
+	fi
 
 	[ -f "$MODULE_CONFIG/sysmon.log" ] && cp "$MODULE_CONFIG/sysmon.log" "$report_dir/"
 	[ -f "$MODULE_CONFIG/sysmon.log.prev" ] && cp "$MODULE_CONFIG/sysmon.log.prev" "$report_dir/"

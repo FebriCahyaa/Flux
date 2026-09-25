@@ -10,6 +10,8 @@
       </router-view>
     </main>
     <Navigation />
+    <Snackbar />
+    <ConfirmDialog />
   </div>
 </template>
 
@@ -17,6 +19,8 @@
 import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import Navigation from '@/components/ui/Navigation.vue'
+import Snackbar from '@/components/ui/Snackbar.vue'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 
 const route = useRoute()
 const transitionName = ref('')

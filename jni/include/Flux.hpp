@@ -31,6 +31,9 @@
 // keep their format stable ("<FluxProfileMode>" / "<package> <pid> <uid>" or "NULL 0 0").
 #define PROFILE_MODE CONFIG_DIR "/current_profile"
 #define GAME_INFO CONFIG_DIR "/gameinfo"
+// Game session recorder (SessionRecorder.cpp), read by the WebUI Monitor
+#define SESSION_LIVE_FILE CONFIG_DIR "/session_live.json"
+#define SESSION_HISTORY_FILE CONFIG_DIR "/sessions.json"
 #define CONFIG_FILE CONFIG_DIR "/config.json"
 #define DEVICE_MITIGATION_FILE CONFIG_DIR "/device_mitigation.json"
 #define DEFAULT_CPU_GOV CONFIG_DIR "/default_cpu_gov"

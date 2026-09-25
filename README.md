@@ -64,6 +64,12 @@ fluxd native monitor (binder)  ──status file──▶  fluxd (profiles)  ─
   I/O class; UI / render threads Android already boosts stay as they are). Values are only
   raised, never lowered below the vendor setting; stock values are saved once per boot and
   restored when the game exits.
+- **Game session stats** — every game session is recorded: play time, frame rate (average,
+  median, 1% low, minimum, FPS drops below 80% of the session median, stability), CPU and
+  battery temperatures and time spent in Performance Lite. FPS comes from MediaTek FPSGO (per game
+  process), the Qualcomm display's measured frame rate or SurfaceFlinger's page-flip counter,
+  whichever the device has; the source is shown. Live in the Monitor tab, with a history of the
+  last 30 sessions and per-session charts (`session_live.json`, `sessions.json` in the config dir).
 - **Device mitigation** — per-device rules that skip tweaks known to misbehave on some hardware.
 - **Kernel awareness** — GKI and vendor kernels get different tweak sets to avoid unsafe nodes.
 - **WebUI** — Material 3 Expressive: spring motion, shape-morphing loading indicator, expressive

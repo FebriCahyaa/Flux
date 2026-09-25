@@ -37,8 +37,77 @@
           {{ $t('monitor_page.synthesis_outdated', { version: monitorStore.synthesisVersion }) }}
         </div>
 
-        <!-- ── Session Card ──────────────────────────────────────────────── -->
-        <div class="session-card bg-secondary-container rounded-2xl p-4 text-on-secondary-container">
+        <!-- ── Live game session (SessionRecorder) ──────────────────────── -->
+        <section v-if="sessions.liveActive" class="live-card m3-enter rounded-[32px] p-5 bg-primary-container text-on-primary-container relative overflow-hidden">
+          <span class="live-deco shape-burst bg-primary" aria-hidden="true"></span>
+
+          <div class="relative flex items-center gap-3">
+            <span class="app-icon shape-cookie9 bg-surface-container-high">
+              <img v-if="sessions.icons[live.package]" :src="sessions.icons[live.package]" alt="" @error="sessions.icons[live.package] = ''" />
+              <span v-else class="app-letter">{{ appName(live.package).charAt(0) }}</span>
+            </span>
+            <div class="min-w-0 flex-1">
+              <p class="text-base font-semibold truncate">{{ appName(live.package) }}</p>
+              <p class="text-xs opacity-80 flex items-center gap-1.5">
+                <span class="rec-dot"></span>{{ $t('sessions.recording') }} · {{ formatDuration(live.elapsed) }}
+              </p>
+            </div>
+            <span class="shrink-0 rounded-full px-3 py-1 text-xs font-semibold"
+              :class="live.lite ? 'bg-tertiary text-on-tertiary' : 'bg-primary text-on-primary'">
+              {{ live.lite ? $t('profiles.performance_lite') : $t('profiles.performance') }}
+            </span>
+          </div>
+
+          <!-- Big FPS -->
+          <div class="relative flex items-end gap-3 mt-5">
+            <span class="m3-headline fps-big tabular-nums">{{ fmt(live.now.fps) }}</span>
+            <div class="pb-2">
+              <p class="text-sm font-semibold">FPS</p>
+              <p class="text-[11px] opacity-70">{{ fpsSourceLabel(live.fps_source) }}</p>
+            </div>
+          </div>
+          <LineChart
+            v-if="liveFps.some((v) => v !== null)"
+            class="relative mt-2"
+            :height="90"
+            :min="0"
+            :series="[{ values: liveFps, color: 'var(--color-primary)', area: true, width: 2.5 }]"
+            :reference="dropLine"
+            :label="$t('sessions.fps_chart')"
+          />
+          <p v-else class="relative text-xs opacity-80 mt-2">{{ $t('sessions.fps_unavailable') }}</p>
+
+          <!-- Stats -->
+          <div class="relative grid grid-cols-4 gap-1 mt-4">
+            <div v-for="stat in liveStats" :key="stat.key" class="stat-tile">
+              <p class="text-[11px] opacity-75">{{ stat.label }}</p>
+              <p class="text-lg font-bold tabular-nums">{{ stat.value }}</p>
+            </div>
+          </div>
+
+          <!-- Temperatures -->
+          <div class="relative grid grid-cols-2 gap-2 mt-2">
+            <div class="temp-tile">
+              <ThermometerIcon :size="18" />
+              <div>
+                <p class="text-[11px] opacity-75">CPU</p>
+                <p class="text-xl font-bold tabular-nums leading-tight">{{ fmt(live.now.cpu, 1) }}°</p>
+                <p class="text-[11px] opacity-75 tabular-nums">{{ $t('sessions.max') }} {{ fmt(live.summary.cpu_max, 1) }}°</p>
+              </div>
+            </div>
+            <div class="temp-tile">
+              <BatteryFullIcon :size="18" />
+              <div>
+                <p class="text-[11px] opacity-75">{{ $t('sessions.battery') }}</p>
+                <p class="text-xl font-bold tabular-nums leading-tight">{{ fmt(live.now.battery, 1) }}°</p>
+                <p class="text-[11px] opacity-75 tabular-nums">{{ $t('sessions.max') }} {{ fmt(live.summary.battery_max, 1) }}°</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Session Card (no game running) ────────────────────────────── -->
+        <div v-else class="session-card bg-secondary-container rounded-2xl p-4 text-on-secondary-container">
           <p class="text-xs font-semibold uppercase tracking-widest opacity-60 mb-3">
             {{ $t('monitor_page.section.session') }}
           </p>
@@ -296,6 +365,44 @@
           </div>
         </div>
 
+
+        <!-- ── Game session history ──────────────────────────────────────── -->
+        <div class="flex items-center justify-between px-4 pt-4 pb-1">
+          <h2 class="text-sm font-semibold text-primary">{{ $t('sessions.history_title') }}</h2>
+          <span v-if="sessions.history.length" class="text-xs text-on-surface-variant">{{ sessions.history.length }}</span>
+        </div>
+        <div v-if="!sessions.history.length" class="m3-card p-5 flex items-center gap-4">
+          <span class="empty-badge shape-clover4 bg-secondary-container text-on-secondary-container"><GamesIcon /></span>
+          <p class="text-sm text-on-surface-variant">{{ $t('sessions.empty') }}</p>
+        </div>
+        <div v-else class="pb-2">
+          <div v-for="s in sessions.history" :key="s.id" class="md3-list">
+            <RippleComponent class="md3-list-item" tabindex="0" @click="openSession(s)">
+              <div class="flex items-center gap-3 px-4 py-3.5">
+                <span class="app-icon shape-cookie9 bg-surface-container-high">
+                  <img v-if="sessions.icons[s.package]" :src="sessions.icons[s.package]" alt="" @error="sessions.icons[s.package] = ''" />
+                  <span v-else class="app-letter">{{ appName(s.package).charAt(0) }}</span>
+                </span>
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-semibold text-on-surface truncate">{{ appName(s.package) }}</p>
+                  <p class="text-xs text-on-surface-variant">{{ formatDate(s.start) }} · {{ formatDuration(s.duration) }}</p>
+                  <div class="flex flex-wrap gap-1 mt-1.5">
+                    <span class="chip" :class="dropTone(s.summary.drops)">
+                      {{ $t('sessions.drops_count', s.summary.drops) }}
+                    </span>
+                    <span v-if="s.summary.cpu_max !== null" class="chip bg-surface-container-highest" :class="tempTone(s.summary.cpu_max)">
+                      CPU {{ fmt(s.summary.cpu_max) }}°
+                    </span>
+                  </div>
+                </div>
+                <div class="text-right shrink-0">
+                  <p class="m3-headline text-2xl text-on-surface tabular-nums">{{ fmt(s.summary.fps_avg) }}</p>
+                  <p class="text-[11px] text-on-surface-variant">{{ $t('sessions.avg_fps') }}</p>
+                </div>
+              </div>
+            </RippleComponent>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -303,8 +410,13 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useMonitorStore } from '@/stores/Monitor'
+import { useSessionsStore, formatDuration, fmt, tempTone } from '@/stores/Sessions'
 import { useI18n } from 'vue-i18n'
+import LineChart from '@/components/ui/LineChart.vue'
+import RippleComponent from '@/components/ui/Ripple.vue'
+import GamesIcon from '@/components/icons/Games.vue'
 
 // Icons
 import BoltChargeIcon from '@/components/icons/BoltCharge.vue'
@@ -327,7 +439,41 @@ import ChipsetIcon from '@/components/icons/Chipset.vue'
 const { t } = useI18n()
 const monitorStore = useMonitorStore()
 
-onMounted(() => monitorStore.init())
+const sessions = useSessionsStore()
+const router = useRouter()
+
+onMounted(() => {
+  monitorStore.init()
+  sessions.loadHistory()
+})
+
+// ── Game sessions ────────────────────────────────────────────────────────────
+
+const live = computed(() => sessions.live)
+const liveFps = computed(() => (live.value?.recent ?? []).map((r) => r[0]))
+const dropLine = computed(() => {
+  const m = live.value?.summary?.fps_median
+  return m ? m * 0.8 : null
+})
+const liveStats = computed(() => {
+  const s = live.value?.summary ?? {}
+  return [
+    { key: 'avg', label: t('sessions.avg'), value: fmt(s.fps_avg) },
+    { key: 'low', label: t('sessions.low1'), value: fmt(s.fps_low1) },
+    { key: 'drops', label: t('sessions.drops'), value: s.drops ?? 0 },
+    { key: 'stable', label: t('sessions.stability'), value: s.stability === null || s.stability === undefined ? '–' : `${fmt(s.stability)}%` },
+  ]
+})
+
+const appName = (pkg) => sessions.labels[pkg] || pkg
+const fpsSourceLabel = (src) => (src ? t(`sessions.source.${src}`) : t('sessions.source.none'))
+const formatDate = (ms) =>
+  new Date(ms).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+const openSession = (s) => router.push(`/monitor/session/${s.id}`)
+const dropTone = (n) =>
+  !n ? 'bg-secondary-container text-on-secondary-container'
+    : n <= 5 ? 'bg-tertiary-container text-on-tertiary-container'
+      : 'bg-error-container text-on-error-container'
 onUnmounted(() => monitorStore.stopPolling())
 
 // ── Live dot ─────────────────────────────────────────────────────────────────
@@ -486,6 +632,107 @@ const zenModeLabel = computed(() => {
 </script>
 
 <style scoped>
+.live-deco {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  right: -60px;
+  top: -70px;
+  opacity: 0.14;
+  animation: live-spin 24s linear infinite;
+}
+
+.fps-big {
+  font-size: 72px;
+  line-height: 0.9;
+}
+
+.rec-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--color-error);
+  animation: rec-blink 1.2s ease-in-out infinite;
+}
+
+.stat-tile {
+  padding: 10px 10px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-on-primary-container) 8%, transparent);
+}
+
+.stat-tile:first-child {
+  border-radius: 18px 6px 6px 18px;
+}
+
+.stat-tile:last-child {
+  border-radius: 6px 18px 18px 6px;
+}
+
+.temp-tile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--color-on-primary-container) 8%, transparent);
+}
+
+.app-icon {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.app-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.empty-badge {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.app-letter {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-on-surface-variant);
+}
+
+.chip {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+@keyframes live-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@keyframes rec-blink {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-deco,
+  .rec-dot {
+    animation: none;
+  }
+}
+
 .live-dot {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 20%, transparent);
 }

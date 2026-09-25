@@ -6,6 +6,7 @@ import Home from '@/views/Home.vue'
 import Games from '@/views/Games.vue'
 import Settings from '@/views/Settings.vue'
 import Monitor from '@/views/Monitor.vue'
+import SessionDetail from '@/views/SessionDetail.vue'
 
 // Setting pages
 import LiteMode from '@/views/LiteMode.vue'
@@ -18,6 +19,8 @@ import LanguageSelection from '@/views/LanguageSelection.vue'
 import LogLevelSelection from '@/views/LogLevelSelection.vue'
 import CpuGovernor from '@/views/CpuGovernor.vue'
 import DeviceMitigation from '@/views/DeviceMitigation.vue'
+import GpuGovernor from '@/views/GpuGovernor.vue'
+import GameTweaks from '@/views/GameTweaks.vue'
 
 window.wx = new WXEventHandler()
 
@@ -44,6 +47,11 @@ const routes = [
   },
 
   // Setting Pages
+  {
+    path: '/monitor/session/:id',
+    name: 'SessionDetail',
+    component: SessionDetail,
+  },
   {
     path: '/games/:packageName',
     name: 'GameSettings',
@@ -88,6 +96,16 @@ const routes = [
     path: '/settings/cpu_governor',
     name: 'CpuGovernor',
     component: CpuGovernor,
+  },
+  {
+    path: '/settings/gpu_governor',
+    name: 'GpuGovernor',
+    component: GpuGovernor,
+  },
+  {
+    path: '/settings/game_tweaks',
+    name: 'GameTweaks',
+    component: GameTweaks,
   },
   {
     path: '/settings/log_level',

@@ -40,8 +40,21 @@
     "search_placeholder": "Cari aplikasi",
     "no_apps_found": "Tidak ada aplikasi yang ditemukan",
     "badges": {
-      "tweak_enabled": "Aktif"
-    }
+      "tweak_enabled": "Aktif",
+      "dnd": "DND"
+    },
+    "count": "tanpa game | {n} game | {n} game",
+    "tabs": {
+      "mine": "Game saya",
+      "all": "Semua aplikasi"
+    },
+    "empty_title": "Belum ada game",
+    "empty_hint": "Tambahkan game yang ingin di-boost Flux dari Semua aplikasi.",
+    "all_hint": "Ketuk Tambah pada game, dan Flux akan mem-boost-nya setiap kali tampil di layar.",
+    "add": "Tambah",
+    "added": "Ditambahkan",
+    "never_played": "Belum dimainkan",
+    "last_played": "Dimainkan {when}"
   },
   "settings_page": {
     "title": "Pengaturan",
@@ -72,7 +85,7 @@
     },
     "save_log": {
       "title": "Simpan Log",
-      "description": "Ekspor log diagnostik lengkap Flux untuk debugging atau pelaporan",
+      "description": "Kemas log, pengaturan, sesi game dan laporan perangkat ke folder Download untuk laporan bug",
       "exporting": "Menyimpan log, tunggu sebentar ya…",
       "success": "Log berhasil disimpan",
       "failure": "Gagal menyimpan log"
@@ -94,7 +107,8 @@
       "license": "Lisensi",
       "description": "Flux Tweaks adalah modul Magisk performa tinggi yang dikembangkan oleh FebriCahyaa, menargetkan SoC Snapdragon dengan profiling cerdas, kesadaran termal, dan penyetelan CPU/GPU tingkat game. Dibangun di atas daemon C++, aplikasi pendamping Kotlin/Compose, dan WebUI Vue 3.",
       "tagline": "Performa, berevolusi.",
-      "entry": "Pengembang, lisensi dan tautan"
+      "entry": "Pengembang, lisensi dan tautan",
+      "title": "Tentang"
     },
     "flux_sched": {
       "title": "Flux Sched",
@@ -103,6 +117,14 @@
     "flux_boost": {
       "title": "Flux Boost",
       "description": "Memori, penyimpanan dan prioritas thread game saat bermain"
+    },
+    "game_tweaks": {
+      "title": "Tweak Game",
+      "description": "Tweak jaringan, sentuhan, refresh rate dan memori saat bermain"
+    },
+    "gpu_governor": {
+      "title": "Governor GPU",
+      "description": "Pilih governor GPU untuk profil seimbang dan hemat daya"
     }
   },
   "game_settings": {
@@ -115,7 +137,15 @@
     "dnd_mode": "Jangan Ganggu",
     "dnd_mode_description": "Blokir notifikasi dan panggilan saat bermain game",
     "launch_app": "Buka",
-    "app_info": "Info aplikasi"
+    "app_info": "Info aplikasi",
+    "enabled_hint": "Flux mem-boost game ini saat tampil di layar",
+    "disabled_hint": "Tidak ada di daftar game: berjalan dengan profil biasa",
+    "lite_forced": "Dipaksa aktif oleh Paksa Mode Lite di Pengaturan",
+    "stats_title": "Statistik bermain",
+    "no_stats": "Belum ada sesi untuk game ini. Main minimal 20 detik untuk melihat FPS dan suhu di sini.",
+    "play_time": "Total waktu bermain",
+    "sessions_count": "tanpa sesi | {n} sesi | {n} sesi",
+    "hottest_cpu": "CPU terpanas"
   },
   "language_selection": {
     "title": "Bahasa",
@@ -128,12 +158,69 @@
     "level_2": "Warning",
     "level_3": "Info",
     "level_4": "Debug",
-    "level_5": "Trace"
+    "level_5": "Trace",
+    "brief": "Seberapa banyak fluxd menulis ke log. Perubahan langsung berlaku; ukuran log dibatasi sekitar 4 MB.",
+    "desc_0": "Hanya kegagalan yang menghentikan Flux",
+    "desc_1": "Error yang merusak tweak atau profil",
+    "desc_2": "Error dan hal yang tidak terduga",
+    "desc_3": "Pergantian profil, game dan peringatan: terbaik untuk harian",
+    "desc_4": "Detail setiap keputusan: pakai saat melapor bug",
+    "desc_5": "Semuanya, sangat rinci: hanya jika diminta pengembang",
+    "tag": {
+      "recommended": "Disarankan",
+      "bug_reports": "Lapor bug"
+    },
+    "viewer_title": "Log terbaru",
+    "refresh": "Muat ulang",
+    "filter": {
+      "all": "Semua",
+      "warn": "Peringatan",
+      "error": "Error"
+    },
+    "empty": "Belum ada log pada level ini.",
+    "viewer_note": "200 baris terakhir flux.log, diperbarui tiap 3 detik.",
+    "save_contents": "Log, boot sebelumnya, pengaturan, sesi game, laporan perangkat dan status HiCo, dikemas ke folder Download.",
+    "save_button": "Simpan log",
+    "saved": "Level log disimpan — langsung berlaku",
+    "trace_confirm": {
+      "title": "Aktifkan log Trace?",
+      "message": "Trace mencatat setiap keputusan fluxd. Log cepat penuh dan sedikit menambah beban CPU. Pakai hanya saat diminta untuk laporan bug."
+    }
   },
   "lite_mode": {
     "title": "Mode Lite",
     "toggle_title": "Terapkan mode lite",
-    "brief": "Mode lite mengurangi panas berlebih dan konsumsi daya saat bermain game dengan menurunkan frekuensi CPU dan komponen. Pengaturan ini berlaku untuk semua game saat diaktifkan."
+    "brief": "Mode lite mengurangi panas berlebih dan konsumsi daya saat bermain game dengan menurunkan frekuensi CPU dan komponen. Pengaturan ini berlaku untuk semua game saat diaktifkan.",
+    "state_on": "Aktif — semua game berjalan lebih dingin dengan profil lite",
+    "state_off": "Nonaktif — Flux menentukan per game (Pengaturan game)",
+    "effects_title": "Apa yang berubah",
+    "effects": {
+      "cooler": {
+        "title": "Perangkat lebih dingin",
+        "description": "Clock CPU dan GPU tetap lebih rendah, sehingga HP lebih lambat panas saat bermain lama."
+      },
+      "battery": {
+        "title": "Baterai lebih awet",
+        "description": "Daya per frame lebih kecil, jadi satu kali isi daya cukup untuk lebih banyak match."
+      },
+      "performance": {
+        "title": "Performa puncak lebih rendah",
+        "description": "Adegan berat bisa sedikit lebih sering turun frame dibanding profil performa penuh."
+      },
+      "per_game": {
+        "title": "Menimpa pilihan per game",
+        "description": "Selama aktif, berlaku untuk semua game, termasuk yang tidak memakai mode Lite di pengaturannya."
+      }
+    },
+    "confirm": {
+      "title": "Terapkan mode Lite?",
+      "message": "Semua game akan memakai profil performa lite agar tetap dingin dan hemat baterai.",
+      "point_all_games": "Berlaku untuk semua game mulai peluncuran berikutnya",
+      "point_fps": "Game berat mungkin berjalan dengan FPS lebih rendah",
+      "action": "Aktifkan"
+    },
+    "saved_on": "Mode Lite aktif — berlaku mulai game berikutnya dibuka",
+    "saved_off": "Mode Lite nonaktif — game memakai profil performa penuh"
   },
   "device_mitigation": {
     "title": "Mitigasi Perangkat",
@@ -174,6 +261,17 @@
       "performance_warning_confirm": "Saya mengerti, Terapkan",
       "initial_warn": "Harap dicatat bahwa Flux Tweaks telah mengonfigurasi CPU Governor secara otomatis. Jangan mengubahnya secara manual kecuali Anda sudah berpengalaman.",
       "initial_warn_checkbox": "Jangan munculkan pesan ini lagi"
+    },
+    "notice": "Governor bertanda ⚠ membuat panas dan baterai cepat habis. Flux akan bertanya dulu sebelum menerapkannya.",
+    "none_found": "Kernel ini tidak menyediakan daftar governor CPU.",
+    "apply_note": "Perubahan langsung berlaku jika profil tersebut sedang aktif, jika tidak saat profil berikutnya diterapkan.",
+    "saved": "{profile}: {governor}",
+    "confirm": {
+      "performance_title": "Pakai governor performance?",
+      "point_heat": "CPU selalu berada di clock maksimum",
+      "point_battery": "Panas dan konsumsi baterai naik tajam, bahkan saat diam",
+      "powersave_title": "Pakai powersave untuk seimbang?",
+      "powersave_message": "Governor powersave menahan CPU di clock terendah. Pemakaian harian bisa terasa lambat dan aplikasi bisa patah-patah."
     }
   },
   "profiles": {
@@ -205,12 +303,36 @@
     "disabled": "Nonaktif",
     "cancel": "Batal",
     "warning": "Peringatan",
-    "ok": "Oke"
+    "ok": "Oke",
+    "close": "Tutup",
+    "apply": "Terapkan",
+    "enable": "Aktifkan",
+    "on": "Aktif"
   },
   "disable_tweaks": {
     "title": "Matikan Tweak",
     "toggle_title": "Matikan Tweak",
-    "brief": "Saat diaktifkan, pengaturan ini akan menonaktifkan semua tweak performa bawaan pada Flux Tweaks, sehingga Anda dapat menggunakan modul ini murni sebagai host untuk modul Add-on."
+    "brief": "Saat diaktifkan, pengaturan ini akan menonaktifkan semua tweak performa bawaan pada Flux Tweaks, sehingga Anda dapat menggunakan modul ini murni sebagai host untuk modul Add-on.",
+    "state_on": "Aktif — Flux hanya menjadi host add-on, tidak ada tweak",
+    "state_off": "Nonaktif — semua tweak Flux berjalan",
+    "stops_title": "Berhenti saat diaktifkan",
+    "keeps_title": "Tetap berjalan",
+    "items": {
+      "profiles": "Profil performa, seimbang dan hemat daya",
+      "boost": "Flux Boost dan Flux Sched",
+      "game_tweaks": "Tweak game jaringan, sentuhan dan refresh rate",
+      "governors": "Perubahan governor CPU dan GPU",
+      "detection": "Deteksi game dan Jangan Ganggu",
+      "monitor": "Monitor dan riwayat sesi game",
+      "addons": "Modul add-on Flux"
+    },
+    "confirm": {
+      "title": "Hentikan semua tweak?",
+      "message": "Flux akan berhenti mengatur perangkat. Game berjalan dengan pengaturan kernel bawaan sampai fitur ini dimatikan lagi.",
+      "action": "Hentikan tweak"
+    },
+    "reboot_note": "Perubahan ini perlu reboot agar semua tweak benar-benar dikembalikan atau diterapkan lagi.",
+    "saved_reboot_later": "Tersimpan — reboot nanti untuk menerapkan perubahan"
   },
   "reboot_modal": {
     "title": "Reboot Diperlukan",
@@ -284,5 +406,100 @@
       "description": "Memberi thread kerja game prioritas CPU dan penyimpanan lebih tinggi dari aplikasi lain. Thread yang sudah dipercepat Android tidak diubah."
     },
     "apply_note": "Perubahan berlaku saat profil diterapkan berikutnya, misalnya saat game dimulai."
+  },
+  "sessions": {
+    "recording": "Merekam",
+    "fps_chart": "FPS satu menit terakhir",
+    "fps_unavailable": "Perangkat ini tidak menyediakan penghitung frame rate, jadi hanya waktu bermain dan suhu yang direkam.",
+    "avg": "Rata-rata",
+    "low1": "1% low",
+    "min": "Min",
+    "median": "Median",
+    "drops": "Drop",
+    "stability": "Stabilitas",
+    "battery": "Baterai",
+    "max": "maks",
+    "avg_fps": "FPS rata-rata",
+    "history_title": "Sesi game",
+    "empty": "Mainkan game dari daftarmu: setiap sesi muncul di sini dengan waktu bermain, FPS dan suhu.",
+    "drops_count": "tanpa drop | {n} drop | {n} drop",
+    "drop_seconds": "{n} dtk di bawah 80% median",
+    "stability_hint": "detik dalam 90% dari median",
+    "lite_time": "{time} di Performance Lite",
+    "lite_hint": "Flux menurunkan profil karena perangkat panas (diarsir di grafik)",
+    "fps_over_time": "Frame rate",
+    "temp_over_time": "Suhu",
+    "chart_note": "Garis putus-putus: batas drop",
+    "not_found": "Sesi ini sudah tidak ada di riwayat.",
+    "source": {
+      "fpsgo": "sumber: MediaTek FPSGO (proses game)",
+      "display": "sumber: frame rate layar",
+      "surfaceflinger": "sumber: frame SurfaceFlinger",
+      "none": "tidak ada sumber FPS"
+    },
+    "verdict": {
+      "smooth": "Lancar",
+      "some_drops": "Ada drop",
+      "unstable": "Tidak stabil",
+      "no_fps": "Tanpa data FPS",
+      "hot": "Panas"
+    }
+  },
+  "notify": {
+    "dont_ask_again": "Jangan tanya lagi",
+    "save_failed": "Gagal menyimpan pengaturan. Pastikan akses root sudah diberikan."
+  },
+  "gpu_governor": {
+    "title": "Governor GPU",
+    "brief": "Governor GPU menentukan seberapa cepat prosesor grafis berjalan. Game selalu memakai governor bawaan kernel; ini hanya mengubah profil seimbang dan hemat daya.",
+    "running_now": "Berjalan sekarang",
+    "kernel_default": "Bawaan kernel",
+    "balance_title": "Governor GPU Seimbang",
+    "balance_description": "Dipakai di profil seimbang, di luar game",
+    "powersave_title": "Governor GPU Hemat Daya",
+    "powersave_description": "Hanya dipakai di profil hemat daya",
+    "unsupported": "Governor GPU tidak ditemukan",
+    "unsupported_hint": "Kernel ini tidak menyediakan governor GPU devfreq (kgsl, Mali atau g3d).",
+    "apply_note": "\"Bawaan kernel\" mempertahankan governor dari kernel. Perubahan langsung berlaku jika profil tersebut sedang aktif.",
+    "saved": "{profile}: {governor}",
+    "confirm": {
+      "performance_title": "Pakai governor GPU performance?",
+      "performance_message": "GPU akan tetap di clock tertinggi walaupun di luar game.",
+      "point_heat": "Perangkat jadi hangat bahkan di layar utama",
+      "point_battery": "Baterai jauh lebih cepat habis",
+      "slow_title": "Pakai {governor}?",
+      "slow_message": "Governor ini bisa menahan GPU di clock rendah, sehingga animasi dan scroll bisa patah-patah."
+    }
+  },
+  "game_tweaks": {
+    "title": "Tweak Game",
+    "brief": "Tweak tambahan yang hanya diterapkan saat game berjalan. Semuanya dikembalikan saat kamu keluar dari game.",
+    "not_supported": "Tidak ada di perangkat ini",
+    "tags": {
+      "oplus": "OPPO · realme · OnePlus",
+      "battery": "Lebih boros baterai"
+    },
+    "net_tweaks": {
+      "title": "Latensi jaringan",
+      "description": "TCP latensi rendah dengan kontrol kemacetan BBR, ECN dan Fast Open agar ping lebih stabil."
+    },
+    "touch_tweaks": {
+      "title": "Respons sentuhan",
+      "description": "Mengaktifkan mode game pada panel sentuh agar input sentuhan lebih cepat dan responsif.",
+      "unsupported_note": "Perangkat ini tidak punya /proc/touchpanel, jadi tweak sentuhan tidak berpengaruh di sini."
+    },
+    "game_refresh_rate": {
+      "title": "Refresh rate maksimum di game",
+      "description": "Mengunci layar di refresh rate tertinggi saat bermain. Beberapa ROM mungkin tetap mengubahnya.",
+      "confirm_title": "Kunci refresh rate tertinggi?",
+      "confirm_message": "Layar tetap di refresh rate maksimum selama game berjalan. Gerakan lebih halus tapi baterai lebih cepat habis. Pengaturan sebelumnya dikembalikan setelah game ditutup."
+    },
+    "drop_caches": {
+      "title": "Bersihkan cache memori",
+      "description": "Membebaskan memori cache saat game dimulai agar game punya lebih banyak RAM."
+    },
+    "apply_note": "Perubahan berlaku saat game berikutnya dimulai.",
+    "saved_on": "{name} aktif",
+    "saved_off": "{name} nonaktif"
   }
 }

@@ -38,6 +38,11 @@ public:
         bool flux_vm = true;       ///< memory: earlier kswapd, fewer writeback stalls
         bool flux_io = true;       ///< block queues: complete I/O on the submitting CPU
         bool game_priority = true; ///< game threads: higher CPU and I/O priority
+        // Game tweaks (scripts/flux_profiler.sh)
+        bool net_tweaks = true;         ///< TCP congestion control / latency sysctls
+        bool touch_tweaks = true;       ///< touch panel game mode (OPPO / Realme / OnePlus)
+        bool game_refresh_rate = false; ///< hold the panel at its highest refresh rate while gaming
+        bool drop_caches = true;        ///< drop the page cache when a game starts
         int log_level = 4;
     };
 
@@ -46,9 +51,16 @@ public:
         std::string powersave;
     };
 
+    /// GPU devfreq governor per profile; empty keeps the kernel's own governor.
+    struct GPUGovernor {
+        std::string balance;
+        std::string powersave;
+    };
+
     struct ConfigData {
         Preferences preferences;
         CPUGovernor cpu_governor;
+        GPUGovernor gpu_governor;
     };
 
     /**
@@ -87,6 +99,11 @@ public:
      * @brief Get CPU governor settings
      */
     CPUGovernor get_cpu_governor() const;
+
+    /**
+     * @brief Get GPU governor settings
+     */
+    GPUGovernor get_gpu_governor() const;
 
     /**
      * @brief Update preferences

@@ -37,6 +37,7 @@
 #include <LockFile.hpp>
 #include <ModuleProperty.hpp>
 #include <PIDTracker.hpp>
+#include "SessionRecorder.hpp"
 #include <ShellUtility.hpp>
 #include <SignalHandler.hpp>
 #include <SynthesisCore.hpp>
@@ -320,6 +321,7 @@ static void clear_dnd_if_needed(DaemonState &state) {
  */
 static void handle_game_exit(DaemonState &state) {
     LOGI("Game {} exited", state.active_package);
+    SessionRecorder::get_instance().stop();
     clear_dnd_if_needed(state);
     state.active_package.clear();
     state.pid_tracker.invalidate();
@@ -360,6 +362,7 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
     auto *active_game = game_registry.find_game_ptr(state.active_package);
     if (!active_game) {
         LOGI("Game {} is no longer listed in registry", state.active_package);
+        SessionRecorder::get_instance().stop();
         state.active_package.clear();
         state.pid_tracker.invalidate();
         state.in_game_session = false;
@@ -369,6 +372,7 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
     const pid_t game_pid = pidof_game(state.active_package);
     if (game_pid == 0) {
         LOGE("Unable to fetch PID of {}", state.active_package);
+        SessionRecorder::get_instance().stop();
         state.active_package.clear();
         state.pid_tracker.invalidate();
         state.in_game_session = false;
@@ -391,6 +395,7 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
             "Game {} (PID: {}) exited while applying profile ({}), aborting session",
             state.active_package, tracked_pid, strerror(errno)
         );
+        SessionRecorder::get_instance().stop();
         state.active_package.clear();
         state.pid_tracker.invalidate();
         state.in_game_session = false;
@@ -402,6 +407,9 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
     // Without this, a game restart (new PID) would leave the tracker watching
     // a dead PID, silently missing the eventual process-death callback.
     state.pid_tracker.set_pid(tracked_pid);
+
+    // Session statistics (play time, FPS, temperatures) follow the tracked game.
+    SessionRecorder::get_instance().start(state.active_package, {game_pid, tracked_pid});
 
     // Save and clear the checkup flag.  The saved value is used in the
     // early-return guards so "force reapply" actually reapplies the profile.
@@ -509,7 +517,10 @@ static void select_profile(DaemonState &state) {
     }
 
     if (!state.active_package.empty() && state.synthesis_core.screen_awake) {
-        if (apply_game_profile(state)) return;
+        if (apply_game_profile(state)) {
+            SessionRecorder::get_instance().set_lite(state.cur_mode == PERFORMANCE_LITE_PROFILE);
+            return;
+        }
     }
 
     if (state.battery_saver_state) {
@@ -588,6 +599,9 @@ static void flux_main_daemon() {
 
             if (!refresh_synthesis_core(state)) continue;
 
+            // No samples while the screen is off (the game is paused, FPS would read 0).
+            SessionRecorder::get_instance().set_paused(!state.synthesis_core.screen_awake);
+
             // Focus-loss check (3-strike debounce against transient blips)
             if (state.in_game_session && !state.active_package.empty()) {
                 if (!is_game_still_active(state)) [[unlikely]] {
@@ -639,6 +653,9 @@ static void flux_main_daemon() {
             select_profile(state);
         }
     }
+
+    // Keep the running session when the daemon stops.
+    SessionRecorder::get_instance().stop();
 }
 
 // ---------------------------------------------------------------------------
