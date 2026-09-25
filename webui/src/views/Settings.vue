@@ -235,82 +235,72 @@
           </h2>
         </div>
 
-        <!-- Developer card -->
-        <div class="about-card bg-surface-container rounded-2xl overflow-hidden mb-3">
-          <!-- Header banner -->
-          <div class="about-banner px-5 pt-5 pb-4 relative overflow-hidden">
-            <div class="about-banner-bg"></div>
-            <div class="relative z-10 flex items-center gap-4">
-              <div class="about-avatar w-14 h-14 rounded-2xl bg-primary-container flex items-center justify-center shrink-0">
-                <CodeIcon :size="24" class="text-on-primary-container" />
-              </div>
-              <div>
-                <h3 class="text-base font-bold text-on-surface">FebriCahyaa</h3>
-                <p class="text-xs text-on-surface-variant mt-0.5">{{ $t('settings_page.about.role') }}</p>
-                <div class="flex items-center gap-1 mt-1">
-                  <div class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></div>
-                  <span class="text-xs text-primary font-medium">{{ $t('settings_page.about.status') }}</span>
-                </div>
-              </div>
+        <!-- Developer card (M3 Expressive) -->
+        <section class="about-card m3-enter bg-surface-container-high rounded-[32px] p-5 mb-3 relative overflow-hidden">
+          <span class="about-deco shape-flower bg-primary" aria-hidden="true"></span>
+
+          <div class="relative flex items-center gap-4">
+            <div class="about-avatar shape-cookie12 bg-primary-container text-on-primary-container grid place-items-center shrink-0">
+              <CodeIcon :size="30" />
+            </div>
+            <div class="min-w-0">
+              <h3 class="m3-headline text-2xl text-on-surface">FebriCahyaa</h3>
+              <p class="text-xs text-on-surface-variant mt-1">{{ $t('settings_page.about.role') }}</p>
+              <span class="mt-2 inline-flex items-center gap-1.5 rounded-full bg-primary text-on-primary px-2.5 py-1 text-xs font-semibold">
+                <span class="about-dot"></span>{{ $t('settings_page.about.status') }}
+              </span>
             </div>
           </div>
 
-          <!-- Module info -->
-          <div class="px-5 py-4 border-t border-outline-variant border-opacity-30">
-            <div class="grid grid-cols-2 gap-3">
-              <div class="bg-surface-container-high rounded-xl p-3">
-                <p class="text-xs text-on-surface-variant font-medium mb-1">{{ $t('settings_page.about.module_name') }}</p>
-                <p class="text-sm font-bold text-on-surface">Flux Tweaks</p>
-              </div>
-              <div class="bg-surface-container-high rounded-xl p-3">
-                <p class="text-xs text-on-surface-variant font-medium mb-1">{{ $t('settings_page.about.platform') }}</p>
-                <p class="text-sm font-bold text-on-surface">Magisk · KSU · APatch</p>
-              </div>
-              <div class="bg-surface-container-high rounded-xl p-3">
-                <p class="text-xs text-on-surface-variant font-medium mb-1">{{ $t('settings_page.about.target') }}</p>
-                <p class="text-sm font-bold text-on-surface">GKI &amp; Non-GKI</p>
-              </div>
-              <div class="bg-surface-container-high rounded-xl p-3">
-                <p class="text-xs text-on-surface-variant font-medium mb-1">{{ $t('settings_page.about.license') }}</p>
-                <p class="text-sm font-bold text-on-surface">Apache 2.0</p>
-              </div>
+          <!-- Facts: segmented tonal tiles -->
+          <div class="about-facts relative grid grid-cols-2 gap-0.5 mt-5">
+            <div class="fact bg-secondary-container text-on-secondary-container">
+              <p class="text-xs opacity-80">{{ $t('settings_page.about.module_name') }}</p>
+              <p class="text-sm font-bold mt-1">Flux Tweaks</p>
+            </div>
+            <div class="fact bg-tertiary-container text-on-tertiary-container">
+              <p class="text-xs opacity-80">{{ $t('settings_page.about.platform') }}</p>
+              <p class="text-sm font-bold mt-1">Magisk · KSU · APatch</p>
+            </div>
+            <div class="fact bg-surface-container-highest text-on-surface">
+              <p class="text-xs text-on-surface-variant">{{ $t('settings_page.about.target') }}</p>
+              <p class="text-sm font-bold mt-1">GKI &amp; Non-GKI</p>
+            </div>
+            <div class="fact bg-primary-container text-on-primary-container">
+              <p class="text-xs opacity-80">{{ $t('settings_page.about.license') }}</p>
+              <p class="text-sm font-bold mt-1">Apache 2.0</p>
             </div>
           </div>
 
-          <!-- Description -->
-          <div class="px-5 pb-4">
-            <p class="text-xs text-on-surface-variant leading-relaxed">
-              {{ $t('settings_page.about.description') }}
-            </p>
-          </div>
+          <p class="relative text-sm text-on-surface-variant leading-relaxed mt-4 px-1">
+            {{ $t('settings_page.about.description') }}
+          </p>
 
-          <!-- Links -->
-          <div class="px-5 pb-5 flex gap-2">
+          <!-- Button group: tonal + filled, pills that morph on press -->
+          <div class="relative flex gap-2 mt-5">
             <RippleComponent
               @click="openGithub"
-              class="flex-1 flex items-center justify-center gap-2 bg-surface-container-high rounded-xl py-3 cursor-pointer"
+              class="m3-press m3-press-morph flex-1 flex items-center justify-center gap-2 rounded-full bg-secondary-container text-on-secondary-container py-3.5 cursor-pointer"
               tabindex="0"
             >
-              <GithubIcon :size="16" class="text-on-surface" />
-              <span class="text-xs font-semibold text-on-surface">GitHub</span>
+              <GithubIcon :size="18" />
+              <span class="text-sm font-semibold">GitHub</span>
             </RippleComponent>
             <RippleComponent
               @click="openTelegram"
-              class="flex-1 flex items-center justify-center gap-2 bg-primary-container rounded-xl py-3 cursor-pointer"
+              class="m3-press m3-press-morph flex-1 flex items-center justify-center gap-2 rounded-full bg-primary text-on-primary py-3.5 cursor-pointer"
               tabindex="0"
             >
-              <TelegramIcon :size="16" class="text-on-primary-container" />
-              <span class="text-xs font-semibold text-on-primary-container">Telegram</span>
+              <TelegramIcon :size="18" />
+              <span class="text-sm font-semibold">Telegram</span>
             </RippleComponent>
           </div>
-        </div>
+        </section>
 
         <!-- Module tagline -->
-        <div class="text-center py-3 mb-2">
-          <p class="text-xs text-on-surface-variant font-medium italic opacity-60">
-            "{{ $t('settings_page.about.tagline') }}"
-          </p>
-          <p class="text-xs text-on-surface-variant opacity-40 mt-1">Flux Tweaks · FebriCahyaa</p>
+        <div class="text-center py-4 mb-2">
+          <p class="m3-headline text-lg text-primary">"{{ $t('settings_page.about.tagline') }}"</p>
+          <p class="text-xs text-on-surface-variant opacity-60 mt-1">Flux Tweaks · FebriCahyaa</p>
         </div>
 
       </div>
@@ -458,25 +448,72 @@ const closeExportModal = () => {
   overflow: hidden;
 }
 
-.about-banner {
-  background: linear-gradient(135deg,
-    color-mix(in srgb, var(--color-primary-container) 80%, transparent),
-    color-mix(in srgb, var(--color-secondary-container) 60%, transparent)
-  );
-}
-
-.about-banner-bg {
+.about-deco {
   position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse at top right, color-mix(in srgb, var(--color-primary) 10%, transparent), transparent 70%);
-  pointer-events: none;
+  width: 180px;
+  height: 180px;
+  right: -60px;
+  top: -70px;
+  opacity: 0.1;
+  animation: about-spin 40s linear infinite;
 }
 
 .about-avatar {
-  box-shadow: 0 4px 20px color-mix(in srgb, var(--color-primary) 20%, transparent);
+  width: 72px;
+  height: 72px;
+  transition: clip-path var(--m3-spring-slow-spatial-duration) var(--m3-spring-default-spatial);
 }
 
-.about-card {
-  border: 1px solid color-mix(in srgb, var(--color-outline-variant) 40%, transparent);
+.about-card:active .about-avatar {
+  clip-path: var(--m3-shape-burst);
+}
+
+.about-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+  animation: about-pulse 1.6s ease-in-out infinite;
+}
+
+/* Segmented 2x2 group: large outer corners, small inner ones */
+.about-facts .fact {
+  padding: 14px 16px;
+  border-radius: 6px;
+}
+
+.about-facts .fact:nth-child(1) {
+  border-top-left-radius: 24px;
+}
+
+.about-facts .fact:nth-child(2) {
+  border-top-right-radius: 24px;
+}
+
+.about-facts .fact:nth-child(3) {
+  border-bottom-left-radius: 24px;
+}
+
+.about-facts .fact:nth-child(4) {
+  border-bottom-right-radius: 24px;
+}
+
+@keyframes about-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@keyframes about-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about-deco,
+  .about-dot {
+    animation: none;
+  }
 }
 </style>
