@@ -30,12 +30,39 @@ change_cpu_gov() {
 }
 
 # Best-effort ROM family from well-known vendor properties.
+# Custom ROMs for Xiaomi devices often keep vendor props such as
+# ro.miui.ui.version.name, so the props alone do not mean MIUI/HyperOS: also
+# require the MIUI framework to be present.
+has_miui_framework() {
+	for jar in /system/framework/miui-framework.jar /system_ext/framework/miui-framework.jar \
+		/system/framework/miui-services.jar /system_ext/framework/miui-services.jar; do
+		[ -e "$jar" ] && return 0
+	done
+	[ -d /system/app/MiuiSystemUI ] || [ -d /system_ext/priv-app/MiuiSystemUI ] ||
+		[ -d /system/priv-app/MiuiSystemUI ]
+}
+
 detect_rom() {
-	if [ -n "$(getprop ro.mi.os.version.name)" ]; then
-		echo "HyperOS $(getprop ro.mi.os.version.name)"
-	elif [ -n "$(getprop ro.miui.ui.version.name)" ]; then
-		echo "MIUI $(getprop ro.miui.ui.version.name)"
-	elif [ -n "$(getprop ro.build.version.oplusrom)" ]; then
+	local base
+	if [ -n "$(getprop ro.lineage.version)" ]; then
+		base="LineageOS-based $(getprop ro.lineage.version)"
+	else
+		base="AOSP-based ($(getprop ro.build.display.id))"
+	fi
+
+	if [ -n "$(getprop ro.mi.os.version.name)$(getprop ro.miui.ui.version.name)" ]; then
+		if has_miui_framework; then
+			if [ -n "$(getprop ro.mi.os.version.name)" ]; then
+				echo "HyperOS $(getprop ro.mi.os.version.name)"
+			else
+				echo "MIUI $(getprop ro.miui.ui.version.name)"
+			fi
+			return
+		fi
+		base="$base, Xiaomi vendor props"
+	fi
+
+	if [ -n "$(getprop ro.build.version.oplusrom)" ] && [ -e /system/framework/oplus-framework.jar ]; then
 		echo "ColorOS / OxygenOS $(getprop ro.build.version.oplusrom)"
 	elif [ -n "$(getprop ro.build.version.oneui)" ]; then
 		echo "One UI $(getprop ro.build.version.oneui)"
@@ -44,7 +71,7 @@ detect_rom() {
 	elif [ -n "$(getprop ro.vivo.os.version)" ]; then
 		echo "OriginOS / Funtouch OS $(getprop ro.vivo.os.version)"
 	else
-		echo "AOSP-based ($(getprop ro.build.display.id))"
+		echo "$base"
 	fi
 }
 
@@ -57,7 +84,12 @@ report() {
 	section "Flux"
 	echo "module: $(awk -F'=' '/^version=/ {print $2}' /data/adb/modules/flux/module.prop)"
 	echo "profile: $(cat "$MODULE_CONFIG/current_profile" 2>/dev/null)"
-	echo "synthesiscore: $(cat /data/adb/modules/flux/synthesiscore.json 2>/dev/null | tr -d '\n ' | head -c 300)"
+	apk=/data/adb/modules/flux/synthesiscore.apk
+	expected=$(cat "$apk.sha256" 2>/dev/null)
+	actual=$(sha256sum "$apk" 2>/dev/null | cut -d' ' -f1)
+	if [ -n "$expected" ] && [ "$expected" = "$actual" ]; then integrity=ok; else integrity=FAILED; fi
+	tag=$(sed -n 's/.*"tag": *"\([^"]*\)".*/\1/p' /data/adb/modules/flux/synthesiscore.json 2>/dev/null)
+	echo "synthesiscore: ${tag:-unknown} (sha256 $(echo "$actual" | cut -c1-16)…, integrity $integrity)"
 
 	section "Device"
 	echo "model: $(getprop ro.product.brand) $(getprop ro.product.model) ($(getprop ro.product.device))"
@@ -97,9 +129,7 @@ report() {
 	echo "-- binder codes"
 	cat "$MODULE_CONFIG/binder_codes" 2>/dev/null
 	echo "-- capabilities"
-	apk=/data/adb/modules/flux/synthesiscore.apk
-	expected=$(cat "$apk.sha256" 2>/dev/null)
-	if [ -n "$expected" ] && [ "$expected" = "$(sha256sum "$apk" 2>/dev/null | cut -d' ' -f1)" ]; then
+	if [ "$integrity" = ok ]; then
 		timeout 15 app_process -Djava.class.path="$apk" / com.febricahyaa.synthesiscore.MainKt --capabilities 2>&1 | grep -v '^WARNING'
 	else
 		echo "skipped: APK integrity check failed"

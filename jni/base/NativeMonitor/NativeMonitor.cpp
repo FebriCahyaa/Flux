@@ -99,6 +99,7 @@ struct Service {
     const char *name;
     const char *descriptor;
     AIBinder *binder = nullptr;
+    AIBinder_Class *clazz = nullptr;
 };
 
 struct Status {
@@ -133,6 +134,10 @@ struct State {
     // Held for the process lifetime so the services keep our callbacks alive.
     AIBinder *process_observer = nullptr;
     AIBinder *display_callback = nullptr;
+
+    // Set when system_server dies; the poll loop then reconnects.
+    AIBinder_DeathRecipient *death_recipient = nullptr;
+    std::atomic<bool> system_died = false;
 
     // Processes with foreground activities, most recent last.
     std::vector<std::pair<int32_t, int32_t>> foreground; // (pid, uid)
@@ -221,14 +226,18 @@ std::optional<float> read_float(AParcel *reply) {
 }
 
 AIBinder *acquire_service(Service &svc, bool required) {
+    if (svc.binder) {
+        AIBinder_decStrong(svc.binder);
+        svc.binder = nullptr;
+    }
     svc.binder = AServiceManager_getService(svc.name);
     for (int i = 0; !svc.binder && required && i < 100; ++i) { // up to 10 s during boot
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         svc.binder = AServiceManager_getService(svc.name);
     }
     if (svc.binder) {
-        AIBinder_Class *clazz = AIBinder_Class_define(svc.descriptor, noop_create, noop_destroy, noop_transact);
-        if (!clazz || !AIBinder_associateClass(svc.binder, clazz)) {
+        if (!svc.clazz) svc.clazz = AIBinder_Class_define(svc.descriptor, noop_create, noop_destroy, noop_transact);
+        if (!svc.clazz || !AIBinder_associateClass(svc.binder, svc.clazz)) {
             LOGW_TAG(TAG, "Cannot associate interface {} with service '{}'", svc.descriptor, svc.name);
             AIBinder_decStrong(svc.binder);
             svc.binder = nullptr;
@@ -422,14 +431,46 @@ void sample_all_locked() {
     sample_battery_locked();
 }
 
+bool connect_locked();
+
+/// Caller holds g.mutex. True when system_server (and with it every service
+/// proxy and registered callback) is gone.
+bool system_dead_locked() {
+    return g.system_died.load() || (g.activity.binder && !AIBinder_isAlive(g.activity.binder)) ||
+           (g.power.binder && !AIBinder_isAlive(g.power.binder));
+}
+
+/// Caller holds g.mutex. After a system_server restart (crash or soft reboot)
+/// our observers are no longer registered, so the foreground app would stay
+/// stale forever: drop the old state and register again with the new instance.
+void reconnect_locked() {
+    LOGW_TAG(TAG, "system_server died, reconnecting");
+    g.foreground.clear();
+    g.uid_names.clear();
+    g.status.focused_app = "none 0 0";
+    publish_locked();
+
+    g.system_died = false;
+    if (connect_locked()) {
+        LOGI_TAG(TAG, "Reconnected to system services");
+    } else {
+        LOGW_TAG(TAG, "Reconnect failed ({}), retrying", g.error);
+        g.system_died = true;
+    }
+}
+
 [[noreturn]] void poll_loop() {
     pthread_setname_np(pthread_self(), "NativeMonitor");
     std::unique_lock lock(g.mutex);
     while (true) {
-        sample_all_locked();
-        publish_locked();
+        if (system_dead_locked()) reconnect_locked();
+        if (!g.system_died) {
+            sample_all_locked();
+            publish_locked();
+        }
         // 1 s while the screen is on (thermal headroom has no callback), 10 s when off.
-        const auto interval = g.status.screen_awake ? std::chrono::seconds(1) : std::chrono::seconds(10);
+        auto interval = g.status.screen_awake ? std::chrono::seconds(1) : std::chrono::seconds(10);
+        if (g.system_died) interval = std::chrono::seconds(2);
         g.wake.wait_for(lock, interval);
     }
 }
@@ -474,6 +515,56 @@ bool register_observer(Service &svc, Tx tx, AIBinder *callback, const char *what
     return true;
 }
 
+void on_system_died(void *) {
+    g.system_died = true;
+    g.wake.notify_all();
+}
+
+/// Caller holds g.mutex (or runs before the poll thread exists). Acquires the
+/// services and registers the observers; reused after a system_server restart.
+bool connect_locked() {
+    for (Service *svc : {&g.power, &g.activity, &g.package}) {
+        if (!acquire_service(*svc, true)) {
+            g.error = std::string("service unavailable: ") + svc->name;
+            return false;
+        }
+    }
+    for (Service *svc : {&g.display, &g.notification, &g.thermal, &g.audio}) {
+        if (!acquire_service(*svc, false)) LOGW_TAG(TAG, "Optional service '{}' unavailable", svc->name);
+    }
+
+    if (!g.process_observer) {
+        AIBinder_Class *observer_class =
+            AIBinder_Class_define("android.app.IProcessObserver", noop_create, noop_destroy, process_observer_transact);
+        g.process_observer = observer_class ? AIBinder_new(observer_class, nullptr) : nullptr;
+    }
+    if (!g.process_observer ||
+        !register_observer(g.activity, Tx::RegisterProcessObserver, g.process_observer, "IProcessObserver")) {
+        g.error = "registerProcessObserver failed";
+        return false;
+    }
+
+    if (g.display.binder && code(Tx::RegisterDisplayCallback) && code(Tx::OnDisplayEvent)) {
+        if (!g.display_callback) {
+            AIBinder_Class *display_class = AIBinder_Class_define("android.hardware.display.IDisplayManagerCallback",
+                                                                  noop_create, noop_destroy, display_callback_transact);
+            g.display_callback = display_class ? AIBinder_new(display_class, nullptr) : nullptr;
+        }
+        if (g.display_callback) {
+            register_observer(g.display, Tx::RegisterDisplayCallback, g.display_callback, "IDisplayManagerCallback");
+        }
+    }
+
+    // activity lives in system_server: its death means every proxy is stale.
+    if (!g.death_recipient) g.death_recipient = AIBinder_DeathRecipient_new(on_system_died);
+    if (!g.death_recipient || AIBinder_linkToDeath(g.activity.binder, g.death_recipient, nullptr) != STATUS_OK) {
+        LOGW_TAG(TAG, "linkToDeath failed; relying on liveness checks");
+    }
+
+    g.status.thermal_api_available = (g.thermal.binder && code(Tx::GetThermalHeadroom)) ? 1 : 0;
+    return true;
+}
+
 bool is_gki_kernel() {
     struct utsname u {};
     if (uname(&u) != 0) return false;
@@ -497,38 +588,10 @@ bool start() {
     }
     if (!load_codes()) return false;
 
-    for (Service *svc : {&g.power, &g.activity, &g.package}) {
-        if (!acquire_service(*svc, true)) {
-            g.error = std::string("service unavailable: ") + svc->name;
-            return false;
-        }
-    }
-    for (Service *svc : {&g.display, &g.notification, &g.thermal, &g.audio}) {
-        if (!acquire_service(*svc, false)) LOGW_TAG(TAG, "Optional service '{}' unavailable", svc->name);
-    }
-
-    AIBinder_Class *observer_class =
-        AIBinder_Class_define("android.app.IProcessObserver", noop_create, noop_destroy, process_observer_transact);
-    g.process_observer = observer_class ? AIBinder_new(observer_class, nullptr) : nullptr;
-    if (!g.process_observer ||
-        !register_observer(g.activity, Tx::RegisterProcessObserver, g.process_observer, "IProcessObserver")) {
-        g.error = "registerProcessObserver failed";
-        return false;
-    }
-
-    if (g.display.binder && code(Tx::RegisterDisplayCallback) && code(Tx::OnDisplayEvent)) {
-        AIBinder_Class *display_class = AIBinder_Class_define("android.hardware.display.IDisplayManagerCallback",
-                                                              noop_create, noop_destroy, display_callback_transact);
-        g.display_callback = display_class ? AIBinder_new(display_class, nullptr) : nullptr;
-        if (g.display_callback) {
-            register_observer(g.display, Tx::RegisterDisplayCallback, g.display_callback, "IDisplayManagerCallback");
-        }
-    }
-
     {
         std::lock_guard lock(g.mutex);
+        if (!connect_locked()) return false;
         g.status.kernel_is_gki = is_gki_kernel() ? 1 : 0;
-        g.status.thermal_api_available = (g.thermal.binder && code(Tx::GetThermalHeadroom)) ? 1 : 0;
         sample_all_locked();
         publish_locked();
     }

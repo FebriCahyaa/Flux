@@ -155,6 +155,7 @@ extract "$ZIPFILE" 'cleanup.sh' "$MODPATH"
 extract "$ZIPFILE" 'synthesiscore.apk' "$MODPATH"
 # Keep the verified checksum so service.sh can re-check the APK on every boot
 cp "$TMPDIR_FOR_VERIFY/synthesiscore.apk.sha256" "$MODPATH/synthesiscore.apk.sha256"
+extract "$ZIPFILE" 'synthesiscore.json' "$MODPATH"
 extract "$ZIPFILE" 'system/bin/flux_profiler' "$MODPATH"
 extract "$ZIPFILE" 'system/bin/flux_utility' "$MODPATH"
 cp "$MODPATH/module.prop" "$MODPATH/module.prop.orig"
