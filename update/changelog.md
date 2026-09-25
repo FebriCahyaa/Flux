@@ -1,11 +1,11 @@
-# Flux Tweaks v1.2.1
+# Flux Tweaks v1.2.2
 
-#### 🐛 Bug Fixes
+#### ✨ Features
 
-- recover native monitor after system_server restart; accurate device report ([`15d4f05`](https://github.com/FebriCahyaa/Flux/commit/15d4f050822c614bb2f34ef4949ab9a0b5cab38f))
+- integrate HiCo Thermal add-on ([`204a25b`](https://github.com/FebriCahyaa/Flux/commit/204a25b685c41f6e6584dee320dda116edf611d5))
 
 #### 🧹 Maintenance
 
-- **release:** publish v1.2.0 to root managers [skip ci] ([`1f035eb`](https://github.com/FebriCahyaa/Flux/commit/1f035ebba84fe2f3446321a18288fc6b8a34c772))
+- **release:** publish v1.2.1 to root managers [skip ci] ([`f0d508e`](https://github.com/FebriCahyaa/Flux/commit/f0d508e407e4aebbcfbf9994571c2d15410933c8))
 
-**Full Changelog**: https://github.com/FebriCahyaa/Flux/compare/v1.2.0...v1.2.1
+**Full Changelog**: https://github.com/FebriCahyaa/Flux/compare/v1.2.1...v1.2.2
