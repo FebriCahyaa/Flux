@@ -44,7 +44,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: flux-build
-          path: ${{ steps.compileZip.outputs.zip-name }}
+          path: ${{ steps.compileZip.outputs.zips }}
 
       - name: Upload To Telegram
         # Secrets cannot be tested in `if:` (a step's own env is not visible there

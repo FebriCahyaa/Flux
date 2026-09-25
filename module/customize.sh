@@ -35,6 +35,12 @@ abort_unsupported_arch() {
 	abort "*********************************************************"
 }
 
+abort_wrong_flavor() {
+	ui_print "*********************************************************"
+	for line in "$@"; do ui_print "! $line"; done
+	abort "*********************************************************"
+}
+
 abort_corrupted() {
 	ui_print "*********************************************************"
 	ui_print "! Unable to extract verify.sh!"
@@ -166,6 +172,36 @@ case $ARCH in
 "arm") ARCH_TMP="armeabi-v7a" ;;
 *) abort_unsupported_arch ;;
 esac
+
+# Build flavor: arm64 / arm zips carry one fluxd, the universal zip both.
+flavor=universal
+if unzip -l "$ZIPFILE" flavor >/dev/null 2>&1; then
+	extract "$ZIPFILE" 'flavor' "$TMPDIR"
+	flavor=$(head -n 1 "$TMPDIR/flavor")
+fi
+if [ "$ARCH" = "arm64" ] && [ -z "$(getprop ro.product.cpu.abilist32)" ]; then
+	ui_print "- CPU: $ARCH_TMP, 64-bit-only ROM (no 32-bit userspace)"
+elif [ "$ARCH" = "arm64" ]; then
+	ui_print "- CPU: $ARCH_TMP (64-bit ROM with 32-bit support)"
+else
+	ui_print "- CPU: $ARCH_TMP (32-bit ROM)"
+fi
+case "$flavor" in
+arm64)
+	[ "$ARCH" = "arm64" ] || abort_wrong_flavor "This is the 64-bit (arm64) build of Flux Tweaks," \
+		"but this ROM runs a 32-bit (armeabi-v7a) userspace." \
+		"Install the 32-bit build: flux-*-arm.zip"
+	;;
+arm)
+	[ "$ARCH" = "arm" ] || abort_wrong_flavor "This is the 32-bit (arm) build of Flux Tweaks," \
+		"but this ROM is 64-bit (arm64-v8a)." \
+		"Install the 64-bit build: flux-*-arm64.zip"
+	;;
+universal) ;;
+*) abort_wrong_flavor "Unknown build flavor '$flavor', the zip may be corrupted." ;;
+esac
+ui_print "- Build: $flavor"
+echo "$flavor" >"$MODPATH/flavor"
 
 # Extract executables
 extract "$ZIPFILE" "libs/$ARCH_TMP/fluxd" "$TMPDIR"
