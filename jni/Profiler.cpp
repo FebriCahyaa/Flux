@@ -66,6 +66,11 @@ void set_profiler_env_vars() {
         setenv("FLUX_SCHED_DISABLED", "1", 1);
     }
 
+    // Flux Boost: each part is on by default; disabled parts are only restored.
+    if (!prefs.flux_vm) setenv("FLUX_VM_DISABLED", "1", 1);
+    if (!prefs.flux_io) setenv("FLUX_IO_DISABLED", "1", 1);
+    if (!prefs.game_priority) setenv("FLUX_PRIORITY_DISABLED", "1", 1);
+
     // Set CPU Governor variables
     FluxConfigStore::CPUGovernor cpu_governor_preference = config_store.get_cpu_governor();
     setenv("FLUX_BALANCED_CPUGOV", cpu_governor_preference.balance.c_str(), 1);
@@ -118,6 +123,8 @@ void apply_performance_profile(bool lite_mode, std::string game_pkg, pid_t game_
     }
 
     write2file(GAME_INFO, game_pkg, " ", game_pid, " ", game_uid, "\n");
+    // The profiler raises this game's thread priority (Flux Boost) and restores it afterwards.
+    setenv("FLUX_GAME_PID", std::to_string(game_pid).c_str(), 1);
     write2file(PROFILE_MODE, static_cast<int>(PERFORMANCE_PROFILE), "\n");
 
     if (lite_mode) {
@@ -151,6 +158,8 @@ void apply_performance_lite_profile(std::string game_pkg, pid_t game_pid) {
     }
 
     write2file(GAME_INFO, game_pkg, " ", game_pid, " ", game_uid, "\n");
+    // The profiler raises this game's thread priority (Flux Boost) and restores it afterwards.
+    setenv("FLUX_GAME_PID", std::to_string(game_pid).c_str(), 1);
     write2file(PROFILE_MODE, static_cast<int>(PERFORMANCE_LITE_PROFILE), "\n");
 
     LOGD("Thermal headroom low — applying performance_lite profile for {}", game_pkg);

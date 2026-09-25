@@ -40,7 +40,7 @@ done
 # Configuration, logs and the boot cleanup hook
 rm -rf "$MODULE_CONFIG"
 rm -f /data/adb/service.d/.flux_cleanup.sh
-rm -f /dev/.flux_sched_orig
+rm -f /dev/.flux_sched_orig /dev/.flux_boost_orig /dev/.flux_game_prio
 
 # Leftovers from Encore Tweaks, which Flux replaces
 rm -rf /data/adb/.config/encore

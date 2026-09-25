@@ -77,6 +77,9 @@ bool FluxConfigStore::save_config(const std::string &config_path) {
     prefs_obj.AddMember("use_device_mitigation", config_.preferences.use_device_mitigation, allocator);
     prefs_obj.AddMember("disable_tweaks", config_.preferences.disable_tweaks, allocator);
     prefs_obj.AddMember("flux_sched", config_.preferences.flux_sched, allocator);
+    prefs_obj.AddMember("flux_vm", config_.preferences.flux_vm, allocator);
+    prefs_obj.AddMember("flux_io", config_.preferences.flux_io, allocator);
+    prefs_obj.AddMember("game_priority", config_.preferences.game_priority, allocator);
     prefs_obj.AddMember("log_level", config_.preferences.log_level, allocator);
     doc.AddMember("preferences", prefs_obj, allocator);
 
@@ -167,6 +170,9 @@ bool FluxConfigStore::create_default_config() {
             .use_device_mitigation = false,
             .disable_tweaks = false,
             .flux_sched = true,
+            .flux_vm = true,
+            .flux_io = true,
+            .game_priority = true,
             .log_level = 4
         },
         .cpu_governor = {
@@ -205,6 +211,15 @@ bool FluxConfigStore::parse_config(const rapidjson::Document &doc) {
 
         if (prefs.HasMember("flux_sched") && prefs["flux_sched"].IsBool()) {
             new_config.preferences.flux_sched = prefs["flux_sched"].GetBool();
+        }
+
+        // Flux Boost switches; missing keys (older configs) keep their defaults.
+        for (const auto &[key, field] : {std::pair{"flux_vm", &Preferences::flux_vm},
+                                         std::pair{"flux_io", &Preferences::flux_io},
+                                         std::pair{"game_priority", &Preferences::game_priority}}) {
+            if (prefs.HasMember(key) && prefs[key].IsBool()) {
+                new_config.preferences.*field = prefs[key].GetBool();
+            }
         }
 
         if (prefs.HasMember("log_level") && prefs["log_level"].IsInt()) {

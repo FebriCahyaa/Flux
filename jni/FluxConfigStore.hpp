@@ -34,6 +34,10 @@ public:
         bool use_device_mitigation = false;
         bool disable_tweaks = false;
         bool flux_sched = true; ///< uclamp scheduler prioritisation (scripts/flux_profiler.sh)
+        // Flux Boost (scripts/flux_profiler.sh): applied while gaming, restored afterwards
+        bool flux_vm = true;       ///< memory: earlier kswapd, fewer writeback stalls
+        bool flux_io = true;       ///< block queues: complete I/O on the submitting CPU
+        bool game_priority = true; ///< game threads: higher CPU and I/O priority
         int log_level = 4;
     };
 
