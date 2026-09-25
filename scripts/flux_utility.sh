@@ -123,6 +123,15 @@ report() {
 	node /proc/oplus_scheduler/sched_assist/sched_assist_enabled
 	node /proc/ppm/enabled
 
+	section "HiCo Thermal"
+	if [ -x /data/adb/modules/hico/system/bin/hicod ]; then
+		/data/adb/modules/hico/system/bin/hicod status 2>&1
+		echo "-- thermal"
+		/data/adb/modules/hico/system/bin/hicod zones 2>&1
+	else
+		echo "not installed"
+	fi
+
 	section "System monitor"
 	echo "mode: $(cat "$MODULE_CONFIG/monitor_mode" 2>/dev/null || echo unknown)"
 	cat "$MODULE_CONFIG/synthesis_core.json" 2>/dev/null
@@ -169,6 +178,7 @@ save_logs() {
 
 	[ -f "$MODULE_CONFIG/sysmon.log" ] && cp "$MODULE_CONFIG/sysmon.log" "$report_dir/"
 	[ -f "$MODULE_CONFIG/sysmon.log.prev" ] && cp "$MODULE_CONFIG/sysmon.log.prev" "$report_dir/"
+	[ -f /data/adb/.config/hico/hico.log ] && cp /data/adb/.config/hico/hico.log "$report_dir/"
 	report >"$report_dir/device_report.txt" 2>&1
 	cp -r /sys/fs/pstore/. "$report_dir/pstore/" 2>/dev/null
 

@@ -16,6 +16,7 @@
 - [Project layout](#project-layout)
 - [Building](#building)
 - [SynthesisCore and supply-chain security](#synthesiscore-and-supply-chain-security)
+- [Ecosystem: HiCo Thermal](#ecosystem-hico-thermal)
 - [License](#license)
 
 ---
@@ -136,6 +137,22 @@ Both CI builds and releases use the shared `.github/actions/build-module` action
 4. **Boot** — `service.sh` re-checks the APK before every start and never runs a modified APK.
 
 Setup and key rotation are described in [`prebuilt/README.md`](prebuilt/README.md).
+
+## Ecosystem: HiCo Thermal
+
+[HiCo Thermal](https://github.com/FebriCahyaa/HiCo) is a Flux add-on that disables thermal
+throttling only while a game runs, then restores the stock thermal stack for daily use, with a
+CPU/battery temperature guard. It has no game detection of its own: it follows the
+`current_profile` and `gameinfo` files fluxd writes on every profile change (Performance /
+Performance Lite), so it requires Flux and refuses to install without it.
+
+The work is split so the two never fight: Flux owns performance profiles (governors,
+frequencies, GPU, scheduler); HiCo owns the thermal layer (thermal daemons, zone governors,
+cooling devices, vendor thermal drivers). Uninstalling Flux restores HiCo's thermal changes, and
+`flux_utility report` / *Save log* include HiCo's state, thermal zones and log.
+
+Keep the format of `current_profile` (the `FluxProfileMode` value) and `gameinfo`
+(`<package> <pid> <uid>` or `NULL 0 0`) stable: HiCo depends on it.
 
 ## Credits
 

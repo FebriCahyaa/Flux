@@ -17,6 +17,8 @@
 - Redesigned Telegram build notifications
 - Device report (`flux_utility report`, included in *Save log*): ROM, kernel features, vendor
   daemons and SynthesisCore capabilities, for bug reports and per-ROM tuning
+- **HiCo Thermal integration**: the thermal add-on follows Flux's game profiles; uninstalling Flux
+  restores its thermal changes, and the device report / *Save log* include HiCo's state and log
 
 ### Fixed
 - NOTICE.md was empty; Encore Tweaks and all third-party components are now credited
