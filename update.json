@@ -1,7 +1,7 @@
 {
-  "version": "v1.2.0",
-  "versionCode": 46,
-  "zipUrl": "https://github.com/FebriCahyaa/Flux/releases/download/v1.2.0/flux-1.2.0-46-7ad3881-release.zip",
+  "version": "v1.2.1",
+  "versionCode": 48,
+  "zipUrl": "https://github.com/FebriCahyaa/Flux/releases/download/v1.2.1/flux-1.2.1-48-15d4f05-release.zip",
   "changelog": "https://raw.githubusercontent.com/FebriCahyaa/Flux/main/update/changelog.md",
-  "sha256": "3afcb179556fb57fcc9ed4f2e4db8e71e2f5597edd0645800479563626954130"
+  "sha256": "bacc20b6b2e8cbcffab6a74ea039a53bedfc7ddb19748c905cf25c21c7c4667d"
 }
