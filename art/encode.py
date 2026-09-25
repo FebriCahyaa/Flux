@@ -13,9 +13,6 @@ src = Path(sys.argv[1] if len(sys.argv) > 1 else ROOT / "art" / "out")
 
 TARGETS = [
     ("banner.png", ROOT / "banner.webp", "WEBP", {"quality": 90, "method": 6}),
-    ("flux_happy.png", ROOT / "webui/public/flux_happy.avif", "AVIF", {"quality": 80}),
-    ("flux_sleeping.png", ROOT / "webui/public/flux_sleeping.avif", "AVIF", {"quality": 80}),
-    ("icon.png", ROOT / "webui/public/icon.webp", "WEBP", {"quality": 92, "method": 6}),
 ]
 for name, dst, fmt, opts in TARGETS:
     im = Image.open(src / name)

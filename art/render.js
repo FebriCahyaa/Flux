@@ -1,4 +1,4 @@
-// Renders the Flux artwork with Chromium (Playwright): mascot SVGs -> PNG, banner HTML -> PNG.
+// Renders the Flux artwork with Chromium (Playwright): banner HTML -> PNG.
 // Encoding to AVIF / WebP is done by art/encode.py. Development tool, not part of the build.
 //   node art/render.js <out dir>
 const { chromium } = require(process.env.PLAYWRIGHT || 'playwright')
@@ -8,10 +8,7 @@ require('fs').mkdirSync(out, { recursive: true })
 ;(async () => {
   const browser = await chromium.launch()
   const jobs = [
-    ['flux_happy.svg', 'flux_happy.png', 512, 512, true],
-    ['flux_sleeping.svg', 'flux_sleeping.png', 512, 512, true],
     ['banner.html', 'banner.png', 1280, 640, false],
-    ['icon.html', 'icon.png', 256, 256, true],
   ]
   for (const [src, dst, w, h, transparent] of jobs) {
     if (!require('fs').existsSync(path.join(__dirname, src))) continue

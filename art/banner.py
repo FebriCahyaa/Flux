@@ -2,7 +2,7 @@
 """Writes art/banner.html, the 1280x640 module banner (render with art/render.js).
 
 Material 3 Expressive: expressive shapes (same polar curves as the WebUI),
-emphasized Google Sans Flex headline, Flux-chan in a cookie shape.
+emphasized Google Sans Flex headline, the Flux mascot (webui/public/flux_happy.avif) in a cookie shape.
 
     python3 art/banner.py
 """
@@ -41,7 +41,7 @@ body {{ width: 1280px; height: 640px; overflow: hidden; font-family: 'Google San
 .s4 {{ width: 54px; height: 54px; left: 690px; top: 470px; clip-path: {burst}; background: #ff8fb1; }}
 .mascot {{ position: absolute; right: 90px; top: 70px; width: 470px; height: 470px; clip-path: {cookie12};
   background: linear-gradient(160deg, #e9e3ff, #b9adff); }}
-.mascot img {{ position: absolute; width: 500px; left: -15px; top: 10px; }}
+.mascot img {{ position: absolute; width: 440px; left: 15px; top: 30px; }}
 .content {{ position: absolute; left: 88px; top: 108px; width: 620px; }}
 .by {{ display: inline-flex; align-items: center; gap: 10px; padding: 8px 18px 8px 10px; border-radius: 999px;
   background: rgba(255,255,255,.12); font-size: 22px; font-weight: 600; letter-spacing: .01em; }}
@@ -57,7 +57,7 @@ p {{ font-size: 36px; font-weight: 500; margin-top: 22px; color: #d9d2ff; }}
 .foot {{ position: absolute; left: 88px; bottom: 34px; font-size: 18px; color: rgba(243,239,255,.55); font-weight: 500; }}
 </style></head><body>
 <div class="shape s1"></div><div class="shape s2"></div><div class="shape s3"></div><div class="shape s4"></div>
-<div class="mascot"><img src="flux_happy.svg" alt=""></div>
+<div class="mascot"><img src="../webui/public/flux_happy.avif" alt=""></div>
 <div class="content">
   <span class="by"><i></i>FebriCahyaa</span>
   <h1>Flux<br><span>Tweaks</span></h1>
@@ -69,14 +69,4 @@ p {{ font-size: 36px; font-weight: 500; margin-top: 22px; color: #d9d2ff; }}
 """
 (HERE / "banner.html").write_text(html)
 
-# App / shortcut icon (256x256): Flux-chan in a lavender cookie shape.
-icon = f"""<!doctype html>
-<html><head><meta charset="utf-8"><style>
-* {{ margin: 0; }}
-body {{ width: 256px; height: 256px; background: transparent; }}
-.c {{ position: absolute; inset: 4px; clip-path: {cookie12}; background: linear-gradient(160deg, #e9e3ff, #9f8cff); }}
-.c img {{ position: absolute; width: 272px; left: -12px; top: 6px; }}
-</style></head><body><div class="c"><img src="flux_happy.svg" alt=""></div></body></html>
-"""
-(HERE / "icon.html").write_text(icon)
-print("wrote", HERE / "banner.html", HERE / "icon.html")
+print("wrote", HERE / "banner.html")
