@@ -49,6 +49,45 @@ change_gpu_gov() {
 	done
 }
 
+# capabilities: which tweaks this device and kernel can actually use, as JSON.
+# The WebUI hides switches for features that would do nothing here.
+capabilities() {
+	has() { [ -e "$1" ] && echo true || echo false; }
+
+	kernel=$(uname -r)
+	ktype=$(cat "$MODULE_CONFIG/kernel_type" 2>/dev/null)
+	[ -n "$ktype" ] || ktype=unknown
+
+	cc_avail=$(cat /proc/sys/net/ipv4/tcp_available_congestion_control 2>/dev/null)
+
+	gpu=false
+	for node in /sys/class/kgsl/kgsl-3d0/devfreq/governor /sys/class/devfreq/*gpu*/governor \
+		/sys/class/devfreq/*mali*/governor /sys/class/devfreq/*g3d*/governor; do
+		[ -f "$node" ] && gpu=true && break
+	done
+
+	# More than one refresh rate in the display modes
+	rates=$(dumpsys display 2>/dev/null | grep -o 'fps=[0-9.]*' | sort -u | wc -l)
+	refresh=false
+	[ "${rates:-0}" -gt 1 ] && refresh=true
+
+	core_ctl=false
+	for node in /sys/devices/system/cpu/cpu*/core_ctl/min_cpus; do
+		[ -f "$node" ] && core_ctl=true && break
+	done
+	sched_boost=false
+	{ [ -f /proc/sys/walt/sched_boost ] || [ -f /proc/sys/kernel/sched_boost ]; } && sched_boost=true
+	mali=false
+	[ -n "$(find /sys/devices/platform/ -maxdepth 3 -name power_policy -path '*mali*' 2>/dev/null | head -n 1)" ] && mali=true
+
+	printf '{"kernel":"%s","kernel_type":"%s","uclamp":%s,"schedtune":%s,"touchpanel":%s,' \
+		"$kernel" "$ktype" "$(has /dev/cpuctl/top-app/cpu.uclamp.min)" "$(has /dev/stune/top-app)" "$(has /proc/touchpanel)"
+	printf '"net":%s,"net_cc":"%s","refresh":%s,"gpu_governor":%s,"surface":%s,' \
+		"$(has /proc/sys/net/ipv4/tcp_congestion_control)" "$cc_avail" "$refresh" "$gpu" "$(has /dev/cpuset/top-app/tasks)"
+	printf '"core_ctl":%s,"sched_boost":%s,"kgsl":%s,"mali":%s}\n' \
+		"$core_ctl" "$sched_boost" "$(has /sys/class/kgsl/kgsl-3d0/force_rail_on)" "$mali"
+}
+
 # Best-effort ROM family from well-known vendor properties.
 # Custom ROMs for Xiaomi devices often keep vendor props such as
 # ro.miui.ui.version.name, so the props alone do not mean MIUI/HyperOS: also

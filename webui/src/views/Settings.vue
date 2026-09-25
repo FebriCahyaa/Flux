@@ -117,6 +117,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useLanguageStore } from '@/stores/Language'
 import { useFluxConfigStore } from '@/stores/FluxConfig'
+import { useCapabilitiesStore } from '@/stores/Capabilities'
 
 import RippleComponent from '@/components/ui/Ripple.vue'
 import ChevronRightIcon from '@/components/icons/ChevronRight.vue'
@@ -161,8 +162,10 @@ const currentLanguage = computed(() => {
 })
 
 const fluxConfigStore = useFluxConfigStore()
+const capabilities = useCapabilitiesStore()
 onMounted(() => {
   if (!fluxConfigStore.isLoaded) fluxConfigStore.loadConfig().catch(() => {})
+  capabilities.load()
 })
 
 const go = (path) => () => router.push(`/settings/${path}`)
@@ -183,7 +186,7 @@ const onPill = (value, danger = false) =>
     : null
 
 // Each entry gets its own shape and colour so the list is easy to scan.
-const sections = computed(() => [
+const allSections = () => [
   {
     key: 'preferences',
     items: [
@@ -211,6 +214,7 @@ const sections = computed(() => [
       },
       {
         key: 'flux_sched',
+        cap: 'uclamp',
         icon: TuneIcon,
         shape: 'shape-pentagon',
         tone: tone.secondary,
@@ -246,6 +250,7 @@ const sections = computed(() => [
       },
       {
         key: 'gpu_governor',
+        cap: 'gpu_governor',
         icon: GpuIcon,
         shape: 'shape-sunny',
         tone: tone.secondary,
@@ -294,7 +299,15 @@ const sections = computed(() => [
       },
     ],
   },
-])
+]
+
+// Entries for features this kernel does not have are left out.
+const sections = computed(() =>
+  allSections().map((section) => ({
+    ...section,
+    items: section.items.filter((item) => capabilities.supports(item.cap)),
+  })),
+)
 
 function openExportModal() {
   exportStatus.value = 'loading'

@@ -471,19 +471,19 @@
   "game_tweaks": {
     "title": "Game Tweaks",
     "brief": "Extra tweaks applied only while a game runs. Everything is put back when you leave the game.",
-    "not_supported": "Not on this device",
     "tags": {
       "oplus": "OPPO · realme · OnePlus",
-      "battery": "Uses more battery"
+      "battery": "Uses more battery",
+      "all_devices": "All devices",
+      "not_lite": "Not in Lite mode"
     },
     "net_tweaks": {
       "title": "Network latency",
-      "description": "Low-latency TCP with BBR congestion control, ECN and Fast Open for steadier ping."
+      "description": "Low-latency TCP with the best congestion control this kernel has (BBR, Westwood or CUBIC), ECN and Fast Open for steadier ping."
     },
     "touch_tweaks": {
       "title": "Touch response",
-      "description": "Turns on the touch panel's game mode for faster, more direct touch input.",
-      "unsupported_note": "This device has no /proc/touchpanel, so the touch tweak has no effect here."
+      "description": "Turns on the touch panel's game mode for faster, more direct touch input."
     },
     "game_refresh_rate": {
       "title": "Max refresh rate in games",
@@ -497,6 +497,39 @@
     },
     "apply_note": "Changes apply the next time a game starts.",
     "saved_on": "{name} on",
-    "saved_off": "{name} off"
+    "saved_off": "{name} off",
+    "hidden_title": "{n} tweak(s) hidden — not supported on this device",
+    "kernel": {
+      "gki": {
+        "title": "GKI kernel",
+        "description": "Generic Kernel Image (Android 12+, Linux 5.10+): Flux uses uclamp, the debugfs scheduler tunables and the vendor modules (WALT, kgsl) this kernel loads."
+      },
+      "non_gki": {
+        "title": "Non-GKI kernel",
+        "description": "Vendor kernel (Linux 4.19–5.x): Flux uses schedtune or uclamp and the vendor scheduler and bus nodes built into it."
+      },
+      "legacy": {
+        "title": "Legacy kernel",
+        "description": "Older chipset (Linux 4.14 and below): Flux uses schedtune, HMP/WALT sched_boost and core control to wake up every core while you play."
+      },
+      "unknown": {
+        "title": "Kernel",
+        "description": "The kernel type is detected the first time Flux applies a profile."
+      }
+    },
+    "surface_boost": {
+      "title": "Surface boost",
+      "description": "Moves SurfaceFlinger and the display composer threads onto the game's CPU group while you play, so frames are composed without waiting on slow cores."
+    },
+    "chipset_boost": {
+      "title": "Chipset boost",
+      "description": "Uses the vendor performance knobs of this chipset for the whole game: keeps every core online, boosts big cores and keeps the GPU powered between frames.",
+      "parts": {
+        "core_ctl": "Core control",
+        "sched_boost": "sched_boost",
+        "kgsl": "Adreno power rails",
+        "mali": "Mali always-on"
+      }
+    }
   }
 }

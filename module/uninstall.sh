@@ -46,7 +46,30 @@ if [ -f /dev/.flux_refresh_orig ]; then
 	[ -n "$peak" ] && [ "$peak" != null ] && settings put system peak_refresh_rate "$peak"
 	[ -n "$min" ] && [ "$min" != null ] && settings put system min_refresh_rate "$min"
 fi
-rm -f /dev/.flux_sched_orig /dev/.flux_boost_orig /dev/.flux_game_prio /dev/.flux_refresh_orig
+# Values Flux changed while gaming (Flux Boost, game tweaks, chipset boost):
+# "<group> <node> <mode> <value>" per line
+if [ -f /dev/.flux_boost_orig ]; then
+	while read -r _ node mode value; do
+		[ -f "$node" ] || continue
+		chmod 644 "$node" 2>/dev/null
+		echo "$value" >"$node" 2>/dev/null
+		chmod "$mode" "$node" 2>/dev/null
+	done </dev/.flux_boost_orig
+fi
+# SurfaceFlinger / composer threads back to their cgroups: "<tid> <root> <path>"
+if [ -f /dev/.flux_surface ]; then
+	while read -r tid dir path; do
+		[ -d "/proc/$tid" ] && echo "$tid" >"$dir${path%/}/tasks" 2>/dev/null
+	done </dev/.flux_surface
+fi
+# Mali power policy: "<node> <policy>"
+if [ -f /dev/.flux_mali_policy ]; then
+	while read -r node policy; do
+		[ -f "$node" ] && echo "$policy" >"$node" 2>/dev/null
+	done </dev/.flux_mali_policy
+fi
+rm -f /dev/.flux_sched_orig /dev/.flux_boost_orig /dev/.flux_game_prio /dev/.flux_refresh_orig \
+	/dev/.flux_surface /dev/.flux_mali_policy
 
 # Leftovers from Encore Tweaks, which Flux replaces
 rm -rf /data/adb/.config/encore

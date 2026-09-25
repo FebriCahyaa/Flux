@@ -3,6 +3,16 @@
 ## Unreleased
 
 ### New
+- **Kernel-aware tuning**: Flux now tells GKI (Android 12+, Linux 5.10+), Non-GKI vendor and
+  legacy (4.14 and older) kernels apart. On Linux 5.13+ the CFS tunables and sched features are
+  written to their new debugfs location, so they apply on GKI 5.15 / 6.1 too
+- **Surface boost** (all devices): SurfaceFlinger and the display composer HAL threads join the
+  game's top-app cgroups (cpuset, schedtune or cpuctl) while gaming and go back afterwards
+- **Chipset boost**: Qualcomm core_ctl (all cores online), sched_boost (conservative on WALT, HMP
+  boost on older kernels), Adreno kgsl bus/rail/no-nap and ARM Mali always_on for the game
+  session; not in Lite mode; every value is saved and restored
+- The WebUI hides tweaks the device cannot use (touch panel, refresh rate, GPU governor, Flux
+  Sched without uclamp…) and shows the detected kernel type
 - **Game Tweaks** (Settings → Game Tweaks): network latency (BBR, ECN, TCP Fast Open), touch
   panel game mode (OPPO / realme / OnePlus), optional max refresh rate while gaming and memory
   cache drop at game start. Each one can be switched off; network values and the refresh rate are
@@ -47,6 +57,10 @@
   restores its thermal changes, and the device report / *Save log* include HiCo's state and log
 
 ### Fixed
+- A switched-off Flux feature could stay off after being turned back on: clearing the previous
+  `FLUX_*` variables skipped every second one
+- Uninstalling now restores the kernel values Flux changed during a game instead of only
+  deleting the backups
 - GKI profile wrote `io_uring_disabled=1` believing it enabled io_uring (it restricts it; Android
   disables io_uring on purpose) and `sched_cfs_bandwidth_slice_us=0` (below the kernel minimum);
   both writes are removed

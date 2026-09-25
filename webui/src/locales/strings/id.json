@@ -474,19 +474,19 @@
   "game_tweaks": {
     "title": "Tweak Game",
     "brief": "Tweak tambahan yang hanya diterapkan saat game berjalan. Semuanya dikembalikan saat kamu keluar dari game.",
-    "not_supported": "Tidak ada di perangkat ini",
     "tags": {
       "oplus": "OPPO · realme · OnePlus",
-      "battery": "Lebih boros baterai"
+      "battery": "Lebih boros baterai",
+      "all_devices": "Semua perangkat",
+      "not_lite": "Tidak di mode Lite"
     },
     "net_tweaks": {
       "title": "Latensi jaringan",
-      "description": "TCP latensi rendah dengan kontrol kemacetan BBR, ECN dan Fast Open agar ping lebih stabil."
+      "description": "TCP latensi rendah dengan kontrol kemacetan terbaik yang dimiliki kernel ini (BBR, Westwood atau CUBIC), ECN dan Fast Open agar ping lebih stabil."
     },
     "touch_tweaks": {
       "title": "Respons sentuhan",
-      "description": "Mengaktifkan mode game pada panel sentuh agar input sentuhan lebih cepat dan responsif.",
-      "unsupported_note": "Perangkat ini tidak punya /proc/touchpanel, jadi tweak sentuhan tidak berpengaruh di sini."
+      "description": "Mengaktifkan mode game pada panel sentuh agar input sentuhan lebih cepat dan responsif."
     },
     "game_refresh_rate": {
       "title": "Refresh rate maksimum di game",
@@ -500,6 +500,39 @@
     },
     "apply_note": "Perubahan berlaku saat game berikutnya dimulai.",
     "saved_on": "{name} aktif",
-    "saved_off": "{name} nonaktif"
+    "saved_off": "{name} nonaktif",
+    "hidden_title": "{n} tweak disembunyikan — tidak didukung perangkat ini",
+    "kernel": {
+      "gki": {
+        "title": "Kernel GKI",
+        "description": "Generic Kernel Image (Android 12+, Linux 5.10+): Flux memakai uclamp, tunable scheduler di debugfs, dan modul vendor (WALT, kgsl) yang dimuat kernel ini."
+      },
+      "non_gki": {
+        "title": "Kernel Non-GKI",
+        "description": "Kernel vendor (Linux 4.19–5.x): Flux memakai schedtune atau uclamp serta node scheduler dan bus bawaan vendor."
+      },
+      "legacy": {
+        "title": "Kernel lama",
+        "description": "Chipset lama (Linux 4.14 ke bawah): Flux memakai schedtune, sched_boost HMP/WALT dan core control agar semua core aktif saat bermain."
+      },
+      "unknown": {
+        "title": "Kernel",
+        "description": "Jenis kernel terdeteksi saat Flux pertama kali menerapkan profil."
+      }
+    },
+    "surface_boost": {
+      "title": "Surface boost",
+      "description": "Memindahkan thread SurfaceFlinger dan composer layar ke grup CPU game saat bermain, sehingga frame disusun tanpa menunggu core lambat."
+    },
+    "chipset_boost": {
+      "title": "Dorongan chipset",
+      "description": "Memakai pengaturan performa vendor chipset ini selama game: semua core tetap aktif, core besar didorong, dan GPU tetap menyala di antara frame.",
+      "parts": {
+        "core_ctl": "Core control",
+        "sched_boost": "sched_boost",
+        "kgsl": "Rail daya Adreno",
+        "mali": "Mali always-on"
+      }
+    }
   }
 }

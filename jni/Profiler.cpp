@@ -16,6 +16,9 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <string>
+#include <string_view>
+#include <vector>
 
 #include "Flux.hpp"
 #include "FluxLog.hpp"
@@ -32,19 +35,19 @@ void set_profiler_env_vars() {
     // Get preferences from config store
     auto prefs = config_store.get_preferences();
 
-    // Clear all existing _FLUX_* environment variables
+    // Clear all existing FLUX_* environment variables. Names are collected first:
+    // unsetenv() shifts environ, so unsetting while iterating skips the next entry
+    // and a stale FLUX_*_DISABLED would survive after the switch is turned back on.
     extern char **environ;
+    std::vector<std::string> stale;
     for (char **env = environ; *env; ++env) {
-        std::string env_str(*env);
-        if (env_str.find("FLUX_") == 0) {
-            // Extract the variable name (up to '=')
-            size_t eq_pos = env_str.find('=');
-            if (eq_pos != std::string::npos) {
-                std::string var_name = env_str.substr(0, eq_pos);
-                unsetenv(var_name.c_str());
-            }
+        std::string_view entry(*env);
+        size_t eq_pos = entry.find('=');
+        if (entry.starts_with("FLUX_") && eq_pos != std::string_view::npos) {
+            stale.emplace_back(entry.substr(0, eq_pos));
         }
     }
+    for (const auto &name : stale) unsetenv(name.c_str());
 
     // Use cached mitigation items instead of re-evaluating rules
     auto mitigation_items = device_mitigation_store.get_cached_mitigation_items(prefs.use_device_mitigation);
@@ -76,6 +79,8 @@ void set_profiler_env_vars() {
     if (!prefs.touch_tweaks) setenv("FLUX_TOUCH_DISABLED", "1", 1);
     if (prefs.game_refresh_rate) setenv("FLUX_REFRESH_ENABLED", "1", 1);
     if (!prefs.drop_caches) setenv("FLUX_DROP_CACHES_DISABLED", "1", 1);
+    if (!prefs.surface_boost) setenv("FLUX_SURFACE_DISABLED", "1", 1);
+    if (!prefs.chipset_boost) setenv("FLUX_CHIPSET_DISABLED", "1", 1);
 
     // Set CPU Governor variables
     FluxConfigStore::CPUGovernor cpu_governor_preference = config_store.get_cpu_governor();
