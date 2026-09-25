@@ -40,6 +40,7 @@
 #include <ShellUtility.hpp>
 #include <SignalHandler.hpp>
 #include <SynthesisCore.hpp>
+#include <NativeMonitor.hpp>
 
 // ---------------------------------------------------------------------------
 // Global registry
@@ -704,8 +705,23 @@ int run_daemon() {
         return EXIT_FAILURE;
     }
 
+    // Prefer the native binder monitor; fall back to the SynthesisCore Java
+    // daemon when it cannot start. service.sh reads MONITOR_MODE_FILE to decide
+    // whether the Java daemon must be launched.
+    const bool native_monitor = NativeMonitor::start();
+    if (FILE *mode = fopen(MONITOR_MODE_FILE, "w")) {
+        fputs(native_monitor ? "native\n" : "java\n", mode);
+        fclose(mode);
+    }
+
+    if (native_monitor) {
+        LOGI("Using the native system monitor");
+    } else {
+        LOGW("Native monitor unavailable ({}), using the Java companion daemon", NativeMonitor::last_error());
+    }
+
     // Check for the Java companion daemon lock before proceeding
-    {
+    if (!native_monitor) {
         int check = 0;
         const int max_retries = 120;
         while (!java_lock.is_locked()) {
@@ -721,7 +737,7 @@ int run_daemon() {
     }
 
     // Watch the Java companion daemon lock
-    watch_java_lock();
+    if (!native_monitor) watch_java_lock();
 
     InotifyWatcher file_watcher;
     if (!init_file_watcher(file_watcher)) {

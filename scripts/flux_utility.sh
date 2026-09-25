@@ -91,7 +91,8 @@ report() {
 	node /proc/oplus_scheduler/sched_assist/sched_assist_enabled
 	node /proc/ppm/enabled
 
-	section "SynthesisCore"
+	section "System monitor"
+	echo "mode: $(cat "$MODULE_CONFIG/monitor_mode" 2>/dev/null || echo unknown)"
 	cat "$MODULE_CONFIG/synthesis_core.json" 2>/dev/null
 	echo "-- binder codes"
 	cat "$MODULE_CONFIG/binder_codes" 2>/dev/null

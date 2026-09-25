@@ -37,6 +37,12 @@
 /// Minimum SynthesisCore synthesis_version (PROTOCOL_VERSION) this build expects.
 /// Keep in sync with SYNTHESIS_MIN_VERSION in module/service.sh and the WebUI monitor store.
 #define SYNTHESIS_CORE_MIN_VERSION 2
+/// Binder transaction codes resolved at boot by `synthesiscore.apk --resolve`.
+#define BINDER_CODES_FILE CONFIG_DIR "/binder_codes"
+/// "native" or "java": which monitor feeds SYNTHESIS_CORE_FILE (read by service.sh).
+#define MONITOR_MODE_FILE CONFIG_DIR "/monitor_mode"
+/// When this file exists, fluxd skips the native monitor and uses the Java daemon.
+#define FORCE_JAVA_MONITOR_FILE CONFIG_DIR "/force_java_monitor"
 
 #define MODULE_PROP MODPATH "/module.prop"
 #define MODULE_UPDATE MODPATH "/update"

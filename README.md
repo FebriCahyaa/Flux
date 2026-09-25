@@ -26,10 +26,10 @@ Flux Tweaks is a **profile-style** module: instead of continuously steering freq
 a coherent set of kernel and system tweaks whenever the device changes situation.
 
 ```
-SynthesisCore (app_process)  ──status file──▶  fluxd (native daemon)  ──▶  flux_profiler (shell)
-  foreground app, screen,        inotify          picks a profile            writes sysfs / procfs
-  power, thermal, audio,                          from game list,            (CPU, GPU, I/O, uclamp,
-  battery, calls                                  thermal and config         touch, ...)
+fluxd native monitor (binder)  ──status file──▶  fluxd (profiles)  ──▶  flux_profiler (shell)
+  foreground app, screen,          inotify          picks a profile        writes sysfs / procfs
+  power, thermal, audio,                            from game list,        (CPU, GPU, I/O, uclamp,
+  battery, calls                                    thermal and config     touch, ...)
 ```
 
 | Profile | When |
@@ -39,8 +39,12 @@ SynthesisCore (app_process)  ──status file──▶  fluxd (native daemon)  
 | **Balance** | Normal use |
 | **Powersave** | Battery saver is on |
 
-- [SynthesisCore](https://github.com/FebriCahyaa/SynthesisCore) observes the system through
-  Android framework callbacks and publishes a small status file.
+- `fluxd`'s **native monitor** talks to Android system services directly over binder (approach
+  from Encore Tweaks): process and display observers for the foreground app and screen, plus light
+  queries for power, thermal, audio and battery. No Java process stays running.
+- [SynthesisCore](https://github.com/FebriCahyaa/SynthesisCore) runs once at boot to resolve the
+  binder transaction codes of the current ROM, and takes over as a Java daemon only if the native
+  monitor cannot start (or `/data/adb/.config/flux/force_java_monitor` exists).
 - `fluxd` (C++, [`jni/`](jni)) watches that file, the game list and the config with `inotify`, and
   decides the profile. It tracks the game's PID so the profile is dropped as soon as the game exits.
 - `flux_profiler` ([`scripts/flux_profiler.sh`](scripts/flux_profiler.sh)) applies the profile with

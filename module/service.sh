@@ -123,25 +123,65 @@ case "$legacy_list" in
 	;;
 esac
 
-# ── Start SynthesisCore companion daemon with watchdog ───────────────────────
-# SynthesisCore is not installed as an app: app_process runs it straight from
-# the module as a root process (FluxSysMon), so package-based battery
-# exemptions do not apply to it. The watchdog restarts it if it ever dies so
-# fluxd always has a live Java lock to wait on.
 # ── SynthesisCore integrity ──────────────────────────────────────────────────
-# The APK runs as root, so it is only started when it still matches the checksum
-# verified at install time. A modified APK is never executed.
+# synthesiscore.apk runs as root through app_process (it is never installed as
+# an app), so it is only executed while it matches the checksum verified at
+# install time. A modified APK is never run.
 verify_synthesiscore() {
 	local expected actual
 	expected=$(cat "$MODDIR/synthesiscore.apk.sha256" 2>/dev/null)
 	actual=$(sha256sum "$MODDIR/synthesiscore.apk" 2>/dev/null | cut -d' ' -f1)
 	[ -n "$expected" ] && [ "$expected" = "$actual" ] && return 0
 
-	echo "$(date): SynthesisCore integrity check FAILED (expected ${expected:-none}, got ${actual:-none}); not starting it. Reinstall Flux." \
+	echo "$(date): SynthesisCore integrity check FAILED (expected ${expected:-none}, got ${actual:-none}); not running it. Reinstall Flux." \
 		>>"$MODULE_CONFIG/sysmon.log"
 	return 1
 }
 
+# ── Resolve binder transaction codes (one-shot, before fluxd) ────────────────
+# Transaction codes differ between Android versions and ROMs. fluxd's native
+# monitor needs them, so SynthesisCore's --resolve mode looks them up once per
+# boot (about a second). Needs protocol >= 2; "--version" prints it, and an older
+# APK would misread the flag, so the probe runs under a short timeout.
+SYNTHESIS_MIN_VERSION=2 # keep in sync with SYNTHESIS_CORE_MIN_VERSION in jni/include/Flux.hpp
+
+resolve_binder_codes() {
+	verify_synthesiscore || return 1
+
+	local ver
+	ver=$(timeout 10 app_process -Djava.class.path="$MODDIR/synthesiscore.apk" / --nice-name=FluxBinderResolver \
+		com.febricahyaa.synthesiscore.MainKt --version 2>/dev/null | tail -n 1)
+	case "$ver" in '' | *[!0-9]*) ver=1 ;; esac
+	if [ "$ver" -lt "$SYNTHESIS_MIN_VERSION" ]; then
+		echo "$(date): SynthesisCore protocol $ver < $SYNTHESIS_MIN_VERSION, skipping binder code resolve" >>"$MODULE_CONFIG/sysmon.log"
+		return 1
+	fi
+
+	# Keep in sync with kQueries in jni/base/NativeMonitor/NativeMonitor.cpp.
+	timeout 20 app_process -Djava.class.path="$MODDIR/synthesiscore.apk" / --nice-name=FluxBinderResolver \
+		com.febricahyaa.synthesiscore.MainKt --resolve "$MODULE_CONFIG/binder_codes" \
+		>>"$MODULE_CONFIG/sysmon.log" 2>&1 <<-EOF
+		android.os.IPowerManager.Stub::TRANSACTION_isInteractive
+		android.os.IPowerManager.Stub::TRANSACTION_isPowerSaveMode
+		android.app.IActivityManager.Stub::TRANSACTION_registerProcessObserver
+		android.app.IProcessObserver.Stub::TRANSACTION_onForegroundActivitiesChanged
+		android.app.IProcessObserver.Stub::TRANSACTION_onProcessDied
+		android.content.pm.IPackageManager.Stub::TRANSACTION_getNameForUid
+		android.hardware.display.IDisplayManager.Stub::TRANSACTION_registerCallback
+		android.hardware.display.IDisplayManagerCallback.Stub::TRANSACTION_onDisplayEvent
+		android.app.INotificationManager.Stub::TRANSACTION_getZenMode
+		android.os.IThermalService.Stub::TRANSACTION_getThermalHeadroom
+		android.os.IThermalService.Stub::TRANSACTION_getCurrentThermalStatus
+		android.media.IAudioService.Stub::TRANSACTION_isMusicActive
+		android.media.IAudioService.Stub::TRANSACTION_getMode
+		android.app.IActivityTaskManager.Stub::TRANSACTION_getFocusedRootTaskInfo
+	EOF
+}
+
+# ── Java companion daemon (fallback) ─────────────────────────────────────────
+# Only used when fluxd's native monitor cannot start (e.g. a required binder
+# code is missing on this ROM, or force_java_monitor exists). SynthesisCore then
+# runs as a root process (FluxSysMon) and a watchdog restarts it if it dies.
 start_synthesiscore() {
 	verify_synthesiscore || return 1
 
@@ -155,7 +195,7 @@ start_synthesiscore() {
 		"$MODULE_CONFIG/synthesis_core.json" \
 		"$MODULE_CONFIG/java.lock" \
 		>>"$MODULE_CONFIG/sysmon.log" 2>&1 &
-	echo $! > "$MODULE_CONFIG/sysmon.pid"
+	echo $! >"$MODULE_CONFIG/sysmon.pid"
 }
 
 synthesiscore_alive() {
@@ -164,79 +204,41 @@ synthesiscore_alive() {
 	[ -n "$pid" ] && kill -0 "$pid" 2>/dev/null
 }
 
-# ── Resolve binder transaction codes (one-shot) ──────────────────────────────
-# Transaction codes differ between Android versions and ROMs. SynthesisCore's
-# --resolve mode looks them up once per boot so native code can issue binder
-# calls directly. Entries missing on this ROM are logged and omitted.
-# Runs in the background under a timeout so it can never block boot.
-#
-# Only runs when the running APK reports synthesis_version >= SYNTHESIS_MIN_VERSION:
-# an older APK does not understand --resolve and would treat it as an output path.
-SYNTHESIS_MIN_VERSION=2  # keep in sync with SYNTHESIS_CORE_MIN_VERSION in jni/include/Flux.hpp
-
-synthesiscore_version() {
-	local ver
-	ver=$(sed -n 's/^synthesis_version \([0-9][0-9]*\)$/\1/p' "$MODULE_CONFIG/synthesis_core.json" 2>/dev/null)
-	echo "${ver:-1}"
+start_java_monitor() {
+	start_synthesiscore || return 1
+	(
+		while true; do
+			sleep 10
+			if ! synthesiscore_alive; then
+				echo "$(date): SynthesisCore died, restarting..." >>"$MODULE_CONFIG/sysmon.log"
+				# A failed integrity check will not fix itself: stop watching.
+				start_synthesiscore || break
+				sleep 2
+			fi
+		done
+	) &
+	echo $! >"$MODULE_CONFIG/sysmon_watchdog.pid"
 }
 
-resolve_binder_codes() {
-	verify_synthesiscore || return 1
-	timeout 15 app_process \
-		-Djava.class.path="$MODDIR/synthesiscore.apk" / \
-		--nice-name=FluxBinderResolver \
-		com.febricahyaa.synthesiscore.MainKt \
-		--resolve "$MODULE_CONFIG/binder_codes" \
-		>>"$MODULE_CONFIG/sysmon.log" 2>&1 <<-EOF
-		android.os.IPowerManager.Stub::TRANSACTION_isInteractive
-		android.os.IPowerManager.Stub::TRANSACTION_isPowerSaveMode
-		android.app.INotificationManager.Stub::TRANSACTION_getZenMode
-		android.media.IAudioService.Stub::TRANSACTION_isMusicActive
-		android.os.IThermalService.Stub::TRANSACTION_getThermalHeadroom
-		android.os.IThermalService.Stub::TRANSACTION_getCurrentThermalStatus
-		android.app.IActivityTaskManager.Stub::TRANSACTION_getFocusedRootTaskInfo
-	EOF
-}
+# Drop state from the previous boot.
+rm -f "$MODULE_CONFIG/binder_codes" "$MODULE_CONFIG/synthesis_core.json" \
+	"$MODULE_CONFIG/monitor_mode" "$MODULE_CONFIG/sysmon.pid" "$MODULE_CONFIG/sysmon_watchdog.pid"
 
-resolve_binder_codes_when_supported() {
-	# Wait (max ~10 s) for the fresh daemon to write its status file.
-	local i=0
-	while [ "$i" -lt 20 ] && ! grep -q '^synthesis_version ' "$MODULE_CONFIG/synthesis_core.json" 2>/dev/null; do
-		sleep 0.5
-		i=$((i + 1))
-	done
+resolve_binder_codes
 
-	local ver
-	ver=$(synthesiscore_version)
-	if [ "$ver" -ge "$SYNTHESIS_MIN_VERSION" ]; then
-		resolve_binder_codes
-	else
-		echo "$(date): SynthesisCore synthesis_version $ver < $SYNTHESIS_MIN_VERSION, skipping binder code resolve" \
-			>>"$MODULE_CONFIG/sysmon.log"
-	fi
-}
-
-# Drop status/codes from the previous boot so the version check only sees
-# output written by the APK that is about to start.
-rm -f "$MODULE_CONFIG/binder_codes" "$MODULE_CONFIG/synthesis_core.json"
-
-start_synthesiscore
-sleep 1  # Buffer for lock acquisition
-
-resolve_binder_codes_when_supported &
-
-# Watchdog: restart SynthesisCore if killed (runs in background)
-(
-	while true; do
-		sleep 10
-		if ! synthesiscore_alive; then
-			echo "$(date): SynthesisCore died, restarting..." >> "$MODULE_CONFIG/sysmon.log"
-			# A failed integrity check will not fix itself: stop watching.
-			start_synthesiscore || break
-			sleep 2
-		fi
-	done
-) &
-echo $! > "$MODULE_CONFIG/sysmon_watchdog.pid"
-
+# fluxd daemonizes, then reports which monitor it uses in monitor_mode.
 fluxd daemon
+
+i=0
+while [ ! -s "$MODULE_CONFIG/monitor_mode" ] && [ "$i" -lt 30 ]; do
+	sleep 0.5
+	i=$((i + 1))
+done
+
+if [ "$(cat "$MODULE_CONFIG/monitor_mode" 2>/dev/null)" = "native" ]; then
+	echo "$(date): fluxd uses the native monitor; SynthesisCore daemon not needed" >>"$MODULE_CONFIG/sysmon.log"
+else
+	echo "$(date): starting the SynthesisCore daemon (monitor_mode: $(cat "$MODULE_CONFIG/monitor_mode" 2>/dev/null || echo none))" \
+		>>"$MODULE_CONFIG/sysmon.log"
+	start_java_monitor
+fi
