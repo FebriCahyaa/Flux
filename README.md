@@ -133,7 +133,13 @@ Both CI builds and releases use the shared `.github/actions/build-module` action
 
 Setup and key rotation are described in [`prebuilt/README.md`](prebuilt/README.md).
 
+## Credits
+
+Flux Tweaks is derived from [Encore Tweaks](https://github.com/Rem01Gaming/encore) by
+**Rem01Gaming** (Apache License 2.0), which itself builds on KTweak by Tyler Nijmeh. The module
+structure, daemon, profiler, WebUI and native binder monitor are based on Encore's source. Thank you!
+
 ## License
 
-Flux Tweaks is licensed under the [Apache License 2.0](LICENSE). Third-party notices are listed in
-[NOTICE.md](NOTICE.md).
+Flux Tweaks is licensed under the [Apache License 2.0](LICENSE). Encore Tweaks and the other
+third-party components keep their own copyright notices, listed in [NOTICE.md](NOTICE.md).
