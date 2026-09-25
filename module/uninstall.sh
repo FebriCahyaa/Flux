@@ -56,12 +56,15 @@ if [ -f /dev/.flux_boost_orig ]; then
 		chmod "$mode" "$node" 2>/dev/null
 	done </dev/.flux_boost_orig
 fi
-# SurfaceFlinger / composer threads back to their cgroups: "<tid> <root> <path>"
-if [ -f /dev/.flux_surface ]; then
+# SurfaceFlinger / composer and input threads back to their cgroups: "<tid> <root> <path>"
+for backup in /dev/.flux_surface /dev/.flux_input; do
+	[ -f "$backup" ] || continue
 	while read -r tid dir path; do
 		[ -d "/proc/$tid" ] && echo "$tid" >"$dir${path%/}/tasks" 2>/dev/null
-	done </dev/.flux_surface
-fi
+	done <"$backup"
+done
+# Samsung touch game mode switched on by Flux
+[ -f /dev/.flux_sec_game ] && echo "set_game_mode,0" >/sys/class/sec/tsp/cmd 2>/dev/null
 # Mali power policy: "<node> <policy>"
 if [ -f /dev/.flux_mali_policy ]; then
 	while read -r node policy; do
@@ -69,7 +72,7 @@ if [ -f /dev/.flux_mali_policy ]; then
 	done </dev/.flux_mali_policy
 fi
 rm -f /dev/.flux_sched_orig /dev/.flux_boost_orig /dev/.flux_game_prio /dev/.flux_refresh_orig \
-	/dev/.flux_surface /dev/.flux_mali_policy
+	/dev/.flux_surface /dev/.flux_input /dev/.flux_mali_policy /dev/.flux_sec_game
 
 # Leftovers from Encore Tweaks, which Flux replaces
 rm -rf /data/adb/.config/encore

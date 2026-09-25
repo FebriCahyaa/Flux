@@ -84,8 +84,14 @@ capabilities() {
 		"$kernel" "$ktype" "$(has /dev/cpuctl/top-app/cpu.uclamp.min)" "$(has /dev/stune/top-app)" "$(has /proc/touchpanel)"
 	printf '"net":%s,"net_cc":"%s","refresh":%s,"gpu_governor":%s,"surface":%s,' \
 		"$(has /proc/sys/net/ipv4/tcp_congestion_control)" "$cc_avail" "$refresh" "$gpu" "$(has /dev/cpuset/top-app/tasks)"
-	printf '"core_ctl":%s,"sched_boost":%s,"kgsl":%s,"mali":%s}\n' \
-		"$core_ctl" "$sched_boost" "$(has /sys/class/kgsl/kgsl-3d0/force_rail_on)" "$mali"
+	sec_touch=false
+	grep -qw set_game_mode /sys/class/sec/tsp/cmd_list 2>/dev/null && sec_touch=true
+
+	printf '"core_ctl":%s,"sched_boost":%s,"kgsl":%s,"mali":%s,"workqueue":%s,' \
+		"$core_ctl" "$sched_boost" "$(has /sys/class/kgsl/kgsl-3d0/force_rail_on)" "$mali" \
+		"$(has /sys/module/workqueue/parameters/power_efficient)"
+	printf '"input":%s,"sec_touch":%s,"ksm":%s}\n' \
+		"$(has /dev/cpuset/top-app/tasks)" "$sec_touch" "$(has /sys/kernel/mm/ksm/run)"
 }
 
 # Best-effort ROM family from well-known vendor properties.

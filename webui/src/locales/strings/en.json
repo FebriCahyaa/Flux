@@ -392,7 +392,7 @@
     "brief": "Extra tuning on top of the performance profile, applied only while a game runs and fully restored when you leave it. Values are only raised, never lowered below what your device ships with.",
     "vm": {
       "title": "Memory headroom",
-      "description": "Reclaims memory earlier in the background and allows more pending writes, so loading assets causes fewer frame drops."
+      "description": "Reclaims memory earlier in the background, allows more pending writes and pauses KSM page scanning, so loading assets causes fewer frame drops."
     },
     "io": {
       "title": "Storage latency",
@@ -472,7 +472,6 @@
     "title": "Game Tweaks",
     "brief": "Extra tweaks applied only while a game runs. Everything is put back when you leave the game.",
     "tags": {
-      "oplus": "OPPO · realme · OnePlus",
       "battery": "Uses more battery",
       "all_devices": "All devices",
       "not_lite": "Not in Lite mode"
@@ -483,7 +482,7 @@
     },
     "touch_tweaks": {
       "title": "Touch response",
-      "description": "Turns on the touch panel's game mode for faster, more direct touch input."
+      "description": "Moves Android's input threads (InputReader, InputDispatcher) onto the game's CPU group on every device, and turns on the touch panel's game mode where the driver has one (OPPO, realme, OnePlus, Samsung)."
     },
     "game_refresh_rate": {
       "title": "Max refresh rate in games",
@@ -523,13 +522,17 @@
     },
     "chipset_boost": {
       "title": "Chipset boost",
-      "description": "Uses the vendor performance knobs of this chipset for the whole game: keeps every core online, boosts big cores and keeps the GPU powered between frames.",
-      "parts": {
-        "core_ctl": "Core control",
-        "sched_boost": "sched_boost",
-        "kgsl": "Adreno power rails",
-        "mali": "Mali always-on"
-      }
+      "description": "Uses this chipset's vendor performance knobs for the whole game: keeps every core online, boosts big cores, keeps the GPU powered between frames and runs kernel work on the CPU that queued it."
+    },
+    "parts": {
+      "core_ctl": "Core control",
+      "sched_boost": "sched_boost",
+      "kgsl": "Adreno power rails",
+      "mali": "Mali always-on",
+      "workqueue": "Per-CPU workqueues",
+      "input": "Input threads",
+      "touchpanel": "OPLUS panel game mode",
+      "sec_touch": "Samsung panel game mode"
     }
   }
 }

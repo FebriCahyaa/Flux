@@ -64,15 +64,12 @@
                 <span class="block text-xs text-on-surface-variant mt-1 leading-relaxed">{{
                   $t(`game_tweaks.${item.key}.description`)
                 }}</span>
-                <span
-                  v-if="item.key === 'chipset_boost' && chipsetParts.length"
-                  class="flex flex-wrap gap-1 mt-2"
-                >
+                <span v-if="partsOf(item.key).length" class="flex flex-wrap gap-1 mt-2">
                   <span
-                    v-for="part in chipsetParts"
+                    v-for="part in partsOf(item.key)"
                     :key="part"
                     class="tag bg-surface-container-highest text-on-surface"
-                    >{{ $t(`game_tweaks.chipset_boost.parts.${part}`) }}</span
+                    >{{ $t(`game_tweaks.parts.${part}`) }}</span
                   >
                 </span>
               </span>
@@ -137,7 +134,8 @@ const capabilities = useCapabilitiesStore()
 
 // Keys match FluxConfigStore::Preferences in fluxd. `confirmOn` asks before enabling;
 // `cap` names the capabilities (flux_utility capabilities) the tweak needs.
-const CHIPSET_PARTS = ['core_ctl', 'sched_boost', 'kgsl', 'mali']
+const CHIPSET_PARTS = ['core_ctl', 'sched_boost', 'kgsl', 'mali', 'workqueue']
+const TOUCH_PARTS = ['input', 'touchpanel', 'sec_touch']
 
 const items = [
   {
@@ -149,11 +147,11 @@ const items = [
   },
   {
     key: 'touch_tweaks',
-    cap: 'touchpanel',
+    cap: TOUCH_PARTS,
     icon: TouchTapIcon,
     shape: 'shape-flower',
     tone: 'bg-secondary-container text-on-secondary-container',
-    tag: 'oplus',
+    tag: 'all_devices',
     tagTone: 'bg-secondary-container text-on-secondary-container',
   },
   {
@@ -197,7 +195,9 @@ const values = reactive({ ...fluxConfigStore.gameTweaks })
 const caps = computed(() => capabilities.caps)
 const visibleItems = computed(() => items.filter((i) => capabilities.supports(i.cap)))
 const hiddenItems = computed(() => items.filter((i) => !capabilities.supports(i.cap)))
-const chipsetParts = computed(() => CHIPSET_PARTS.filter((p) => caps.value?.[p]))
+const detected = (list) => list.filter((p) => caps.value?.[p])
+const partsOf = (key) =>
+  ({ chipset_boost: detected(CHIPSET_PARTS), touch_tweaks: detected(TOUCH_PARTS) })[key] || []
 const kernelType = computed(() =>
   ['gki', 'non_gki', 'legacy'].includes(caps.value?.kernel_type)
     ? caps.value.kernel_type

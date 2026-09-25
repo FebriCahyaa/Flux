@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### New
+- **Touch response on every device**: Android's InputReader and InputDispatcher threads join the
+  game's top-app cgroups while gaming (restored afterwards). The panel's own game mode is still
+  used on OPPO / realme / OnePlus, and now on Samsung panels whose driver lists `set_game_mode`
+- Flux Boost pauses KSM page scanning during games; Chipset boost switches the kernel to per-CPU
+  workqueues. Both are restored when leaving the game
 - **Kernel-aware tuning**: Flux now tells GKI (Android 12+, Linux 5.10+), Non-GKI vendor and
   legacy (4.14 and older) kernels apart. On Linux 5.13+ the CFS tunables and sched features are
   written to their new debugfs location, so they apply on GKI 5.15 / 6.1 too

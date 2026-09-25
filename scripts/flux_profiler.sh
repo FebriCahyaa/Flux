@@ -804,7 +804,8 @@ flux_block_queues() {
 }
 
 flux_vm() {
-	nodes="/proc/sys/vm/watermark_scale_factor /proc/sys/vm/dirty_ratio /proc/sys/vm/dirty_background_ratio"
+	nodes="/proc/sys/vm/watermark_scale_factor /proc/sys/vm/dirty_ratio /proc/sys/vm/dirty_background_ratio \
+/sys/kernel/mm/ksm/run"
 	# shellcheck disable=SC2086
 	flux_boost_save vm $nodes
 	flux_boost_restore vm
@@ -812,6 +813,9 @@ flux_vm() {
 	raise_to 50 /proc/sys/vm/watermark_scale_factor
 	raise_to 30 /proc/sys/vm/dirty_ratio
 	raise_to 10 /proc/sys/vm/dirty_background_ratio
+	# Pause KSM page merging (ksmd scans memory in the background;
+	# Documentation/admin-guide/mm/ksm.rst: 0 stops it, merged pages stay merged)
+	apply 0 /sys/kernel/mm/ksm/run
 }
 
 flux_io() {
@@ -907,7 +911,35 @@ flux_net() {
 }
 
 # Touch panel game mode (OPPO / Realme / OnePlus touchpanel driver). flux_touch <on|off>
+# Samsung touch firmware commands (sec_cmd): the driver lists what it supports
+# in cmd_list, so "set_game_mode" is only sent when the panel has it.
+SEC_TSP=/sys/class/sec/tsp
+FLUX_SEC_GAME=/dev/.flux_sec_game
+
+sec_touch_game_mode() {
+	grep -qw set_game_mode "$SEC_TSP/cmd_list" 2>/dev/null
+}
+
+# flux_touch <on|off>: input threads on all devices, plus the panel's own game
+# mode where the vendor driver has one (OPPO / realme / OnePlus, Samsung)
 flux_touch() {
+	if [ "$1" = on ] && [ -z "$FLUX_TOUCH_DISABLED" ]; then
+		flux_input boost
+	else
+		flux_input restore
+	fi
+
+	# Samsung sec_ts / stm_ts: only switched off again if Flux switched it on
+	if sec_touch_game_mode; then
+		if [ "$1" = on ] && [ -z "$FLUX_TOUCH_DISABLED" ]; then
+			echo "set_game_mode,1" >"$SEC_TSP/cmd" 2>/dev/null && : >"$FLUX_SEC_GAME"
+		elif [ -f "$FLUX_SEC_GAME" ]; then
+			echo "set_game_mode,0" >"$SEC_TSP/cmd" 2>/dev/null
+			rm -f "$FLUX_SEC_GAME"
+		fi
+	fi
+
+	# OPPO / realme / OnePlus (oplus touchpanel driver)
 	tp_path="/proc/touchpanel"
 	[ -d "$tp_path" ] || return 0
 	if [ "$1" = on ] && [ -z "$FLUX_TOUCH_DISABLED" ]; then
@@ -990,39 +1022,77 @@ change_gpu_gov() {
 # restored when leaving the game.
 
 FLUX_SURFACE_BACKUP=/dev/.flux_surface
+FLUX_INPUT_BACKUP=/dev/.flux_input
 
-flux_surface_restore() {
-	[ -f "$FLUX_SURFACE_BACKUP" ] || return 0
+# flux_cgroup_restore <backup>: every thread back to the group it came from
+flux_cgroup_restore() {
+	[ -f "$1" ] || return 0
 	while read -r tid dir path; do
 		[ -d "/proc/$tid" ] && echo "$tid" >"$dir${path%/}/tasks" 2>/dev/null
-	done <"$FLUX_SURFACE_BACKUP"
-	rm -f "$FLUX_SURFACE_BACKUP"
+	done <"$1"
+	rm -f "$1"
+}
+
+# flux_cgroup_top_app <backup> <tid>...: move threads into the top-app groups,
+# recording "<tid> <cgroup root> <previous path>" for each controller
+flux_cgroup_top_app() {
+	backup=$1
+	shift
+	for tid in "$@"; do
+		[ -f "/proc/$tid/cgroup" ] || continue
+		# cgroup v1 lines: "<id>:<controllers>:<path>"
+		while IFS=: read -r _ ctrl path; do
+			case "$ctrl" in
+			cpuset) dir=/dev/cpuset ;;
+			schedtune) dir=/dev/stune ;;
+			cpu | cpu,cpuacct) dir=/dev/cpuctl ;;
+			*) continue ;;
+			esac
+			[ "$path" = /top-app ] && continue
+			[ -f "$dir/top-app/tasks" ] || continue
+			echo "$tid $dir $path" >>"$backup"
+			echo "$tid" >"$dir/top-app/tasks" 2>/dev/null
+		done <"/proc/$tid/cgroup"
+	done
+}
+
+# All thread IDs of the given processes
+process_tids() {
+	for pid in "$@"; do
+		for task in /proc/"$pid"/task/*; do
+			[ -d "$task" ] && echo "${task##*/}"
+		done
+	done
 }
 
 # flux_surface <boost|restore>
 flux_surface() {
-	flux_surface_restore
+	flux_cgroup_restore "$FLUX_SURFACE_BACKUP"
 	[ "$1" = boost ] && [ -z "$FLUX_SURFACE_DISABLED" ] || return 0
 	[ -f /dev/cpuset/top-app/tasks ] || return 0
 
 	pids="$(pidof surfaceflinger) $(pgrep -f 'graphics\.composer|display\.composer' 2>/dev/null)"
 	: >"$FLUX_SURFACE_BACKUP"
-	for pid in $pids; do
+	# shellcheck disable=SC2046,SC2086
+	flux_cgroup_top_app "$FLUX_SURFACE_BACKUP" $(process_tids $pids)
+}
+
+# Touch input on every device: Android reads and dispatches touch events on
+# two system_server threads, InputReader and InputDispatcher
+# (frameworks/native/services/inputflinger). They join the game's top-app
+# groups like SurfaceFlinger above, so a touch reaches the game without
+# waiting for a slow or parked core.
+flux_input() {
+	flux_cgroup_restore "$FLUX_INPUT_BACKUP"
+	[ "$1" = boost ] && [ -z "$FLUX_TOUCH_DISABLED" ] || return 0
+	[ -f /dev/cpuset/top-app/tasks ] || return 0
+
+	: >"$FLUX_INPUT_BACKUP"
+	for pid in $(pidof system_server); do
 		for task in /proc/"$pid"/task/*; do
-			tid=${task##*/}
-			# cgroup v1 lines: "<id>:<controllers>:<path>"
-			while IFS=: read -r _ ctrl path; do
-				case "$ctrl" in
-				cpuset) dir=/dev/cpuset ;;
-				schedtune) dir=/dev/stune ;;
-				cpu | cpu,cpuacct) dir=/dev/cpuctl ;;
-				*) continue ;;
-				esac
-				[ "$path" = /top-app ] && continue
-				[ -f "$dir/top-app/tasks" ] || continue
-				echo "$tid $dir $path" >>"$FLUX_SURFACE_BACKUP"
-				echo "$tid" >"$dir/top-app/tasks" 2>/dev/null
-			done <"$task/cgroup"
+			case "$(cat "$task/comm" 2>/dev/null)" in
+			InputReader | InputDispatcher) flux_cgroup_top_app "$FLUX_INPUT_BACKUP" "${task##*/}" ;;
+			esac
 		done
 	done
 }
@@ -1044,6 +1114,7 @@ flux_surface() {
 #                 HMP kernels only accept 0/1, so 1 is used there
 #   kgsl          Adreno power control (kgsl_pwrctrl): keep bus, rail and
 #                 clocks on and skip nap between frames
+#   workqueue     per-CPU kernel workqueues instead of power-efficient ones
 #   Mali kbase    ARM Mali power_policy: always_on instead of coarse_demand
 #                 (Exynos is handled in exynos_performance already)
 
@@ -1098,6 +1169,16 @@ flux_chipset() {
 		apply 1 $kgsl/force_bus_on
 		apply 1 $kgsl/force_rail_on
 		apply 1 $kgsl/force_no_nap
+	fi
+
+	# Per-CPU instead of "power efficient" unbound workqueues: kernel work
+	# (e.g. display and input drivers' deferred work) runs on the CPU that
+	# queued it instead of being moved to an idle little core
+	# (kernel/workqueue.c, CONFIG_WQ_POWER_EFFICIENT_DEFAULT)
+	wq=/sys/module/workqueue/parameters/power_efficient
+	if [ -f "$wq" ]; then
+		flux_boost_save chipset "$wq"
+		apply N "$wq"
 	fi
 
 	# ARM Mali kbase power policy; the file lists all policies, the active one in brackets

@@ -395,7 +395,7 @@
     "brief": "Penyetelan tambahan di atas profil performance, hanya aktif saat game berjalan dan dipulihkan sepenuhnya saat game ditutup. Nilai hanya dinaikkan, tidak pernah diturunkan di bawah bawaan perangkat.",
     "vm": {
       "title": "Ruang memori",
-      "description": "Membebaskan memori lebih awal di latar belakang dan menampung lebih banyak tulisan tertunda, sehingga saat memuat aset frame lebih jarang drop."
+      "description": "Membebaskan memori lebih awal di latar belakang, menampung lebih banyak tulisan tertunda dan menjeda pemindaian KSM, sehingga memuat aset lebih jarang membuat frame turun."
     },
     "io": {
       "title": "Latensi penyimpanan",
@@ -475,7 +475,6 @@
     "title": "Tweak Game",
     "brief": "Tweak tambahan yang hanya diterapkan saat game berjalan. Semuanya dikembalikan saat kamu keluar dari game.",
     "tags": {
-      "oplus": "OPPO · realme · OnePlus",
       "battery": "Lebih boros baterai",
       "all_devices": "Semua perangkat",
       "not_lite": "Tidak di mode Lite"
@@ -486,7 +485,7 @@
     },
     "touch_tweaks": {
       "title": "Respons sentuhan",
-      "description": "Mengaktifkan mode game pada panel sentuh agar input sentuhan lebih cepat dan responsif."
+      "description": "Memindahkan thread input Android (InputReader, InputDispatcher) ke grup CPU game di semua perangkat, dan mengaktifkan mode game panel sentuh jika driver-nya punya (OPPO, realme, OnePlus, Samsung)."
     },
     "game_refresh_rate": {
       "title": "Refresh rate maksimum di game",
@@ -526,13 +525,17 @@
     },
     "chipset_boost": {
       "title": "Dorongan chipset",
-      "description": "Memakai pengaturan performa vendor chipset ini selama game: semua core tetap aktif, core besar didorong, dan GPU tetap menyala di antara frame.",
-      "parts": {
-        "core_ctl": "Core control",
-        "sched_boost": "sched_boost",
-        "kgsl": "Rail daya Adreno",
-        "mali": "Mali always-on"
-      }
+      "description": "Memakai pengaturan performa vendor chipset ini selama game: semua core tetap aktif, core besar didorong, GPU tetap menyala di antara frame, dan pekerjaan kernel dijalankan di CPU yang memintanya."
+    },
+    "parts": {
+      "core_ctl": "Core control",
+      "sched_boost": "sched_boost",
+      "kgsl": "Rail daya Adreno",
+      "mali": "Mali always-on",
+      "workqueue": "Workqueue per-CPU",
+      "input": "Thread input",
+      "touchpanel": "Mode game panel OPLUS",
+      "sec_touch": "Mode game panel Samsung"
     }
   }
 }
