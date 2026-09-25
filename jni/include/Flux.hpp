@@ -27,6 +27,8 @@
 #define LOCK_FILE CONFIG_DIR "/.lock"
 #define JAVA_LOCK_FILE CONFIG_DIR "/java.lock"
 #define LOG_FILE CONFIG_DIR "/flux.log"
+// PROFILE_MODE and GAME_INFO are read by HiCo Thermal (thermal unlock add-on):
+// keep their format stable ("<FluxProfileMode>" / "<package> <pid> <uid>" or "NULL 0 0").
 #define PROFILE_MODE CONFIG_DIR "/current_profile"
 #define GAME_INFO CONFIG_DIR "/gameinfo"
 #define CONFIG_FILE CONFIG_DIR "/config.json"

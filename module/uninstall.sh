@@ -24,6 +24,12 @@ for pidfile in sysmon_watchdog.pid sysmon.pid; do
 done
 pkill -x fluxd 2>/dev/null
 
+# HiCo Thermal follows fluxd's game state; without Flux it must not keep
+# thermal throttling disabled. Put the stock thermal configuration back now
+# (it also suspends itself as soon as it sees Flux gone).
+HICOD=/data/adb/modules/hico/system/bin/hicod
+[ -x "$HICOD" ] && "$HICOD" restore >/dev/null 2>&1
+
 # Symlinks created by customize.sh on KernelSU / APatch
 for dir in /data/adb/ksu/bin /data/adb/ap/bin; do
 	for bin in fluxd flux_profiler flux_utility; do
