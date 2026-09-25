@@ -18,7 +18,6 @@ MODDIR=$(dirname "$0")
 MODULE_CONFIG="/data/adb/.config/flux"
 CLEANUP_SCRIPT="/data/adb/service.d/.flux_cleanup.sh"
 CPUFREQ="/sys/devices/system/cpu/cpu0/cpufreq"
-SYSMON_PKG="com.febricahyaa.synthesiscore"
 
 # Restore original module.prop
 [ -f "$MODDIR/module.prop.orig" ] && {
@@ -108,32 +107,27 @@ if [ -f "$ENABLE_PPM" ]; then
 	echo 1 >"$ENABLE_PPM"
 fi
 
-# ── Exempt SynthesisCore from battery optimizations ──────────────────────────
-# MIUI/HyperOS Powerkeeper aggressively kills background app_process instances.
-# We whitelist the package in Android's device idle controller and Doze so it
-# is never restricted or force-stopped by the system.
-exempt_synthesiscore() {
-	# Standard Android battery optimization whitelist (all ROMs)
-	cmd appops set "$SYSMON_PKG" RUN_IN_BACKGROUND allow  2>/dev/null || true
-	cmd appops set "$SYSMON_PKG" RUN_ANY_IN_BACKGROUND allow 2>/dev/null || true
-	dumpsys deviceidle whitelist +"$SYSMON_PKG" 2>/dev/null || true
 
-	# MIUI/HyperOS Powerkeeper exemption
-	# Sets the app standby bucket to ACTIVE (10) so it is never restricted.
-	cmd activity set-standby-bucket "$SYSMON_PKG" active 2>/dev/null || true
-
-	# Additional MIUI-specific exemption via Settings provider
-	settings put global "smart_power_no_restrict_apps_list" \
-		"$(settings get global smart_power_no_restrict_apps_list 2>/dev/null):$SYSMON_PKG" \
-		2>/dev/null || true
-}
-
-exempt_synthesiscore
+# ── Undo old per-boot appends to MIUI/HyperOS settings ───────────────────────
+# Earlier versions appended SynthesisCore's package to this list on every boot.
+# Remove every copy (and the "null" the first append started from).
+legacy_list=$(settings get global smart_power_no_restrict_apps_list 2>/dev/null)
+case "$legacy_list" in
+*com.febricahyaa.synthesiscore*)
+	cleaned=$(echo "$legacy_list" | tr ':' '\n' | grep -vxE 'com\.febricahyaa\.synthesiscore|null|' | paste -sd ':' -)
+	if [ -n "$cleaned" ]; then
+		settings put global smart_power_no_restrict_apps_list "$cleaned"
+	else
+		settings delete global smart_power_no_restrict_apps_list
+	fi
+	;;
+esac
 
 # ── Start SynthesisCore companion daemon with watchdog ───────────────────────
-# Powerkeeper or other battery management on MIUI/HyperOS ROMs may kill the
-# app_process companion daemon. The watchdog loop detects this and restarts it
-# so fluxd always has a live Java lock to wait on.
+# SynthesisCore is not installed as an app: app_process runs it straight from
+# the module as a root process (FluxSysMon), so package-based battery
+# exemptions do not apply to it. The watchdog restarts it if it ever dies so
+# fluxd always has a live Java lock to wait on.
 # ── SynthesisCore integrity ──────────────────────────────────────────────────
 # The APK runs as root, so it is only started when it still matches the checksum
 # verified at install time. A modified APK is never executed.
@@ -237,7 +231,6 @@ resolve_binder_codes_when_supported &
 		sleep 10
 		if ! synthesiscore_alive; then
 			echo "$(date): SynthesisCore died, restarting..." >> "$MODULE_CONFIG/sysmon.log"
-			exempt_synthesiscore
 			# A failed integrity check will not fix itself: stop watching.
 			start_synthesiscore || break
 			sleep 2

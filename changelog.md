@@ -12,12 +12,17 @@
 - **Updates in the root manager**: `updateJson` + release workflow; Magisk, KernelSU and APatch
   offer new releases with their changelog and download them directly
 - Redesigned Telegram build notifications
+- Device report (`flux_utility report`, included in *Save log*): ROM, kernel features, vendor
+  daemons and SynthesisCore capabilities, for bug reports and per-ROM tuning
 
 ### Fixed
 - fluxd ignored SynthesisCore updates after startup (atomic rename raises IN_MOVED_TO)
 - Uninstalling left Flux's symlinks in the KernelSU/APatch bin directories, its config and the
   boot cleanup hook behind (only Encore leftovers were removed)
 - Boot waited up to 40 s after `sys.boot_completed` before starting Flux
+- Removed battery exemptions aimed at SynthesisCore's package: it runs via app_process and is
+  never installed, so they had no effect; one of them appended to a MIUI/HyperOS setting on every
+  boot, which is now cleaned up
 - WebUI build dependencies updated (vite, rollup, postcss advisories)
 
 ## v1.0.0

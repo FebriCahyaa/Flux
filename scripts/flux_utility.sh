@@ -29,6 +29,82 @@ change_cpu_gov() {
 	echo "$1" | tee /sys/devices/system/cpu/cpufreq/policy*/scaling_governor >/dev/null
 }
 
+# Best-effort ROM family from well-known vendor properties.
+detect_rom() {
+	if [ -n "$(getprop ro.mi.os.version.name)" ]; then
+		echo "HyperOS $(getprop ro.mi.os.version.name)"
+	elif [ -n "$(getprop ro.miui.ui.version.name)" ]; then
+		echo "MIUI $(getprop ro.miui.ui.version.name)"
+	elif [ -n "$(getprop ro.build.version.oplusrom)" ]; then
+		echo "ColorOS / OxygenOS $(getprop ro.build.version.oplusrom)"
+	elif [ -n "$(getprop ro.build.version.oneui)" ]; then
+		echo "One UI $(getprop ro.build.version.oneui)"
+	elif [ -n "$(getprop ro.build.version.emui)" ]; then
+		echo "EMUI / HarmonyOS $(getprop ro.build.version.emui)"
+	elif [ -n "$(getprop ro.vivo.os.version)" ]; then
+		echo "OriginOS / Funtouch OS $(getprop ro.vivo.os.version)"
+	else
+		echo "AOSP-based ($(getprop ro.build.display.id))"
+	fi
+}
+
+# report: device diagnostics for bug reports and per-ROM tuning. Contains no
+# serial numbers or accounts: only build, kernel, vendor-daemon and Flux data.
+report() {
+	section() { printf '\n== %s ==\n' "$1"; }
+	node() { [ -e "$1" ] && printf '%s = %s\n' "$1" "$(head -c 200 "$1" 2>/dev/null | tr '\n' ' ')"; }
+
+	section "Flux"
+	echo "module: $(awk -F'=' '/^version=/ {print $2}' /data/adb/modules/flux/module.prop)"
+	echo "profile: $(cat "$MODULE_CONFIG/current_profile" 2>/dev/null)"
+	echo "synthesiscore: $(cat /data/adb/modules/flux/synthesiscore.json 2>/dev/null | tr -d '\n ' | head -c 300)"
+
+	section "Device"
+	echo "model: $(getprop ro.product.brand) $(getprop ro.product.model) ($(getprop ro.product.device))"
+	echo "soc: $(getprop ro.soc.manufacturer) $(getprop ro.soc.model) / $(getprop ro.board.platform)"
+	echo "android: $(getprop ro.build.version.release) (SDK $(getprop ro.build.version.sdk)), patch $(getprop ro.build.version.security_patch)"
+	echo "rom: $(detect_rom)"
+	echo "fingerprint: $(getprop ro.build.fingerprint)"
+
+	section "ROM properties"
+	getprop | grep -iE 'mi\.os|miui|oplus|oneui|emui|vivo\.os|flyme|nothing|powerkeeper|joyose' | head -40
+
+	section "Kernel"
+	echo "uname: $(uname -r -m)"
+	echo "gki: $(cat "$MODULE_CONFIG/is_gki" 2>/dev/null)"
+	for n in /dev/cpuctl/top-app/cpu.uclamp.min /dev/cpuctl/top-app/cpu.uclamp.latency_sensitive \
+		/dev/stune/top-app/schedtune.boost /dev/cpuset/top-app/cpus /dev/cpuset/background/cpus; do
+		node "$n"
+	done
+	for p in /sys/devices/system/cpu/cpufreq/policy*; do
+		[ -d "$p" ] && echo "$(basename "$p"): cpus=$(cat "$p/related_cpus") gov=$(cat "$p/scaling_governor") avail=[$(cat "$p/scaling_available_governors")]"
+	done
+	echo "thermal zones: $(ls -d /sys/class/thermal/thermal_zone* 2>/dev/null | wc -l)"
+
+	section "Vendor services"
+	ps -A -o NAME 2>/dev/null | grep -iE 'joyose|powerkeeper|thermal|horae|orms|hans|athena|perfd|perf-hal|power|gameturbo|migt|scx' | sort -u
+
+	section "Vendor nodes"
+	node /sys/class/thermal/thermal_message/sconfig
+	[ -d /sys/module/migt/parameters ] && echo "migt: $(ls /sys/module/migt/parameters | tr '\n' ' ')"
+	[ -d /proc/touchpanel ] && echo "touchpanel: $(ls /proc/touchpanel | tr '\n' ' ')"
+	node /proc/oplus_scheduler/sched_assist/sched_assist_enabled
+	node /proc/ppm/enabled
+
+	section "SynthesisCore"
+	cat "$MODULE_CONFIG/synthesis_core.json" 2>/dev/null
+	echo "-- binder codes"
+	cat "$MODULE_CONFIG/binder_codes" 2>/dev/null
+	echo "-- capabilities"
+	apk=/data/adb/modules/flux/synthesiscore.apk
+	expected=$(cat "$apk.sha256" 2>/dev/null)
+	if [ -n "$expected" ] && [ "$expected" = "$(sha256sum "$apk" 2>/dev/null | cut -d' ' -f1)" ]; then
+		timeout 15 app_process -Djava.class.path="$apk" / com.febricahyaa.synthesiscore.MainKt --capabilities 2>&1 | grep -v '^WARNING'
+	else
+		echo "skipped: APK integrity check failed"
+	fi
+}
+
 save_logs() {
 	report_dir="$MODULE_CONFIG/flux_bugreport_temp"
 	mkdir -p "$report_dir/pstore"
@@ -61,6 +137,8 @@ save_logs() {
 	} >"$report_dir/flux.log"
 
 	[ -f "$MODULE_CONFIG/sysmon.log" ] && cp "$MODULE_CONFIG/sysmon.log" "$report_dir/"
+	[ -f "$MODULE_CONFIG/sysmon.log.prev" ] && cp "$MODULE_CONFIG/sysmon.log.prev" "$report_dir/"
+	report >"$report_dir/device_report.txt" 2>&1
 	cp -r /sys/fs/pstore/. "$report_dir/pstore/" 2>/dev/null
 
 	(
