@@ -29,6 +29,18 @@ export const useFluxConfigStore = defineStore('fluxConfig', () => {
     flux_io: config.value?.preferences?.flux_io ?? true,
     game_priority: config.value?.preferences?.game_priority ?? true,
   }))
+  // Game tweaks (fluxd defaults: network, touch and cache drop on; refresh rate off)
+  const gameTweaks = computed(() => ({
+    net_tweaks: config.value?.preferences?.net_tweaks ?? true,
+    touch_tweaks: config.value?.preferences?.touch_tweaks ?? true,
+    game_refresh_rate: config.value?.preferences?.game_refresh_rate ?? false,
+    drop_caches: config.value?.preferences?.drop_caches ?? true,
+  }))
+  // Empty = keep the kernel's own GPU governor
+  const gpuGovernor = computed(() => ({
+    balance: config.value?.gpu_governor?.balance ?? '',
+    powersave: config.value?.gpu_governor?.powersave ?? '',
+  }))
   const balanceGovernor = computed(() => config.value?.cpu_governor?.balance ?? 'schedutil')
   const powersaveGovernor = computed(() => config.value?.cpu_governor?.powersave ?? 'schedutil')
 
@@ -75,6 +87,9 @@ export const useFluxConfigStore = defineStore('fluxConfig', () => {
     }
     if (!config.value.cpu_governor) {
       config.value.cpu_governor = {}
+    }
+    if (!config.value.gpu_governor) {
+      config.value.gpu_governor = {}
     }
 
     if (config.value.preferences.use_device_mitigation === undefined) {
@@ -127,6 +142,29 @@ export const useFluxConfigStore = defineStore('fluxConfig', () => {
     if (!['flux_vm', 'flux_io', 'game_priority'].includes(key)) return
     ensureConfigStructure()
     config.value.preferences[key] = enabled
+  }
+
+  function setGameTweak(key, enabled) {
+    if (!['net_tweaks', 'touch_tweaks', 'game_refresh_rate', 'drop_caches'].includes(key)) return
+    ensureConfigStructure()
+    config.value.preferences[key] = enabled
+  }
+
+  /** profile: 'balance' | 'powersave'; governor '' restores the kernel default. */
+  function setGpuGovernor(profile, governor) {
+    if (!['balance', 'powersave'].includes(profile)) return
+    ensureConfigStructure()
+    config.value.gpu_governor[profile] = governor
+
+    // Apply now when that profile is the active one (performance keeps the kernel's).
+    const active = profile === 'balance' ? 'balanced' : 'powersave'
+    if (currentProfile.value === active && /^[\w-]*$/.test(governor)) {
+      exec(`/data/adb/modules/flux/system/bin/flux_utility change_gpu_gov ${governor}`).then(
+        ({ errno, stderr }) => {
+          if (errno !== 0) console.error('[setGpuGovernor] Failed to change GPU governor:', stderr)
+        },
+      )
+    }
   }
 
   function setBalanceGovernor(governor) {
@@ -184,12 +222,20 @@ export const useFluxConfigStore = defineStore('fluxConfig', () => {
         ...config.value.cpu_governor,
         ...(newConfig.cpu_governor || {}),
       },
+      gpu_governor: {
+        ...config.value.gpu_governor,
+        ...(newConfig.gpu_governor || {}),
+      },
     }
   }
 
   return {
     fluxBoost,
     setFluxBoost,
+    gameTweaks,
+    setGameTweak,
+    gpuGovernor,
+    setGpuGovernor,
     config,
 
     preferences,

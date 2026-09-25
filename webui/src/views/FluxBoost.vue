@@ -65,7 +65,9 @@
 <script setup>
 import { reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useFluxConfigStore } from '@/stores/FluxConfig'
+import { useNotifyStore } from '@/stores/Notify'
 
 import ArrowLeftIcon from '@/components/icons/ArrowLeft.vue'
 import BoltChargeIcon from '@/components/icons/BoltCharge.vue'
@@ -76,7 +78,9 @@ import InformationOutlineIcon from '@/components/icons/InformationOutline.vue'
 import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
 
 const router = useRouter()
+const { t } = useI18n()
 const fluxConfigStore = useFluxConfigStore()
+const notify = useNotifyStore()
 
 // Config keys match FluxConfigStore::Preferences in fluxd.
 const parts = [
@@ -120,9 +124,16 @@ async function toggle(key, enabled) {
     if (!fluxConfigStore.isLoaded) await fluxConfigStore.loadConfig()
     fluxConfigStore.setFluxBoost(key, enabled)
     await fluxConfigStore.saveConfig()
+    const part = parts.find((p) => p.key === key)
+    notify.success(
+      t(enabled ? 'game_tweaks.saved_on' : 'game_tweaks.saved_off', {
+        name: t(`flux_boost.${part.label}.title`),
+      }),
+    )
   } catch (error) {
     console.error(`Failed to set ${key}:`, error)
     values[key] = fluxConfigStore.fluxBoost[key]
+    notify.error(t('notify.save_failed'))
   }
 }
 

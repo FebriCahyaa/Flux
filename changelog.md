@@ -3,6 +3,17 @@
 ## Unreleased
 
 ### New
+- **Game Tweaks** (Settings → Game Tweaks): network latency (BBR, ECN, TCP Fast Open), touch
+  panel game mode (OPPO / realme / OnePlus), optional max refresh rate while gaming and memory
+  cache drop at game start. Each one can be switched off; network values and the refresh rate are
+  restored when the game exits
+- **GPU Governor** (Settings → GPU Governor): pick the GPU devfreq governor (kgsl, Mali, g3d) for
+  the balanced and powersave profiles, or keep the kernel default. Games keep the kernel's governor
+- **Confirmations and notifications**: risky choices (Disable tweaks, Enforce Lite mode,
+  performance CPU/GPU governor, max refresh rate, Trace logging) ask first with an info, warning
+  or danger dialog; saved settings show a snackbar
+- Redesigned Lite mode, Disable tweaks and CPU governor pages, and a more varied Settings list
+  with new icons and an "On" badge for Lite mode and Disable tweaks
 - **Game session stats**: play time, FPS (average, 1% low, drops, stability) and CPU / battery
   temperatures for every game session, recorded by fluxd once per second (paused while the
   screen is off). The Monitor shows the running session live with a 60-second FPS chart and

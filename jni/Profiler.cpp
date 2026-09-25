@@ -71,10 +71,21 @@ void set_profiler_env_vars() {
     if (!prefs.flux_io) setenv("FLUX_IO_DISABLED", "1", 1);
     if (!prefs.game_priority) setenv("FLUX_PRIORITY_DISABLED", "1", 1);
 
+    // Game tweaks
+    if (!prefs.net_tweaks) setenv("FLUX_NET_DISABLED", "1", 1);
+    if (!prefs.touch_tweaks) setenv("FLUX_TOUCH_DISABLED", "1", 1);
+    if (prefs.game_refresh_rate) setenv("FLUX_REFRESH_ENABLED", "1", 1);
+    if (!prefs.drop_caches) setenv("FLUX_DROP_CACHES_DISABLED", "1", 1);
+
     // Set CPU Governor variables
     FluxConfigStore::CPUGovernor cpu_governor_preference = config_store.get_cpu_governor();
     setenv("FLUX_BALANCED_CPUGOV", cpu_governor_preference.balance.c_str(), 1);
     setenv("FLUX_POWERSAVE_CPUGOV", cpu_governor_preference.powersave.c_str(), 1);
+
+    // GPU governor: empty means "keep the kernel's governor" (the profiler restores it).
+    const FluxConfigStore::GPUGovernor gpu_governor_preference = config_store.get_gpu_governor();
+    setenv("FLUX_BALANCED_GPUGOV", gpu_governor_preference.balance.c_str(), 1);
+    setenv("FLUX_POWERSAVE_GPUGOV", gpu_governor_preference.powersave.c_str(), 1);
 
     // Expose kernel and thermal API capabilities so the profiler shell script
     // can skip sysfs writes that are only valid on GKI kernels or API 31+.

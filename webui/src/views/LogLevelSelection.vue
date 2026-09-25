@@ -143,6 +143,8 @@ import { ref, computed, nextTick, onMounted, onUnmounted, onActivated, onDeactiv
 import { useRouter } from 'vue-router'
 import { exec } from 'kernelsu'
 import { useFluxConfigStore } from '@/stores/FluxConfig'
+import { useNotifyStore } from '@/stores/Notify'
+import { useI18n } from 'vue-i18n'
 
 import ArrowLeftIcon from '@/components/icons/ArrowLeft.vue'
 import ContentSaveIcon from '@/components/icons/ContentSave.vue'
@@ -154,6 +156,8 @@ const LINES = 200
 
 const router = useRouter()
 const fluxConfigStore = useFluxConfigStore()
+const notify = useNotifyStore()
+const { t } = useI18n()
 
 // Mirrors FluxLog::set_log_level: 0 critical .. 5 trace. Letters match the log's level column.
 const logLevels = [
@@ -188,16 +192,29 @@ onMounted(async () => {
 
 // fluxd watches config.json and applies the level immediately.
 async function selectLogLevel(level) {
+  if (level === selectedLevel.value) return
+  // Trace logs every decision: the file grows fast and costs a little CPU.
+  if (level === 5) {
+    const ok = await notify.confirm({
+      tone: 'warning',
+      title: t('log_level_selection.trace_confirm.title'),
+      message: t('log_level_selection.trace_confirm.message'),
+      confirmText: t('common.enable'),
+    })
+    if (!ok) return
+  }
   const previous = selectedLevel.value
   selectedLevel.value = level
   try {
     if (!fluxConfigStore.isLoaded) await fluxConfigStore.loadConfig()
     fluxConfigStore.setLogLevel(level)
     await fluxConfigStore.saveConfig()
+    notify.success(t('log_level_selection.saved'))
     setTimeout(loadLog, 600)
   } catch (error) {
     console.error('Failed to save log level:', error)
     selectedLevel.value = previous
+    notify.error(t('notify.save_failed'))
   }
 }
 

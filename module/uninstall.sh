@@ -40,7 +40,13 @@ done
 # Configuration, logs and the boot cleanup hook
 rm -rf "$MODULE_CONFIG"
 rm -f /data/adb/service.d/.flux_cleanup.sh
-rm -f /dev/.flux_sched_orig /dev/.flux_boost_orig /dev/.flux_game_prio
+# Refresh rate forced while gaming: give the user's setting back
+if [ -f /dev/.flux_refresh_orig ]; then
+	read -r peak min </dev/.flux_refresh_orig
+	[ -n "$peak" ] && [ "$peak" != null ] && settings put system peak_refresh_rate "$peak"
+	[ -n "$min" ] && [ "$min" != null ] && settings put system min_refresh_rate "$min"
+fi
+rm -f /dev/.flux_sched_orig /dev/.flux_boost_orig /dev/.flux_game_prio /dev/.flux_refresh_orig
 
 # Leftovers from Encore Tweaks, which Flux replaces
 rm -rf /data/adb/.config/encore

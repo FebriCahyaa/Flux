@@ -2,167 +2,225 @@
   <div class="page h-full flex flex-col overflow-hidden bg-surface">
     <div class="max-w-3xl mx-auto h-full flex flex-col w-full">
       <div class="flex-none p-5 pb-3">
-        <div class="flex items-center gap-4 mb-2">
-          <button @click="goBack" class="text-on-surface transition-colors">
-            <ArrowLeftIcon class="w-6 h-6 cursor-pointer rtl:rotate-180" />
-          </button>
-        </div>
+        <button
+          @click="goBack"
+          class="m3-press w-10 h-10 -ms-2 rounded-full grid place-items-center text-on-surface hover:bg-surface-container-high"
+          :aria-label="$t('common.cancel')"
+        >
+          <ArrowLeftIcon class="w-6 h-6 rtl:rotate-180" />
+        </button>
       </div>
 
-      <div class="scrollbar-hidden pb-safe-nav flex-1 min-h-0 overflow-y-scroll px-5">
-        <div class="space-y-6">
-          <h1 class="text-4xl text-on-surface mt-12 mb-6">
-            {{ $t('disable_tweaks.title') }}
-          </h1>
+      <div class="scrollbar-hidden pb-safe-nav flex-1 min-h-0 overflow-y-scroll px-4">
+        <div class="flex items-center gap-4 mt-8 mb-4 px-1">
+          <span
+            class="hero-badge shape-burst"
+            :class="
+              enabled
+                ? 'bg-error-container text-on-error-container'
+                : 'bg-primary-container text-on-primary-container'
+            "
+          >
+            <PauseIcon :size="28" />
+          </span>
+          <h1 class="m3-headline text-4xl text-on-surface">{{ $t('disable_tweaks.title') }}</h1>
+        </div>
 
-          <!-- <div class="aspect-3/2 rounded-3xl overflow-hidden -mx-1.5">
-            <img src="/illustration/device_mitigation_poster.avif" class="w-full h-full object-cover" />
-          </div> -->
+        <p class="text-sm text-on-surface-variant leading-relaxed px-1 mb-5">
+          {{ $t('disable_tweaks.brief') }}
+        </p>
 
-          <div class="bg-primary-container rounded-3xl p-5 -mx-1.5">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                <h2 class="text-base font-medium text-on-primary-container">
-                  {{ $t('disable_tweaks.toggle_title') }}
-                </h2>
+        <!-- Main switch -->
+        <div class="switch-card mb-6" :class="{ on: enabled }">
+          <div class="flex-1 min-w-0">
+            <h2 class="text-base font-semibold">{{ $t('disable_tweaks.toggle_title') }}</h2>
+            <p class="text-xs mt-1 opacity-80">
+              {{ enabled ? $t('disable_tweaks.state_on') : $t('disable_tweaks.state_off') }}
+            </p>
+          </div>
+          <ToggleSwitch id="disable-tweaks" :model-value="enabled" @update:modelValue="toggle" />
+        </div>
+
+        <template v-for="group in groups" :key="group.key">
+          <h2 class="text-sm font-semibold px-3 mb-2" :class="group.titleTone">
+            {{ $t(`disable_tweaks.${group.key}_title`) }}
+          </h2>
+          <div class="mb-6">
+            <div v-for="item in group.items" :key="item.key" class="md3-list">
+              <div class="md3-list-item flex items-center gap-4 px-5 py-3.5">
+                <span class="item-badge" :class="[item.shape, group.badgeTone]">
+                  <component :is="item.icon" :size="20" />
+                </span>
+                <span class="flex-1 text-sm text-on-surface">{{
+                  $t(`disable_tweaks.items.${item.key}`)
+                }}</span>
+                <component
+                  :is="group.key === 'stops' ? CloseIcon : CheckIcon"
+                  :size="18"
+                  :class="
+                    group.key === 'stops' && enabled ? 'text-error' : 'text-on-surface-variant'
+                  "
+                />
               </div>
-              <ToggleSwitch v-model="isDisableTweaksEnabled" @update:modelValue="toggleDisableTweaks" />
             </div>
           </div>
+        </template>
 
-          <InformationOutlineIcon class="text-on-surface-variant my-6" :size="22" />
-          <p class="text-sm text-on-surface-variant leading-relaxed">
-            {{ $t('disable_tweaks.brief') }}
+        <div class="flex gap-3 px-1 mb-8">
+          <InformationOutlineIcon class="text-on-surface-variant shrink-0" :size="20" />
+          <p class="text-xs text-on-surface-variant leading-relaxed">
+            {{ $t('disable_tweaks.reboot_note') }}
           </p>
         </div>
       </div>
     </div>
-
-    <Modal :show="showRebootModal" :title="$t('reboot_modal.title')" @close="closeRebootModal"
-      :closeOnOutsideClick="false">
-      <div class="px-4 pb-2">
-        <div class="flex flex-col items-center gap-4 py-6">
-          <RefreshIcon :size="48" class="text-primary" />
-          <p class="text-on-surface-variant text-sm text-center">{{ $t('reboot_modal.description') }}</p>
-        </div>
-      </div>
-
-      <template #actions>
-        <div class="flex gap-2">
-          <button @click="skipReboot"
-            class="px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-full transition-colors">
-            {{ $t('reboot_modal.later') }}
-          </button>
-          <button @click="rebootDevice"
-            class="px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-full transition-colors">
-            {{ $t('reboot_modal.reboot') }}
-          </button>
-        </div>
-      </template>
-    </Modal>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter, onBeforeRouteLeave } from 'vue-router'
-import { useFluxConfigStore } from '@/stores/FluxConfig'
+import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { exec } from 'kernelsu'
+import { useFluxConfigStore } from '@/stores/FluxConfig'
+import { useNotifyStore } from '@/stores/Notify'
 
 import ArrowLeftIcon from '@/components/icons/ArrowLeft.vue'
-import RefreshIcon from '@/components/icons/Refresh.vue'
-import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
+import PauseIcon from '@/components/icons/Pause.vue'
+import CloseIcon from '@/components/icons/Close.vue'
+import CheckIcon from '@/components/icons/CheckCircle.vue'
+import ChipsetIcon from '@/components/icons/Chipset.vue'
+import BoltChargeIcon from '@/components/icons/BoltCharge.vue'
+import WifiIcon from '@/components/icons/Wifi.vue'
+import GpuIcon from '@/components/icons/Gpu.vue'
+import GamesIcon from '@/components/icons/Games.vue'
+import MonitorIcon from '@/components/icons/Monitor.vue'
+import AppWindowIcon from '@/components/icons/AppWindow.vue'
 import InformationOutlineIcon from '@/components/icons/InformationOutline.vue'
-import Modal from '@/components/ui/Modal.vue'
+import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
 
 const router = useRouter()
+const { t } = useI18n()
 const fluxConfigStore = useFluxConfigStore()
+const notify = useNotifyStore()
 
-const isDisableTweaksEnabled = ref(false)
-const initialValue = ref(false)
-const hasUnsavedChanges = ref(false)
-const showRebootModal = ref(false)
+const enabled = ref(false)
+
+const groups = [
+  {
+    key: 'stops',
+    titleTone: 'text-error',
+    badgeTone: 'bg-error-container text-on-error-container',
+    items: [
+      { key: 'profiles', icon: ChipsetIcon, shape: 'shape-cookie9' },
+      { key: 'boost', icon: BoltChargeIcon, shape: 'shape-pentagon' },
+      { key: 'game_tweaks', icon: WifiIcon, shape: 'shape-clover4' },
+      { key: 'governors', icon: GpuIcon, shape: 'shape-cookie6' },
+    ],
+  },
+  {
+    key: 'keeps',
+    titleTone: 'text-primary',
+    badgeTone: 'bg-primary-container text-on-primary-container',
+    items: [
+      { key: 'detection', icon: GamesIcon, shape: 'shape-cookie9' },
+      { key: 'monitor', icon: MonitorIcon, shape: 'shape-flower' },
+      { key: 'addons', icon: AppWindowIcon, shape: 'shape-sunny' },
+    ],
+  },
+]
 
 onMounted(async () => {
   try {
-    if (!fluxConfigStore.isLoaded) {
-      await fluxConfigStore.loadConfig()
-    }
-    isDisableTweaksEnabled.value = fluxConfigStore.isDisableTweaksEnabled
-    initialValue.value = fluxConfigStore.isDisableTweaksEnabled
+    if (!fluxConfigStore.isLoaded) await fluxConfigStore.loadConfig()
+    enabled.value = fluxConfigStore.isDisableTweaksEnabled
   } catch (error) {
     console.error('Failed to load disable tweaks setting:', error)
   }
 })
 
-onBeforeRouteLeave(async (to, from, next) => {
-  try {
-    if (hasUnsavedChanges.value) {
-      await fluxConfigStore.saveConfig()
-      console.log('Settings saved via navigation guard')
-      hasUnsavedChanges.value = false
-    }
-    next()
-  } catch (error) {
-    console.error('Failed to save on route leave:', error)
-    next(false)
+async function toggle(value) {
+  if (value) {
+    const ok = await notify.confirm({
+      tone: 'danger',
+      title: t('disable_tweaks.confirm.title'),
+      message: t('disable_tweaks.confirm.message'),
+      points: [
+        t('disable_tweaks.items.profiles'),
+        t('disable_tweaks.items.boost'),
+        t('disable_tweaks.items.game_tweaks'),
+      ],
+      confirmText: t('disable_tweaks.confirm.action'),
+    })
+    if (!ok) return
   }
-})
 
-async function toggleDisableTweaks(enabled) {
-  isDisableTweaksEnabled.value = enabled
-
+  enabled.value = value
   try {
-    if (!fluxConfigStore.isLoaded) {
-      await fluxConfigStore.loadConfig()
-    }
-
-    fluxConfigStore.setDisableTweaks(enabled)
-    hasUnsavedChanges.value = true
-    
-    // Save config immediately
+    if (!fluxConfigStore.isLoaded) await fluxConfigStore.loadConfig()
+    fluxConfigStore.setDisableTweaks(value)
     await fluxConfigStore.saveConfig()
-    hasUnsavedChanges.value = false
-    
-    console.log(`Disable tweaks ${enabled ? 'enabled' : 'disabled'}`)
-    
-    // Show reboot modal if the setting actually changed
-    if (initialValue.value !== isDisableTweaksEnabled.value) {
-      showRebootModal.value = true
-    }
   } catch (error) {
     console.error('Failed to set disable tweaks:', error)
-    isDisableTweaksEnabled.value = fluxConfigStore.isDisableTweaksEnabled
+    enabled.value = fluxConfigStore.isDisableTweaksEnabled
+    notify.error(t('notify.save_failed'))
+    return
   }
-}
 
-function closeRebootModal() {
-  showRebootModal.value = false
-  initialValue.value = isDisableTweaksEnabled.value
-}
-
-function skipReboot() {
-  closeRebootModal()
-}
-
-async function rebootDevice() {
-  try {
-    await exec('reboot')
-  } catch (error) {
-    console.error('Failed to reboot device:', error)
+  const reboot = await notify.confirm({
+    tone: 'info',
+    title: t('reboot_modal.title'),
+    message: t('reboot_modal.description'),
+    confirmText: t('reboot_modal.reboot'),
+    cancelText: t('reboot_modal.later'),
+  })
+  if (reboot) {
+    exec('reboot').catch((error) => console.error('Failed to reboot device:', error))
+  } else {
+    notify.show(t('disable_tweaks.saved_reboot_later'))
   }
 }
 
 function goBack() {
-  fluxConfigStore
-    .saveConfig()
-    .then(() => {
-      hasUnsavedChanges.value = false
-      router.back()
-    })
-    .catch((error) => {
-      console.error('Failed to save on goBack:', error)
-      router.back()
-    })
+  router.back()
 }
 </script>
+
+<style scoped>
+.hero-badge {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  transition: background-color var(--m3-spring-default-effects-duration)
+    var(--m3-spring-default-effects);
+}
+
+.item-badge {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.switch-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 20px 20px 24px;
+  border-radius: 28px;
+  background: var(--color-surface-container-high);
+  color: var(--color-on-surface);
+  transition:
+    background-color var(--m3-spring-default-effects-duration) var(--m3-spring-default-effects),
+    border-radius var(--m3-spring-default-spatial-duration) var(--m3-spring-default-spatial);
+}
+
+.switch-card.on {
+  border-radius: 36px;
+  background: var(--color-error-container);
+  color: var(--color-on-error-container);
+}
+</style>

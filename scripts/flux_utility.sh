@@ -29,6 +29,26 @@ change_cpu_gov() {
 	echo "$1" | tee /sys/devices/system/cpu/cpufreq/policy*/scaling_governor >/dev/null
 }
 
+# change_gpu_gov <governor>: live GPU governor change from the WebUI. The
+# kernel's own governor is kept in the same backup file the profiler uses, so
+# an empty governor (or the next balanced/powersave profile) can restore it.
+change_gpu_gov() {
+	backup=/dev/.flux_boost_orig
+	for node in /sys/class/kgsl/kgsl-3d0/devfreq/governor /sys/class/devfreq/*gpu*/governor \
+		/sys/class/devfreq/*mali*/governor /sys/class/devfreq/*g3d*/governor; do
+		[ -f "$node" ] || continue
+		grep -q "^gpugov $node " "$backup" 2>/dev/null ||
+			echo "gpugov $node $(stat -c %a "$node") $(cat "$node")" >>"$backup"
+		gov="$1"
+		if [ -z "$gov" ] || ! grep -qw -- "$gov" "${node%/governor}/available_governors" 2>/dev/null; then
+			gov=$(awk -v n="$node" '$1 == "gpugov" && $2 == n { print $4; exit }' "$backup")
+		fi
+		chmod 644 "$node"
+		echo "$gov" >"$node"
+		return 0
+	done
+}
+
 # Best-effort ROM family from well-known vendor properties.
 # Custom ROMs for Xiaomi devices often keep vendor props such as
 # ro.miui.ui.version.name, so the props alone do not mean MIUI/HyperOS: also

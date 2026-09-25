@@ -61,8 +61,12 @@ let defaultId = 0
 const switchId = props.id || `toggle-switch-${++defaultId}`
 const pressed = ref(false)
 
+// The switch only shows modelValue: the native checkbox is put back until the
+// parent accepts the change, so a cancelled confirm dialog leaves it untouched.
 function handleChange(event) {
-  emit('update:modelValue', event.target.checked)
+  const next = event.target.checked
+  event.target.checked = props.modelValue
+  emit('update:modelValue', next)
 }
 </script>
 

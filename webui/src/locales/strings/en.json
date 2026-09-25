@@ -107,7 +107,8 @@
       "license": "License",
       "description": "Flux Tweaks is a high-performance Magisk module engineered by FebriCahyaa, targeting Snapdragon SoCs with intelligent profiling, thermal awareness, and game-level CPU/GPU tuning. Built on a C++ daemon, Kotlin/Compose companion app, and a Vue 3 WebUI.",
       "tagline": "Performance, evolved.",
-      "entry": "Developer, license and links"
+      "entry": "Developer, license and links",
+      "title": "About"
     },
     "flux_sched": {
       "title": "Flux Sched",
@@ -116,6 +117,14 @@
     "flux_boost": {
       "title": "Flux Boost",
       "description": "Memory, storage and game thread priority while you play"
+    },
+    "game_tweaks": {
+      "title": "Game Tweaks",
+      "description": "Network, touch, refresh rate and memory tweaks applied while you play"
+    },
+    "gpu_governor": {
+      "title": "GPU Governor",
+      "description": "Choose the GPU governor for the balanced and powersave profiles"
     }
   },
   "game_settings": {
@@ -171,17 +180,72 @@
     "empty": "Nothing logged at this level yet.",
     "viewer_note": "Last 200 lines of flux.log, refreshed every 3 seconds.",
     "save_contents": "Log, previous boot, settings, game sessions, device report and HiCo state, packed into Download.",
-    "save_button": "Save log"
+    "save_button": "Save log",
+    "saved": "Log level saved — applied immediately",
+    "trace_confirm": {
+      "title": "Enable Trace logging?",
+      "message": "Trace writes every decision fluxd makes. The log fills up quickly and uses a little more CPU. Use it only when asked for a bug report."
+    }
   },
   "lite_mode": {
     "title": "Lite Mode",
     "toggle_title": "Enforce lite mode",
-    "brief": "Lite mode reduces overheating and power consumption during gameplay by lowering CPU and component frequencies. This setting applies to all games when enabled."
+    "brief": "Lite mode reduces overheating and power consumption during gameplay by lowering CPU and component frequencies. This setting applies to all games when enabled.",
+    "state_on": "On — every game runs cooler, on the lite profile",
+    "state_off": "Off — Flux decides per game (Game settings)",
+    "effects_title": "What changes",
+    "effects": {
+      "cooler": {
+        "title": "Cooler device",
+        "description": "CPU and GPU clocks stay lower, so the phone heats up more slowly in long sessions."
+      },
+      "battery": {
+        "title": "Longer battery",
+        "description": "Less power per frame, so a charge lasts more matches."
+      },
+      "performance": {
+        "title": "Lower peak performance",
+        "description": "Heavy scenes may drop a few more frames than on the full performance profile."
+      },
+      "per_game": {
+        "title": "Overrides per-game choice",
+        "description": "While on, it applies to every game, including ones without Lite mode in their settings."
+      }
+    },
+    "confirm": {
+      "title": "Enforce Lite mode?",
+      "message": "Every game will use the lite performance profile to stay cooler and save battery.",
+      "point_all_games": "Applies to all games from the next launch",
+      "point_fps": "Heavy games may run at a lower frame rate",
+      "action": "Turn on"
+    },
+    "saved_on": "Lite mode on — applies from the next game launch",
+    "saved_off": "Lite mode off — games use the full performance profile"
   },
   "disable_tweaks": {
     "title": "Disable Tweaks",
     "toggle_title": "Disable Tweaks",
-    "brief": "When enabled, this setting turns off all built-in performance optimizations on Flux Tweaks, allowing you to use this module strictly as a host for Flux Addon modules."
+    "brief": "When enabled, this setting turns off all built-in performance optimizations on Flux Tweaks, allowing you to use this module strictly as a host for Flux Addon modules.",
+    "state_on": "On — Flux only hosts add-ons, no tweaks are applied",
+    "state_off": "Off — all Flux tweaks are active",
+    "stops_title": "Stops when enabled",
+    "keeps_title": "Keeps working",
+    "items": {
+      "profiles": "Performance, balanced and powersave profiles",
+      "boost": "Flux Boost and Flux Sched",
+      "game_tweaks": "Network, touch and refresh rate game tweaks",
+      "governors": "CPU and GPU governor changes",
+      "detection": "Game detection and Do Not Disturb",
+      "monitor": "Monitor and game session history",
+      "addons": "Flux add-on modules"
+    },
+    "confirm": {
+      "title": "Disable all tweaks?",
+      "message": "Flux will stop tuning your device. Games will run on the stock kernel settings until you turn this off again.",
+      "action": "Disable tweaks"
+    },
+    "reboot_note": "A reboot is needed for this change so every tweak is fully reverted or applied again.",
+    "saved_reboot_later": "Saved — reboot later to apply the change"
   },
   "device_mitigation": {
     "title": "Device Mitigation",
@@ -222,6 +286,17 @@
       "performance_warning_confirm": "I understand, Apply",
       "initial_warn": "Please note that Flux Tweaks has automatically configured the optimal CPU Governor. Manual changes are not recommended unless you are an advanced user.",
       "initial_warn_checkbox": "Don't show this again"
+    },
+    "notice": "Governors marked with ⚠ cause heat and fast battery drain. Flux asks before applying them.",
+    "none_found": "This kernel does not list any CPU governors.",
+    "apply_note": "The change applies right away when that profile is active, otherwise on the next profile change.",
+    "saved": "{profile}: {governor}",
+    "confirm": {
+      "performance_title": "Use the performance governor?",
+      "point_heat": "CPU stays at maximum clocks all the time",
+      "point_battery": "Heat and battery drain rise sharply, even when idle",
+      "powersave_title": "Use powersave for balanced?",
+      "powersave_message": "The powersave governor keeps the CPU at its lowest clocks. Daily use may feel slow and apps may stutter."
     }
   },
   "reboot_modal": {
@@ -256,7 +331,11 @@
     "disabled": "Disabled",
     "cancel": "Cancel",
     "warning": "Warning",
-    "ok": "Okay"
+    "ok": "Okay",
+    "close": "Close",
+    "apply": "Apply",
+    "enable": "Enable",
+    "on": "On"
   },
   "monitor_page": {
     "title": "Live Monitor",
@@ -362,5 +441,62 @@
       "no_fps": "No FPS data",
       "hot": "Ran hot"
     }
+  },
+  "notify": {
+    "dont_ask_again": "Don't ask again",
+    "save_failed": "Couldn't save the setting. Check that root access is granted."
+  },
+  "gpu_governor": {
+    "title": "GPU Governor",
+    "brief": "The GPU governor decides how fast the graphics processor runs. Games always use the kernel's own governor; this only changes the balanced and powersave profiles.",
+    "running_now": "Running now",
+    "kernel_default": "Kernel default",
+    "balance_title": "Balanced GPU Governor",
+    "balance_description": "Used in the balanced profile, outside games",
+    "powersave_title": "Powersave GPU Governor",
+    "powersave_description": "Used only in the powersave profile",
+    "unsupported": "No GPU governor found",
+    "unsupported_hint": "This kernel does not expose a devfreq GPU governor (kgsl, Mali or g3d).",
+    "apply_note": "\"Kernel default\" keeps your kernel's governor. Changes apply right away when that profile is active.",
+    "saved": "{profile}: {governor}",
+    "confirm": {
+      "performance_title": "Use the performance GPU governor?",
+      "performance_message": "The GPU would stay at its highest clock outside games too.",
+      "point_heat": "The device gets warm even on the home screen",
+      "point_battery": "Battery drains much faster",
+      "slow_title": "Use {governor}?",
+      "slow_message": "This governor can keep the GPU at a low clock, so animations and scrolling may stutter."
+    }
+  },
+  "game_tweaks": {
+    "title": "Game Tweaks",
+    "brief": "Extra tweaks applied only while a game runs. Everything is put back when you leave the game.",
+    "not_supported": "Not on this device",
+    "tags": {
+      "oplus": "OPPO · realme · OnePlus",
+      "battery": "Uses more battery"
+    },
+    "net_tweaks": {
+      "title": "Network latency",
+      "description": "Low-latency TCP with BBR congestion control, ECN and Fast Open for steadier ping."
+    },
+    "touch_tweaks": {
+      "title": "Touch response",
+      "description": "Turns on the touch panel's game mode for faster, more direct touch input.",
+      "unsupported_note": "This device has no /proc/touchpanel, so the touch tweak has no effect here."
+    },
+    "game_refresh_rate": {
+      "title": "Max refresh rate in games",
+      "description": "Locks the display at its highest refresh rate while you play. Some ROMs may still override it.",
+      "confirm_title": "Lock the highest refresh rate?",
+      "confirm_message": "The screen stays at its maximum refresh rate while a game runs. Motion looks smoother but the battery drains faster. Your previous setting is restored after the game."
+    },
+    "drop_caches": {
+      "title": "Clear memory cache",
+      "description": "Frees cached memory when a game starts so it has more RAM to load into."
+    },
+    "apply_note": "Changes apply the next time a game starts.",
+    "saved_on": "{name} on",
+    "saved_off": "{name} off"
   }
 }
