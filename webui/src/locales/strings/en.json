@@ -143,7 +143,27 @@
   "device_mitigation": {
     "title": "Device Mitigation",
     "toggle_title": "Enable device mitigation",
-    "brief": "Device mitigation disables potentially incompatible tweaks for specific devices. Keep it disabled unless you have problems."
+    "brief": "Device mitigation disables potentially incompatible tweaks for specific devices. Keep it disabled unless you have problems.",
+    "state_on": "Tweaks known to misbehave on some devices are skipped",
+    "state_off": "All tweaks are applied",
+    "changes_title": "What it changes",
+    "applied": "Applied",
+    "not_applied": "Not applied",
+    "apply_note": "Changes take effect the next time a profile is applied.",
+    "items": {
+      "DISABLE_DDR_TWEAK": {
+        "title": "Keep memory bus stock",
+        "description": "Skips raising the memory (DDR) bus and latency floors in the performance profile. Helps devices that stutter or reboot when these are changed."
+      },
+      "NO_PERFORMANCE_CPUGOV": {
+        "title": "No performance governor",
+        "description": "Games keep the balanced CPU governor instead of \"performance\"; some kernels overheat or misbehave with it."
+      },
+      "QCOM_NO_GPU_POWERSAVE": {
+        "title": "Keep GPU floor in Powersave",
+        "description": "Snapdragon: Powersave no longer lowers the Adreno GPU minimum, which was reported to break video after waking the phone."
+      }
+    }
   },
   "cpu_governor": {
     "title": "CPU Governor",
