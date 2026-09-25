@@ -23,6 +23,12 @@ export const useFluxConfigStore = defineStore('fluxConfig', () => {
   const isDisableTweaksEnabled = computed(() => config.value?.preferences?.disable_tweaks ?? false)
   // Missing key = enabled, matching the daemon default
   const isFluxSchedEnabled = computed(() => config.value?.preferences?.flux_sched ?? true)
+  // Flux Boost parts (fluxd defaults: on)
+  const fluxBoost = computed(() => ({
+    flux_vm: config.value?.preferences?.flux_vm ?? true,
+    flux_io: config.value?.preferences?.flux_io ?? true,
+    game_priority: config.value?.preferences?.game_priority ?? true,
+  }))
   const balanceGovernor = computed(() => config.value?.cpu_governor?.balance ?? 'schedutil')
   const powersaveGovernor = computed(() => config.value?.cpu_governor?.powersave ?? 'schedutil')
 
@@ -117,6 +123,12 @@ export const useFluxConfigStore = defineStore('fluxConfig', () => {
     config.value.preferences.flux_sched = enabled
   }
 
+  function setFluxBoost(key, enabled) {
+    if (!['flux_vm', 'flux_io', 'game_priority'].includes(key)) return
+    ensureConfigStructure()
+    config.value.preferences[key] = enabled
+  }
+
   function setBalanceGovernor(governor) {
     ensureConfigStructure()
     config.value.cpu_governor.balance = governor
@@ -176,6 +188,8 @@ export const useFluxConfigStore = defineStore('fluxConfig', () => {
   }
 
   return {
+    fluxBoost,
+    setFluxBoost,
     config,
 
     preferences,

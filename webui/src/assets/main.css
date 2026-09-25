@@ -1,4 +1,5 @@
 @import './base.css';
+@import './expressive.css';
 @import './fonts.css';
 @import './copy_guard.css';
 
@@ -16,7 +17,7 @@ html::-webkit-scrollbar {
 }
 
 body {
-  font-family: 'Poppins', 'Google Sans Flex', system-ui, sans-serif;
+  font-family: 'Google Sans Flex', 'Poppins', system-ui, sans-serif;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

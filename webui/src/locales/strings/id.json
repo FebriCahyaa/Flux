@@ -23,6 +23,16 @@
     "learn_flux": {
       "title": "Jelajahi Flux",
       "description": "Selami profil, penyetelan, dan semua yang bisa dilakukan Flux Tweaks untuk perangkatmu."
+    },
+    "status_chip": {
+      "running": "Aktif",
+      "stopped": "Mati"
+    },
+    "profile_short": {
+      "performance": "Perf",
+      "performance_lite": "Lite",
+      "balanced": "Seimbang",
+      "powersave": "Hemat"
     }
   },
   "games_page": {
@@ -88,6 +98,10 @@
     "flux_sched": {
       "title": "Flux Sched",
       "description": "Prioritas scheduler untuk game memakai uclamp (kernel modern)"
+    },
+    "flux_boost": {
+      "title": "Flux Boost",
+      "description": "Memori, penyimpanan dan prioritas thread game saat bermain"
     }
   },
   "game_settings": {
@@ -232,5 +246,22 @@
     "unsupported": "Tidak didukung: kernel ini tidak punya cgroup uclamp. Flux Sched tidak berpengaruh di sini.",
     "brief": "Selama game berjalan, Flux Sched menaikkan kapasitas CPU minimum untuk aplikasi di depan dan membatasi permintaan aplikasi latar belakang, sehingga game mendapat core cepat lebih dulu. Ini pengganti boost schedtune lama yang sudah tidak ada di kernel modern (GKI). Nilai bawaan disimpan dan dikembalikan begitu kamu keluar dari game.",
     "apply_note": "Perubahan berlaku saat profil berikutnya diterapkan, misalnya ketika game dimulai."
+  },
+  "flux_boost": {
+    "title": "Flux Boost",
+    "brief": "Penyetelan tambahan di atas profil performance, hanya aktif saat game berjalan dan dipulihkan sepenuhnya saat game ditutup. Nilai hanya dinaikkan, tidak pernah diturunkan di bawah bawaan perangkat.",
+    "vm": {
+      "title": "Ruang memori",
+      "description": "Membebaskan memori lebih awal di latar belakang dan menampung lebih banyak tulisan tertunda, sehingga saat memuat aset frame lebih jarang drop."
+    },
+    "io": {
+      "title": "Latensi penyimpanan",
+      "description": "Menyelesaikan permintaan penyimpanan di CPU yang memintanya (milik game), bukan di core kecil yang sibuk."
+    },
+    "priority": {
+      "title": "Prioritas game",
+      "description": "Memberi thread kerja game prioritas CPU dan penyimpanan lebih tinggi dari aplikasi lain. Thread yang sudah dipercepat Android tidak diubah."
+    },
+    "apply_note": "Perubahan berlaku saat profil diterapkan berikutnya, misalnya saat game dimulai."
   }
 }

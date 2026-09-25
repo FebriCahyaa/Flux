@@ -23,7 +23,7 @@ const transitionName = ref('')
 const pageComponent = ref(null)
 
 // Define top-level routes that should NOT animate between each other
-const topLevelRoutes = ['/', '/games', '/settings']
+const topLevelRoutes = ['/', '/games', '/monitor', '/settings']
 
 // Triggered when the enter transition finishes
 const onAfterEnter = () => {
@@ -35,9 +35,9 @@ const onAfterEnter = () => {
 watch(
   () => route.path,
   (to, from) => {
-    // If moving between top-level pages, disable animation
+    // Between top-level destinations: M3 fade-through
     if (topLevelRoutes.includes(to) && topLevelRoutes.includes(from)) {
-      transitionName.value = ''
+      transitionName.value = 'fade-through'
       return
     }
 
@@ -65,7 +65,10 @@ watch(
 .page-open-leave-active,
 .page-close-enter-active,
 .page-close-leave-active {
-  transition: all 150ms cubic-bezier(0.2, 0, 0, 1);
+  /* Spatial spring for movement, effects spring for fades (M3 Expressive motion) */
+  transition:
+    transform var(--m3-spring-default-spatial-duration) var(--m3-spring-default-spatial),
+    opacity var(--m3-spring-default-effects-duration) var(--m3-spring-default-effects);
   position: absolute;
   width: 100%;
   top: var(--window-inset-top, 0px);
@@ -121,5 +124,47 @@ watch(
 
 .page-close-enter-to {
   transform: translateX(0);
+}
+
+.fade-through-enter-active,
+.fade-through-leave-active {
+  position: absolute;
+  width: 100%;
+  top: var(--window-inset-top, 0px);
+  bottom: 0;
+  left: 0;
+  background-color: var(--color-background);
+}
+
+.fade-through-leave-active {
+  transition: opacity var(--m3-spring-fast-effects-duration) var(--m3-spring-fast-effects);
+  z-index: 1;
+}
+
+.fade-through-enter-active {
+  transition:
+    opacity var(--m3-spring-default-effects-duration) var(--m3-spring-default-effects) var(--m3-spring-fast-effects-duration),
+    transform var(--m3-spring-default-spatial-duration) var(--m3-spring-default-spatial) var(--m3-spring-fast-effects-duration);
+  z-index: 2;
+}
+
+.fade-through-leave-to {
+  opacity: 0;
+}
+
+.fade-through-enter-from {
+  opacity: 0;
+  transform: scale(0.96);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-open-enter-active,
+  .page-open-leave-active,
+  .page-close-enter-active,
+  .page-close-leave-active,
+  .fade-through-enter-active,
+  .fade-through-leave-active {
+    transition: none;
+  }
 }
 </style>

@@ -4,7 +4,7 @@
       <!-- Header -->
       <div class="flex-none p-5 pb-0">
         <div class="flex justify-between items-center mb-6 text-on-surface">
-          <h1 class="text-xl font-semibold">{{ $t('games_page.title') }}</h1>
+          <h1 class="m3-headline text-[32px]">{{ $t('games_page.title') }}</h1>
         </div>
 
         <!-- Search -->
