@@ -26,7 +26,9 @@ CPUFREQ="/sys/devices/system/cpu/cpu0/cpufreq"
 
 # Rotate logs: keep previous boot's sysmon.log for crash diagnosis
 [ -f "$MODULE_CONFIG/sysmon.log" ] && mv "$MODULE_CONFIG/sysmon.log" "$MODULE_CONFIG/sysmon.log.prev"
-rm -f "$MODULE_CONFIG/flux.log"
+# Keep the previous boot's log for bug reports (Save log); fluxd rotates flux.log at 2 MB.
+[ -f "$MODULE_CONFIG/flux.log" ] && mv -f "$MODULE_CONFIG/flux.log" "$MODULE_CONFIG/flux.prev.log"
+rm -f "$MODULE_CONFIG/flux.1.log"
 
 # Parse Governor to use
 chmod 644 "$CPUFREQ/scaling_governor"

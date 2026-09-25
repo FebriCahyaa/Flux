@@ -72,7 +72,7 @@
     },
     "save_log": {
       "title": "Save Log",
-      "description": "Export the full Flux diagnostic log for debugging or reporting",
+      "description": "Pack the log, settings, game sessions and a device report into Download for bug reports",
       "exporting": "Packing logs, please wait…",
       "success": "Log saved successfully",
       "failure": "Failed to save log"
@@ -128,7 +128,29 @@
     "level_2": "Warning",
     "level_3": "Info",
     "level_4": "Debug",
-    "level_5": "Trace"
+    "level_5": "Trace",
+    "brief": "How much fluxd writes to its log. Changes apply immediately; the log is capped at about 4 MB.",
+    "desc_0": "Only failures that stop Flux",
+    "desc_1": "Errors that break a tweak or a profile",
+    "desc_2": "Errors and anything unexpected",
+    "desc_3": "Profile changes, games and warnings: best for daily use",
+    "desc_4": "Details of every decision: use when reporting a bug",
+    "desc_5": "Everything, very verbose: only when asked by the developer",
+    "tag": {
+      "recommended": "Recommended",
+      "bug_reports": "Bug reports"
+    },
+    "viewer_title": "Recent log",
+    "refresh": "Refresh",
+    "filter": {
+      "all": "All",
+      "warn": "Warnings",
+      "error": "Errors"
+    },
+    "empty": "Nothing logged at this level yet.",
+    "viewer_note": "Last 200 lines of flux.log, refreshed every 3 seconds.",
+    "save_contents": "Log, previous boot, settings, game sessions, device report and HiCo state, packed into Download.",
+    "save_button": "Save log"
   },
   "lite_mode": {
     "title": "Lite Mode",

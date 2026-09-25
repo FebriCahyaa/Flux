@@ -72,7 +72,7 @@
     },
     "save_log": {
       "title": "Simpan Log",
-      "description": "Ekspor log diagnostik lengkap Flux untuk debugging atau pelaporan",
+      "description": "Kemas log, pengaturan, sesi game dan laporan perangkat ke folder Download untuk laporan bug",
       "exporting": "Menyimpan log, tunggu sebentar ya…",
       "success": "Log berhasil disimpan",
       "failure": "Gagal menyimpan log"
@@ -128,7 +128,29 @@
     "level_2": "Warning",
     "level_3": "Info",
     "level_4": "Debug",
-    "level_5": "Trace"
+    "level_5": "Trace",
+    "brief": "Seberapa banyak fluxd menulis ke log. Perubahan langsung berlaku; ukuran log dibatasi sekitar 4 MB.",
+    "desc_0": "Hanya kegagalan yang menghentikan Flux",
+    "desc_1": "Error yang merusak tweak atau profil",
+    "desc_2": "Error dan hal yang tidak terduga",
+    "desc_3": "Pergantian profil, game dan peringatan: terbaik untuk harian",
+    "desc_4": "Detail setiap keputusan: pakai saat melapor bug",
+    "desc_5": "Semuanya, sangat rinci: hanya jika diminta pengembang",
+    "tag": {
+      "recommended": "Disarankan",
+      "bug_reports": "Lapor bug"
+    },
+    "viewer_title": "Log terbaru",
+    "refresh": "Muat ulang",
+    "filter": {
+      "all": "Semua",
+      "warn": "Peringatan",
+      "error": "Error"
+    },
+    "empty": "Belum ada log pada level ini.",
+    "viewer_note": "200 baris terakhir flux.log, diperbarui tiap 3 detik.",
+    "save_contents": "Log, boot sebelumnya, pengaturan, sesi game, laporan perangkat dan status HiCo, dikemas ke folder Download.",
+    "save_button": "Simpan log"
   },
   "lite_mode": {
     "title": "Mode Lite",

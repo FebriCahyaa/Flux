@@ -149,7 +149,9 @@ save_logs() {
 	report_dir="$MODULE_CONFIG/flux_bugreport_temp"
 	mkdir -p "$report_dir/pstore"
 
-	log_file="flux_bugreport_$(date +"%Y-%m-%d_%H_%M").tar.gz"
+	device=$(getprop ro.product.vendor.device)
+	[ -z "$device" ] && device=$(getprop ro.product.device)
+	log_file="flux_bugreport_${device:-device}_$(date +"%Y-%m-%d_%H-%M-%S").tar.gz"
 	SOC="Unknown"
 
 	case $(<$MODULE_CONFIG/soc_recognition) in
@@ -175,6 +177,41 @@ save_logs() {
 		echo ""
 		[ -f "$MODULE_CONFIG/flux.log" ] && cat "$MODULE_CONFIG/flux.log"
 	} >"$report_dir/flux.log"
+
+	# Earlier parts of the log: rotated at 2 MB (flux.1.log) and the previous boot (flux.prev.log)
+	for f in flux.1.log flux.prev.log; do
+		[ -f "$MODULE_CONFIG/$f" ] && cp "$MODULE_CONFIG/$f" "$report_dir/"
+	done
+
+	# Settings and state: what Flux was configured to do and what it was doing
+	mkdir -p "$report_dir/state"
+	for f in config.json device_mitigation.json current_profile gameinfo synthesis_core.json \
+		session_live.json sessions.json soc_recognition binder_codes monitor_mode; do
+		[ -f "$MODULE_CONFIG/$f" ] && cp "$MODULE_CONFIG/$f" "$report_dir/state/"
+	done
+	[ -f "$MODULE_CONFIG/gamelist.json" ] && echo "$(grep -c '"lite_mode"' "$MODULE_CONFIG/gamelist.json") games" >"$report_dir/state/gamelist_count.txt"
+	# Stock values saved by Flux Sched / Flux Boost, and the boosted game threads
+	for f in .flux_sched_orig .flux_boost_orig .flux_game_prio; do
+		[ -f "/dev/$f" ] && cp "/dev/$f" "$report_dir/state/${f#.}.txt"
+	done
+	{
+		for p in ro.product.vendor.device ro.product.model ro.build.display.id ro.modversion \
+			ro.mi.os.version.name ro.mi.os.version.incremental ro.miui.ui.version.name \
+			ro.lineage.version ro.build.version.release ro.build.version.incremental ro.product.cpu.abilist; do
+			echo "$p=$(getprop "$p")"
+		done
+		echo "uptime=$(cat /proc/uptime)"
+	} >"$report_dir/state/props.txt"
+
+	# HiCo Thermal (Flux add-on), when installed
+	hicod=/data/adb/modules/hico/system/bin/hicod
+	if [ -x "$hicod" ]; then
+		{
+			echo "== status"; "$hicod" status
+			echo; echo "== device"; "$hicod" device
+			echo; echo "== monitor"; "$hicod" monitor --once
+		} >"$report_dir/hico_state.txt" 2>&1
+	fi
 
 	[ -f "$MODULE_CONFIG/sysmon.log" ] && cp "$MODULE_CONFIG/sysmon.log" "$report_dir/"
 	[ -f "$MODULE_CONFIG/sysmon.log.prev" ] && cp "$MODULE_CONFIG/sysmon.log.prev" "$report_dir/"

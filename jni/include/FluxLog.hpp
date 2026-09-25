@@ -17,7 +17,7 @@
 #pragma once
 
 #include <memory>
-#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/spdlog.h>
 
 #include "Flux.hpp"
@@ -32,12 +32,16 @@ inline std::shared_ptr<spdlog::logger> g_logger;
  *
  * @param log_path Path to the log file (defaults to LOG_FILE)
  *
- * @details Creates a basic file logger with the pattern "YYYY-MM-DD HH:MM:SS.mmm L message"
+ * @details Creates a rotating file logger with the pattern "YYYY-MM-DD HH:MM:SS.mmm L message".
+ *          The log is capped at LOG_MAX_BYTES; the previous part is kept as flux.1.log, so the
+ *          default Debug level cannot fill the data partition between reboots.
  * @note If initialization fails, the program will exit with EXIT_FAILURE.
  */
 inline void init(const std::string &log_path = LOG_FILE) {
     try {
-        g_logger = spdlog::basic_logger_mt("Flux", log_path);
+        constexpr size_t LOG_MAX_BYTES = 2 * 1024 * 1024;
+        constexpr size_t LOG_MAX_FILES = 1; // flux.log + flux.1.log
+        g_logger = spdlog::rotating_logger_mt("Flux", log_path, LOG_MAX_BYTES, LOG_MAX_FILES);
         g_logger->set_pattern("%Y-%m-%d %H:%M:%S.%e %L %v");
         g_logger->set_level(spdlog::level::trace);
         g_logger->flush_on(spdlog::level::info);

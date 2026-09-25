@@ -357,7 +357,7 @@ const openExportModal = () => {
           exportErrorMsg.value = stderr.trim()
         } else {
           exportStatus.value = 'success'
-          exportPath.value = stdout.trim()
+          exportPath.value = stdout.trim().split('\n').pop()
         }
       })
       .catch((err) => {
