@@ -5,6 +5,15 @@ outputs:
   zip-name:
     description: File name of the flashable zip in the workspace root
     value: ${{ steps.zip.outputs.zipName }}
+  zip-arm64:
+    description: File name of the 64-bit (arm64-v8a) zip
+    value: ${{ steps.zip.outputs.zipArm64 }}
+  zip-arm:
+    description: File name of the 32-bit (armeabi-v7a) zip
+    value: ${{ steps.zip.outputs.zipArm }}
+  zips:
+    description: All flashable zips (arm64, arm, universal), one per line
+    value: ${{ steps.zip.outputs.zips }}
 
 runs:
   using: composite

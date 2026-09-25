@@ -1,9 +1,9 @@
 <template>
   <div class="page settings-page h-full flex flex-col overflow-hidden">
     <div class="sticky top-0 z-10 bg-background">
-      <div class="max-w-3xl mx-auto p-5 pb-3">
+      <div class="max-w-3xl mx-auto px-5 pt-6 pb-3">
         <div class="flex justify-between items-center text-on-surface">
-          <h1 class="text-xl font-semibold">{{ $t('settings_page.title') }}</h1>
+          <h1 class="m3-headline text-[32px]">{{ $t('settings_page.title') }}</h1>
         </div>
       </div>
     </div>
@@ -13,7 +13,7 @@
 
         <!-- Preferences -->
         <div class="px-4 py-2 mb-1">
-          <h2 class="text-xs font-semibold uppercase tracking-widest text-on-surface-variant">
+          <h2 class="text-sm font-semibold text-primary">
             {{ $t('settings_page.section.preferences') }}
           </h2>
         </div>
@@ -23,7 +23,7 @@
             <RippleComponent @click="openLiteModeView" class="md3-list-item" tabindex="0">
               <div class="flex items-center justify-between px-5 py-4">
                 <div class="flex items-center gap-4 min-w-0 flex-1">
-                  <div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center shrink-0">
+                  <div class="w-10 h-10 shape-cookie9 bg-primary-container flex items-center justify-center shrink-0">
                     <FeatherIcon class="w-5 h-5 text-on-primary-container" />
                   </div>
                   <div class="flex-1 min-w-0">
@@ -42,7 +42,7 @@
             <RippleComponent @click="openDisableTweaksView" class="md3-list-item" tabindex="0">
               <div class="flex items-center justify-between px-5 py-4">
                 <div class="flex items-center gap-4 min-w-0 flex-1">
-                  <div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center shrink-0">
+                  <div class="w-10 h-10 shape-cookie9 bg-primary-container flex items-center justify-center shrink-0">
                     <TuneIcon class="w-5 h-5 text-on-primary-container" />
                   </div>
                   <div class="flex-1 min-w-0">
@@ -61,7 +61,7 @@
             <RippleComponent @click="openFluxSchedView" class="md3-list-item" tabindex="0">
               <div class="flex items-center justify-between px-5 py-4">
                 <div class="flex items-center gap-4 min-w-0 flex-1">
-                  <div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center shrink-0">
+                  <div class="w-10 h-10 shape-cookie9 bg-primary-container flex items-center justify-center shrink-0">
                     <ChipsetIcon class="w-5 h-5 text-on-primary-container" />
                   </div>
                   <div class="flex-1 min-w-0">
@@ -77,10 +77,29 @@
           </div>
 
           <div class="md3-list">
+            <RippleComponent @click="openFluxBoostView" class="md3-list-item" tabindex="0">
+              <div class="flex items-center justify-between px-5 py-4">
+                <div class="flex items-center gap-4 min-w-0 flex-1">
+                  <div class="w-10 h-10 shape-cookie9 bg-primary-container flex items-center justify-center shrink-0">
+                    <BoltChargeIcon class="w-5 h-5 text-on-primary-container" />
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <h3 class="text-sm font-semibold text-on-surface">{{ $t('settings_page.flux_boost.title') }}</h3>
+                    <p class="text-xs text-on-surface-variant mt-1 line-clamp-2">{{ $t('settings_page.flux_boost.description') }}</p>
+                  </div>
+                </div>
+                <div class="w-7 h-7 rounded-full bg-surface-dim flex items-center justify-center shrink-0 ms-3">
+                  <ChevronRightIcon class="text-on-surface-variant shrink-0 rtl:rotate-180" :size="22" />
+                </div>
+              </div>
+            </RippleComponent>
+          </div>
+
+          <div class="md3-list">
             <RippleComponent @click="openLanguageView" class="md3-list-item" tabindex="0">
               <div class="flex items-center justify-between px-5 py-4">
                 <div class="flex items-center gap-4 min-w-0 flex-1">
-                  <div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center shrink-0">
+                  <div class="w-10 h-10 shape-cookie9 bg-primary-container flex items-center justify-center shrink-0">
                     <LanguageIcon class="w-5 h-5 text-on-primary-container" />
                   </div>
                   <div class="flex-1 min-w-0">
@@ -98,7 +117,7 @@
 
         <!-- System -->
         <div class="px-4 py-2 mb-1">
-          <h2 class="text-xs font-semibold uppercase tracking-widest text-on-surface-variant">
+          <h2 class="text-sm font-semibold text-primary">
             {{ $t('settings_page.section.system') }}
           </h2>
         </div>
@@ -108,7 +127,7 @@
             <RippleComponent @click="openDeviceMitigationView" class="md3-list-item" tabindex="0">
               <div class="flex items-center justify-between px-5 py-4">
                 <div class="flex items-center gap-4 min-w-0 flex-1">
-                  <div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center shrink-0">
+                  <div class="w-10 h-10 shape-cookie9 bg-primary-container flex items-center justify-center shrink-0">
                     <BugIcon class="w-5 h-5 text-on-primary-container" />
                   </div>
                   <div class="flex-1 min-w-0">
@@ -127,7 +146,7 @@
             <RippleComponent @click="openCpuGovernorView" class="md3-list-item" tabindex="0">
               <div class="flex items-center justify-between px-5 py-4">
                 <div class="flex items-center gap-4 min-w-0 flex-1">
-                  <div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center shrink-0">
+                  <div class="w-10 h-10 shape-cookie9 bg-primary-container flex items-center justify-center shrink-0">
                     <ChipsetIcon class="w-5 h-5 text-on-primary-container" />
                   </div>
                   <div class="flex-1 min-w-0">
@@ -146,7 +165,7 @@
             <RippleComponent @click="openLogLvlView" class="md3-list-item" tabindex="0">
               <div class="flex items-center justify-between px-5 py-4">
                 <div class="flex items-center gap-4 min-w-0 flex-1">
-                  <div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center shrink-0">
+                  <div class="w-10 h-10 shape-cookie9 bg-primary-container flex items-center justify-center shrink-0">
                     <TextIcon class="w-5 h-5 text-on-primary-container" />
                   </div>
                   <div class="flex-1 min-w-0">
@@ -164,7 +183,7 @@
 
         <!-- Others -->
         <div class="px-4 py-2 mb-1">
-          <h2 class="text-xs font-semibold uppercase tracking-widest text-on-surface-variant">
+          <h2 class="text-sm font-semibold text-primary">
             {{ $t('settings_page.section.others') }}
           </h2>
         </div>
@@ -174,7 +193,7 @@
             <RippleComponent @click="openExportModal" class="md3-list-item" tabindex="0">
               <div class="flex items-center justify-between px-5 py-4">
                 <div class="flex items-center gap-4 min-w-0 flex-1">
-                  <div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center shrink-0">
+                  <div class="w-10 h-10 shape-cookie9 bg-primary-container flex items-center justify-center shrink-0">
                     <ContentSaveIcon class="w-5 h-5 text-on-primary-container" />
                   </div>
                   <div class="flex-1 min-w-0">
@@ -193,7 +212,7 @@
             <RippleComponent @click="createShortcut" class="md3-list-item" tabindex="0">
               <div class="flex items-center justify-between px-5 py-4">
                 <div class="flex items-center gap-4 min-w-0 flex-1">
-                  <div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center shrink-0">
+                  <div class="w-10 h-10 shape-cookie9 bg-primary-container flex items-center justify-center shrink-0">
                     <HomePlusIcon class="w-5 h-5 text-on-primary-container" />
                   </div>
                   <div class="flex-1 min-w-0">
@@ -207,91 +226,25 @@
               </div>
             </RippleComponent>
           </div>
-        </div>
 
-        <!-- ── About Developer ─────────────────────────────────────────────── -->
-        <div class="px-4 py-2 mb-1">
-          <h2 class="text-xs font-semibold uppercase tracking-widest text-on-surface-variant">
-            {{ $t('settings_page.section.about') }}
-          </h2>
-        </div>
-
-        <!-- Developer card -->
-        <div class="about-card bg-surface-container rounded-2xl overflow-hidden mb-3">
-          <!-- Header banner -->
-          <div class="about-banner px-5 pt-5 pb-4 relative overflow-hidden">
-            <div class="about-banner-bg"></div>
-            <div class="relative z-10 flex items-center gap-4">
-              <div class="about-avatar w-14 h-14 rounded-2xl bg-primary-container flex items-center justify-center shrink-0">
-                <CodeIcon :size="24" class="text-on-primary-container" />
-              </div>
-              <div>
-                <h3 class="text-base font-bold text-on-surface">FebriCahyaa</h3>
-                <p class="text-xs text-on-surface-variant mt-0.5">{{ $t('settings_page.about.role') }}</p>
-                <div class="flex items-center gap-1 mt-1">
-                  <div class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></div>
-                  <span class="text-xs text-primary font-medium">{{ $t('settings_page.about.status') }}</span>
+          <div class="md3-list">
+            <RippleComponent @click="openAboutView" class="md3-list-item" tabindex="0">
+              <div class="flex items-center justify-between px-5 py-4">
+                <div class="flex items-center gap-4 min-w-0 flex-1">
+                  <div class="w-10 h-10 shape-cookie9 bg-primary-container flex items-center justify-center shrink-0">
+                    <InformationOutlineIcon class="text-on-primary-container" :size="20" />
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <h3 class="text-sm font-semibold text-on-surface">{{ $t('settings_page.section.about') }}</h3>
+                    <p class="text-xs text-on-surface-variant mt-1 line-clamp-2">{{ $t('settings_page.about.entry') }}</p>
+                  </div>
+                </div>
+                <div class="w-7 h-7 rounded-full bg-surface-dim flex items-center justify-center shrink-0 ms-3">
+                  <ChevronRightIcon class="text-on-surface-variant shrink-0 rtl:rotate-180" :size="22" />
                 </div>
               </div>
-            </div>
-          </div>
-
-          <!-- Module info -->
-          <div class="px-5 py-4 border-t border-outline-variant border-opacity-30">
-            <div class="grid grid-cols-2 gap-3">
-              <div class="bg-surface-container-high rounded-xl p-3">
-                <p class="text-xs text-on-surface-variant font-medium mb-1">{{ $t('settings_page.about.module_name') }}</p>
-                <p class="text-sm font-bold text-on-surface">Flux Tweaks</p>
-              </div>
-              <div class="bg-surface-container-high rounded-xl p-3">
-                <p class="text-xs text-on-surface-variant font-medium mb-1">{{ $t('settings_page.about.platform') }}</p>
-                <p class="text-sm font-bold text-on-surface">Magisk · KSU · APatch</p>
-              </div>
-              <div class="bg-surface-container-high rounded-xl p-3">
-                <p class="text-xs text-on-surface-variant font-medium mb-1">{{ $t('settings_page.about.target') }}</p>
-                <p class="text-sm font-bold text-on-surface">GKI &amp; Non-GKI</p>
-              </div>
-              <div class="bg-surface-container-high rounded-xl p-3">
-                <p class="text-xs text-on-surface-variant font-medium mb-1">{{ $t('settings_page.about.license') }}</p>
-                <p class="text-sm font-bold text-on-surface">Apache 2.0</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Description -->
-          <div class="px-5 pb-4">
-            <p class="text-xs text-on-surface-variant leading-relaxed">
-              {{ $t('settings_page.about.description') }}
-            </p>
-          </div>
-
-          <!-- Links -->
-          <div class="px-5 pb-5 flex gap-2">
-            <RippleComponent
-              @click="openGithub"
-              class="flex-1 flex items-center justify-center gap-2 bg-surface-container-high rounded-xl py-3 cursor-pointer"
-              tabindex="0"
-            >
-              <GithubIcon :size="16" class="text-on-surface" />
-              <span class="text-xs font-semibold text-on-surface">GitHub</span>
-            </RippleComponent>
-            <RippleComponent
-              @click="openTelegram"
-              class="flex-1 flex items-center justify-center gap-2 bg-primary-container rounded-xl py-3 cursor-pointer"
-              tabindex="0"
-            >
-              <TelegramIcon :size="16" class="text-on-primary-container" />
-              <span class="text-xs font-semibold text-on-primary-container">Telegram</span>
             </RippleComponent>
           </div>
-        </div>
-
-        <!-- Module tagline -->
-        <div class="text-center py-3 mb-2">
-          <p class="text-xs text-on-surface-variant font-medium italic opacity-60">
-            "{{ $t('settings_page.about.tagline') }}"
-          </p>
-          <p class="text-xs text-on-surface-variant opacity-40 mt-1">Flux Tweaks · FebriCahyaa</p>
         </div>
 
       </div>
@@ -345,6 +298,8 @@ import LanguageIcon from '@/components/icons/Language.vue'
 import FeatherIcon from '@/components/icons/Feather.vue'
 import TuneIcon from '@/components/icons/Tune.vue'
 import ChipsetIcon from '@/components/icons/Chipset.vue'
+import BoltChargeIcon from '@/components/icons/BoltCharge.vue'
+import InformationOutlineIcon from '@/components/icons/InformationOutline.vue'
 import BugIcon from '@/components/icons/Bug.vue'
 import TextIcon from '@/components/icons/Text.vue'
 import HomePlusIcon from '@/components/icons/HomePlus.vue'
@@ -353,9 +308,6 @@ import ErrorIcon from '@/components/icons/Error.vue'
 import Modal from '@/components/ui/Modal.vue'
 import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 import CheckCircle from '@/components/icons/CheckCircle.vue'
-import CodeIcon from '@/components/icons/Code.vue'
-import GithubIcon from '@/components/icons/Github.vue'
-import TelegramIcon from '@/components/icons/Telegram.vue'
 
 import * as KernelSU from '@/helpers/KernelSU'
 import { exec } from 'kernelsu'
@@ -386,10 +338,10 @@ const openCpuGovernorView = () => router.push('/settings/cpu_governor')
 const openLogLvlView = () => router.push('/settings/log_level')
 const openDisableTweaksView = () => router.push('/settings/disable_tweaks')
 const openFluxSchedView = () => router.push('/settings/flux_sched')
+const openFluxBoostView = () => router.push('/settings/flux_boost')
+const openAboutView = () => router.push('/settings/about')
 const createShortcut = () => KernelSU.createShortcut()
 
-const openGithub = () => KernelSU.openWebsite('https://github.com/FebriCahyaa/Flux')
-const openTelegram = () => KernelSU.openWebsite('https://t.me/c/3901105851/3')
 
 const openExportModal = () => {
   exportStatus.value = 'loading'
@@ -437,25 +389,4 @@ const closeExportModal = () => {
   overflow: hidden;
 }
 
-.about-banner {
-  background: linear-gradient(135deg,
-    color-mix(in srgb, var(--color-primary-container) 80%, transparent),
-    color-mix(in srgb, var(--color-secondary-container) 60%, transparent)
-  );
-}
-
-.about-banner-bg {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse at top right, color-mix(in srgb, var(--color-primary) 10%, transparent), transparent 70%);
-  pointer-events: none;
-}
-
-.about-avatar {
-  box-shadow: 0 4px 20px color-mix(in srgb, var(--color-primary) 20%, transparent);
-}
-
-.about-card {
-  border: 1px solid color-mix(in srgb, var(--color-outline-variant) 40%, transparent);
-}
 </style>

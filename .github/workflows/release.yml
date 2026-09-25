@@ -74,11 +74,11 @@ jobs:
 
       - name: Checksum and notes
         env:
-          ZIP: ${{ steps.build.outputs.zip-name }}
+          ZIPS: ${{ steps.build.outputs.zips }}
         run: |
           set -euo pipefail
-          sha256sum "$ZIP" >"$ZIP.sha256"
-          echo "ZIP_SHA256=$(cut -d' ' -f1 "$ZIP.sha256")" >>"$GITHUB_ENV"
+          mapfile -t zips <<<"$ZIPS"
+          for zip in "${zips[@]}"; do sha256sum "$zip" >"$zip.sha256"; done
           echo "VERSION_CODE=$(git rev-list --count HEAD)" >>"$GITHUB_ENV"
 
           target="$TAG"
@@ -94,25 +94,36 @@ jobs:
             echo
             echo "## Install"
             echo
-            echo "Flash \`$ZIP\` in Magisk, KernelSU or APatch and reboot, or update from the root manager."
+            echo "Flash the zip for your ROM in Magisk, KernelSU or APatch and reboot, or update from the root manager."
+            echo "Not sure? Take the universal zip; the installer refuses a zip that does not match the ROM."
             echo
-            echo "| File | SHA-256 |"
-            echo "|---|---|"
-            echo "| \`$ZIP\` | \`$(cut -d' ' -f1 "$ZIP.sha256")\` |"
+            echo "| ROM | File | SHA-256 |"
+            echo "|---|---|---|"
+            for zip in "${zips[@]}"; do
+              case "$zip" in
+              *-arm64.zip) rom="64-bit (arm64-v8a), incl. 64-bit-only ROMs" ;;
+              *-arm.zip) rom="32-bit (armeabi-v7a)" ;;
+              *) rom="Universal (64-bit and 32-bit)" ;;
+              esac
+              echo "| $rom | \`$zip\` | \`$(cut -d' ' -f1 "$zip.sha256")\` |"
+            done
           } >"$RUNNER_TEMP/notes.md"
 
       - name: Publish release
         env:
-          ZIP: ${{ steps.build.outputs.zip-name }}
+          ZIPS: ${{ steps.build.outputs.zips }}
         run: |
           set -euo pipefail
+          mapfile -t zips <<<"$ZIPS"
+          files=()
+          for zip in "${zips[@]}"; do files+=("$zip" "$zip.sha256"); done
           if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
             flags=()
             [[ "$PRERELEASE" == "true" ]] && flags+=(--prerelease)
-            gh release create "$TAG" "$ZIP" "$ZIP.sha256" --target "$GITHUB_SHA" \
+            gh release create "$TAG" "${files[@]}" --target "$GITHUB_SHA" \
               --title "Flux Tweaks $TAG" --notes-file "$RUNNER_TEMP/notes.md" "${flags[@]}"
           else
-            gh release upload "$TAG" "$ZIP" "$ZIP.sha256" --clobber
+            gh release upload "$TAG" "${files[@]}" --clobber
             gh release view "$TAG" --json body --jq .body | sed '/<!-- flux:auto -->/,$d' >"$RUNNER_TEMP/manual.md"
             if [[ -n "$(tr -d '[:space:]' <"$RUNNER_TEMP/manual.md")" ]]; then
               { cat "$RUNNER_TEMP/manual.md"; echo; cat "$RUNNER_TEMP/notes.md"; } >"$RUNNER_TEMP/body.md"
@@ -127,11 +138,12 @@ jobs:
         if: env.PRERELEASE != 'true'
         env:
           ZIP: ${{ steps.build.outputs.zip-name }}
+          ZIP_ARM64: ${{ steps.build.outputs.zip-arm64 }}
+          ZIP_ARM: ${{ steps.build.outputs.zip-arm }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           set -euo pipefail
           raw="https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$DEFAULT_BRANCH"
-          zip_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/download/$TAG/$ZIP"
 
           # Separate worktree: the build left modified files in the workspace.
           git fetch --depth=1 origin "$DEFAULT_BRANCH"
@@ -145,22 +157,29 @@ jobs:
             sed 's/^### /#### /' "$RUNNER_TEMP/changes.md"
           } >update/changelog.md
 
-          python3 - "$TAG" "$VERSION_CODE" "$zip_url" "$raw/update/changelog.md" "$ZIP_SHA256" <<'PY'
+          # One update channel per build: module.prop's updateJson points at update.json,
+          # update-arm64.json or update-arm.json, so each device keeps its flavor.
+          for pair in "update.json:$ZIP" "update-arm64.json:$ZIP_ARM64" "update-arm.json:$ZIP_ARM"; do
+            json=${pair%%:*}
+            zip=${pair#*:}
+            python3 - "$TAG" "$VERSION_CODE" "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/download/$TAG/$zip" \
+              "$raw/update/changelog.md" "$(cut -d' ' -f1 "$GITHUB_WORKSPACE/$zip.sha256")" "$json" <<'PY'
           import json, sys
-          tag, code, zip_url, changelog, sha = sys.argv[1:]
+          tag, code, zip_url, changelog, sha, out = sys.argv[1:]
           json.dump({
               "version": tag,
               "versionCode": int(code),
               "zipUrl": zip_url,
               "changelog": changelog,
               "sha256": sha,
-          }, open("update.json", "w"), indent=2)
-          open("update.json", "a").write("\n")
+          }, open(out, "w"), indent=2)
+          open(out, "a").write("\n")
           PY
+          done
           echo "${TAG#v}" >version
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add update.json update/changelog.md version
+          git add update.json update-arm64.json update-arm.json update/changelog.md version
           git commit -m "chore(release): publish $TAG to root managers [skip ci]" -m "versionCode $VERSION_CODE"
           git push origin "HEAD:$DEFAULT_BRANCH"

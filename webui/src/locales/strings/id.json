@@ -23,6 +23,16 @@
     "learn_flux": {
       "title": "Jelajahi Flux",
       "description": "Selami profil, penyetelan, dan semua yang bisa dilakukan Flux Tweaks untuk perangkatmu."
+    },
+    "status_chip": {
+      "running": "Aktif",
+      "stopped": "Mati"
+    },
+    "profile_short": {
+      "performance": "Perf",
+      "performance_lite": "Lite",
+      "balanced": "Seimbang",
+      "powersave": "Hemat"
     }
   },
   "games_page": {
@@ -83,11 +93,16 @@
       "target": "Target Kernel",
       "license": "Lisensi",
       "description": "Flux Tweaks adalah modul Magisk performa tinggi yang dikembangkan oleh FebriCahyaa, menargetkan SoC Snapdragon dengan profiling cerdas, kesadaran termal, dan penyetelan CPU/GPU tingkat game. Dibangun di atas daemon C++, aplikasi pendamping Kotlin/Compose, dan WebUI Vue 3.",
-      "tagline": "Performa, berevolusi."
+      "tagline": "Performa, berevolusi.",
+      "entry": "Pengembang, lisensi dan tautan"
     },
     "flux_sched": {
       "title": "Flux Sched",
       "description": "Prioritas scheduler untuk game memakai uclamp (kernel modern)"
+    },
+    "flux_boost": {
+      "title": "Flux Boost",
+      "description": "Memori, penyimpanan dan prioritas thread game saat bermain"
     }
   },
   "game_settings": {
@@ -123,7 +138,27 @@
   "device_mitigation": {
     "title": "Mitigasi Perangkat",
     "toggle_title": "Aktifkan mitigasi perangkat",
-    "brief": "Mitigasi perangkat menonaktifkan tweak yang berpotensi tidak kompatibel untuk perangkat tertentu. Jangan aktifkan kecuali Anda mengalami masalah."
+    "brief": "Mitigasi perangkat menonaktifkan tweak yang berpotensi tidak kompatibel untuk perangkat tertentu. Jangan aktifkan kecuali Anda mengalami masalah.",
+    "state_on": "Tweak yang bermasalah di sebagian perangkat dilewati",
+    "state_off": "Semua tweak diterapkan",
+    "changes_title": "Yang diubah",
+    "applied": "Diterapkan",
+    "not_applied": "Tidak diterapkan",
+    "apply_note": "Perubahan berlaku saat profil diterapkan berikutnya.",
+    "items": {
+      "DISABLE_DDR_TWEAK": {
+        "title": "Bus memori tetap bawaan",
+        "description": "Tidak menaikkan batas bawah bus memori (DDR) dan latensi di profil performance. Membantu perangkat yang patah-patah atau reboot saat nilai ini diubah."
+      },
+      "NO_PERFORMANCE_CPUGOV": {
+        "title": "Tanpa governor performance",
+        "description": "Game tetap memakai governor CPU seimbang, bukan \"performance\"; sebagian kernel terlalu panas atau bermasalah dengannya."
+      },
+      "QCOM_NO_GPU_POWERSAVE": {
+        "title": "GPU tetap di Powersave",
+        "description": "Snapdragon: Powersave tidak lagi menurunkan batas minimum GPU Adreno, yang dilaporkan membuat video tidak tampil setelah HP bangun dari tidur."
+      }
+    }
   },
   "cpu_governor": {
     "title": "Governor CPU",
@@ -232,5 +267,22 @@
     "unsupported": "Tidak didukung: kernel ini tidak punya cgroup uclamp. Flux Sched tidak berpengaruh di sini.",
     "brief": "Selama game berjalan, Flux Sched menaikkan kapasitas CPU minimum untuk aplikasi di depan dan membatasi permintaan aplikasi latar belakang, sehingga game mendapat core cepat lebih dulu. Ini pengganti boost schedtune lama yang sudah tidak ada di kernel modern (GKI). Nilai bawaan disimpan dan dikembalikan begitu kamu keluar dari game.",
     "apply_note": "Perubahan berlaku saat profil berikutnya diterapkan, misalnya ketika game dimulai."
+  },
+  "flux_boost": {
+    "title": "Flux Boost",
+    "brief": "Penyetelan tambahan di atas profil performance, hanya aktif saat game berjalan dan dipulihkan sepenuhnya saat game ditutup. Nilai hanya dinaikkan, tidak pernah diturunkan di bawah bawaan perangkat.",
+    "vm": {
+      "title": "Ruang memori",
+      "description": "Membebaskan memori lebih awal di latar belakang dan menampung lebih banyak tulisan tertunda, sehingga saat memuat aset frame lebih jarang drop."
+    },
+    "io": {
+      "title": "Latensi penyimpanan",
+      "description": "Menyelesaikan permintaan penyimpanan di CPU yang memintanya (milik game), bukan di core kecil yang sibuk."
+    },
+    "priority": {
+      "title": "Prioritas game",
+      "description": "Memberi thread kerja game prioritas CPU dan penyimpanan lebih tinggi dari aplikasi lain. Thread yang sudah dipercepat Android tidak diubah."
+    },
+    "apply_note": "Perubahan berlaku saat profil diterapkan berikutnya, misalnya saat game dimulai."
   }
 }

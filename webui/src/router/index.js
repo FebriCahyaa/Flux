@@ -11,6 +11,8 @@ import Monitor from '@/views/Monitor.vue'
 import LiteMode from '@/views/LiteMode.vue'
 import DisableTweaks from '@/views/DisableTweaks.vue'
 import FluxSched from '@/views/FluxSched.vue'
+import FluxBoost from '@/views/FluxBoost.vue'
+import About from '@/views/About.vue'
 import GameSettings from '@/views/GameSettings.vue'
 import LanguageSelection from '@/views/LanguageSelection.vue'
 import LogLevelSelection from '@/views/LogLevelSelection.vue'
@@ -56,6 +58,16 @@ const routes = [
     path: '/settings/disable_tweaks',
     name: 'DisableTweaks',
     component: DisableTweaks,
+  },
+  {
+    path: '/settings/about',
+    name: 'About',
+    component: About,
+  },
+  {
+    path: '/settings/flux_boost',
+    name: 'FluxBoost',
+    component: FluxBoost,
   },
   {
     path: '/settings/flux_sched',

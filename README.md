@@ -58,14 +58,31 @@ fluxd native monitor (binder)  ──status file──▶  fluxd (profiles)  ─
   thermal status reaches *severe* on devices without headroom support, with debouncing.
 - **Flux Sched** — uclamp scheduler prioritisation for the game on modern (GKI / 5.x) kernels,
   restoring stock values when the game exits.
+- **Flux Boost** — game-time tuning beyond the Encore profile, each part switchable:
+  memory headroom (earlier kswapd, larger dirty-page budget), storage latency (`rq_affinity`
+  on UFS / eMMC / NVMe queues) and game priority (worker threads to nice −5 and top best-effort
+  I/O class; UI / render threads Android already boosts stay as they are). Values are only
+  raised, never lowered below the vendor setting; stock values are saved once per boot and
+  restored when the game exits.
 - **Device mitigation** — per-device rules that skip tweaks known to misbehave on some hardware.
 - **Kernel awareness** — GKI and vendor kernels get different tweak sets to avoid unsafe nodes.
-- **WebUI** — live monitor, per-game settings, lite mode, CPU governors, logs, 10 languages.
+- **WebUI** — Material 3 Expressive: spring motion, shape-morphing loading indicator, expressive
+  switches and navigation bar, segmented lists; live monitor, per-game settings, lite mode,
+  Flux Boost, CPU governors, logs, 10 languages.
+- **64-bit and 32-bit builds** — separate `arm64`, `arm` and `universal` zips (see Installation).
 
 ## Installation
 
-1. Download the latest `flux-*.zip` from [Releases](https://github.com/FebriCahyaa/Flux/releases)
-   (or a development build from the `Build Flux Tweaks` workflow artifacts).
+1. Download the zip for your ROM from [Releases](https://github.com/FebriCahyaa/Flux/releases)
+   (or a development build from the `Build Flux Tweaks` workflow artifacts):
+
+   | Zip | For |
+   |---|---|
+   | `flux-*-arm64.zip` | 64-bit ROMs (arm64-v8a), including **64-bit-only** ROMs without a 32-bit userspace |
+   | `flux-*-arm.zip` | 32-bit ROMs (armeabi-v7a) |
+   | `flux-*-universal.zip` | Both; the installer picks the right `fluxd` |
+
+   The installer shows the ROM's ABIs and refuses a zip that does not match, naming the right one.
 2. Flash it in Magisk, KernelSU or APatch and reboot.
 3. Open the module's WebUI to review the game list and settings.
 
@@ -73,16 +90,18 @@ The installer verifies the SHA-256 of every file it extracts and aborts on any m
 
 ### Updates from the root manager
 
-`module.prop` points `updateJson` at [`update.json`](update.json). When a new release is
+`module.prop` points `updateJson` at [`update.json`](update.json) (universal),
+[`update-arm64.json`](update-arm64.json) or [`update-arm.json`](update-arm.json), so each device
+keeps receiving the build it installed. When a new release is
 published, Magisk, KernelSU and APatch show **Update** on the module card, display the changelog
 and download the zip directly from GitHub Releases. Pre-releases are not offered.
 
 ### Publishing a release
 
 Run **Actions → Release → Run workflow** with a version such as `1.1.0` (or publish a release with
-tag `v1.1.0`). The workflow builds the zip with that version, attaches it with its SHA-256 and a
-changelog generated from Conventional Commits, then commits `update.json` and
-`update/changelog.md` so every installed module sees the update.
+tag `v1.1.0`). The workflow builds the three zips with that version, attaches them with their
+SHA-256 and a changelog generated from Conventional Commits, then commits the three update
+channels and `update/changelog.md` so every installed module sees the update.
 
 ## Configuration
 
@@ -94,6 +113,9 @@ Settings live in `/data/adb/.config/flux/config.json` and are edited through the
 | `preferences.use_device_mitigation` | `false` | Apply the default device mitigation rules |
 | `preferences.disable_tweaks` | `false` | Keep the daemon but apply no tweaks |
 | `preferences.flux_sched` | `true` | uclamp prioritisation while gaming |
+| `preferences.flux_vm` | `true` | Flux Boost: memory headroom while gaming |
+| `preferences.flux_io` | `true` | Flux Boost: block queue `rq_affinity` while gaming |
+| `preferences.game_priority` | `true` | Flux Boost: game thread CPU / I/O priority |
 | `preferences.log_level` | `4` | 0 (off) – 5 (debug) |
 | `cpu_governor.balance` / `.powersave` | device default | Governor per profile |
 

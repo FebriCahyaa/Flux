@@ -723,6 +723,134 @@ flux_sched() {
 }
 
 ###################################
+# Flux Boost
+###################################
+
+# Game-time tuning beyond the stock Encore profile. Every node is saved once
+# per boot ("<group> <node> <mode> <value>") before it is first changed, and
+# restored when leaving a game, so daily use keeps the vendor values:
+#   vm        earlier background reclaim and larger dirty-page budget: fewer
+#             direct-reclaim and writeback stalls (frame drops) while loading
+#   io        block queues complete I/O on the CPU that submitted it (the
+#             game's), which keeps completions off busy little cores
+#   priority  the game's worker threads get a higher CPU (nice) and I/O
+#             (best-effort, highest) priority than other apps; threads that
+#             Android already boosts further (UI / render) are left as they are
+# Values are only ever raised, never lowered below the vendor setting.
+# FLUX_VM_DISABLED / FLUX_IO_DISABLED / FLUX_PRIORITY_DISABLED: restore only.
+
+FLUX_BOOST_BACKUP="/dev/.flux_boost_orig"
+FLUX_GAME_PRIO="/dev/.flux_game_prio"
+
+# flux_boost_save <group> <node>... : remember the stock value once per boot
+flux_boost_save() {
+	group=$1
+	shift
+	for node in "$@"; do
+		[ -f "$node" ] || continue
+		grep -q "^$group $node " "$FLUX_BOOST_BACKUP" 2>/dev/null && continue
+		echo "$group $node $(stat -c %a "$node") $(cat "$node")" >>"$FLUX_BOOST_BACKUP"
+	done
+}
+
+# flux_boost_restore <group> : put back every saved node of the group
+flux_boost_restore() {
+	[ -f "$FLUX_BOOST_BACKUP" ] || return 0
+	while read -r group node mode value; do
+		[ "$group" = "$1" ] && [ -f "$node" ] || continue
+		chmod 644 "$node" >/dev/null 2>&1
+		echo "$value" >"$node" 2>/dev/null
+		chmod "$mode" "$node" >/dev/null 2>&1
+	done <"$FLUX_BOOST_BACKUP"
+}
+
+# raise_to <value> <node> : apply only when the current value is lower
+raise_to() {
+	[ -f "$2" ] || return 0
+	cur=$(cat "$2" 2>/dev/null)
+	case "$cur" in '' | *[!0-9]*) return 0 ;; esac
+	[ "$cur" -lt "$1" ] && apply "$1" "$2"
+	return 0
+}
+
+flux_block_queues() {
+	for dir in /sys/block/sd* /sys/block/mmcblk* /sys/block/nvme*; do
+		[ -f "$dir/queue/rq_affinity" ] && echo "$dir/queue/rq_affinity"
+	done
+}
+
+flux_vm() {
+	nodes="/proc/sys/vm/watermark_scale_factor /proc/sys/vm/dirty_ratio /proc/sys/vm/dirty_background_ratio"
+	# shellcheck disable=SC2086
+	flux_boost_save vm $nodes
+	flux_boost_restore vm
+	[ "$1" = boost ] && [ -z "$FLUX_VM_DISABLED" ] || return 0
+	raise_to 50 /proc/sys/vm/watermark_scale_factor
+	raise_to 30 /proc/sys/vm/dirty_ratio
+	raise_to 10 /proc/sys/vm/dirty_background_ratio
+}
+
+flux_io() {
+	queues=$(flux_block_queues)
+	# shellcheck disable=SC2086
+	flux_boost_save io $queues
+	flux_boost_restore io
+	[ "$1" = boost ] && [ -z "$FLUX_IO_DISABLED" ] || return 0
+	for node in $queues; do
+		raise_to 2 "$node"
+	done
+}
+
+# nice value of a thread (field 19 of /proc/<pid>/task/<tid>/stat; comm may contain spaces)
+thread_nice() {
+	stat=$(cat "$1/stat" 2>/dev/null) || return 1
+	# shellcheck disable=SC2086
+	set -- ${stat##*) }
+	shift 16
+	echo "$1"
+}
+
+flux_priority_restore() {
+	[ -f "$FLUX_GAME_PRIO" ] || return 0
+	while read -r tid orig; do
+		[ -d "/proc/$tid" ] || continue
+		cur=$(thread_nice "/proc/$tid") || continue
+		# toybox renice takes an increment
+		[ "$cur" != "$orig" ] && renice -n $((orig - cur)) -p "$tid" >/dev/null 2>&1
+		ionice -c 0 -p "$tid" >/dev/null 2>&1
+	done <"$FLUX_GAME_PRIO"
+	rm -f "$FLUX_GAME_PRIO"
+}
+
+flux_priority() {
+	flux_priority_restore
+	[ "$1" = boost ] && [ -z "$FLUX_PRIORITY_DISABLED" ] || return 0
+	# shellcheck disable=SC2153 # set by fluxd (Profiler.cpp)
+	pid=$FLUX_GAME_PID
+	case "$pid" in '' | 0 | *[!0-9]*) return 0 ;; esac
+	[ -d "/proc/$pid/task" ] || return 0
+
+	: >"$FLUX_GAME_PRIO"
+	for task in /proc/"$pid"/task/*; do
+		tid=${task##*/}
+		nice=$(thread_nice "$task") || continue
+		# Worker threads (nice > -5) move up to -5; UI / render threads Android runs higher stay put.
+		if [ "$nice" -gt -5 ]; then
+			echo "$tid $nice" >>"$FLUX_GAME_PRIO"
+			renice -n $((-5 - nice)) -p "$tid" >/dev/null 2>&1
+		fi
+		ionice -c 2 -n 0 -p "$tid" >/dev/null 2>&1
+	done
+}
+
+# flux_boost <boost|restore>
+flux_boost() {
+	flux_vm "$1"
+	flux_io "$1"
+	flux_priority "$1"
+}
+
+###################################
 # Main Performance scripts
 ###################################
 
@@ -813,11 +941,8 @@ perfcommon() {
 	# GKI kernels (android<ver>- tagged) support standard eBPF, UFFD, and
 	# io_uring interfaces but lack many vendor-private nodes.
 	if [ "$IS_GKI" -eq 1 ]; then
-		# Enable io_uring for lower-latency async I/O (GKI 5.10+)
-		apply 1 /proc/sys/kernel/io_uring_disabled 2>/dev/null || true
-
-		# Tune CFS bandwidth — GKI-standard sysctl
-		apply 0 /proc/sys/kernel/sched_cfs_bandwidth_slice_us 2>/dev/null || true
+		# io_uring stays as Android configures it (disabled for apps on purpose), and
+		# sched_cfs_bandwidth_slice_us is left alone: 0 is below the kernel minimum.
 
 		# Use standard eBPF-based network path if available
 		apply 1 /proc/sys/net/core/bpf_jit_enable 2>/dev/null || true
@@ -886,6 +1011,9 @@ performance_profile() {
 	else
 		flux_sched performance
 	fi
+
+	# Memory, block queues and game thread priority (Flux Boost)
+	flux_boost boost
 
 	# Oppo/Oplus/Realme Touchpanel
 	tp_path="/proc/touchpanel"
@@ -969,6 +1097,9 @@ balance_profile() {
 
 	# Back to stock uclamp values
 	flux_sched balance
+
+	# Flux Boost off: vendor memory / block queue values, game threads back to their priority
+	flux_boost restore
 
 	# Oppo/Oplus/Realme Touchpanel
 	tp_path="/proc/touchpanel"

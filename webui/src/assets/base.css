@@ -39,36 +39,115 @@ body,
     }
   }
 
+  /*
+   * M3 Expressive segmented list: items of a group sit 2px apart, the group has
+   * large outer corners (28px) and small inner ones (6px). A pressed item morphs
+   * to fully rounded corners and shrinks slightly, driven by spring motion.
+   */
   .md3-list {
-    @apply mb-1 last:mb-4;
+    @apply mb-0.5 last:mb-4;
   }
 
   .md3-list .md3-list-item {
     @apply bg-surface-container overflow-hidden cursor-pointer;
+    border-radius: 6px;
+    transition:
+      border-radius var(--m3-spring-fast-spatial-duration) var(--m3-spring-fast-spatial),
+      transform var(--m3-spring-fast-spatial-duration) var(--m3-spring-fast-spatial),
+      background-color var(--m3-spring-fast-effects-duration) var(--m3-spring-fast-effects);
   }
 
   .md3-list:first-child .md3-list-item {
-    @apply rounded-t-2xl rounded-b-sm;
+    border-radius: 28px 28px 6px 6px;
   }
 
   .md3-list:last-child .md3-list-item {
-    @apply rounded-t-sm rounded-b-2xl;
+    border-radius: 6px 6px 28px 28px;
   }
 
-  .md3-list:not(:first-child):not(:last-child) .md3-list-item {
-    @apply rounded-sm;
+  .md3-list:only-child .md3-list-item,
+  .single-card-item .md3-list-item {
+    border-radius: 28px !important;
+  }
+
+  .md3-list .md3-list-item:active {
+    border-radius: 28px;
+    transform: scale(0.985);
+    @apply bg-surface-container-high;
   }
 
   .single-card-item {
     @apply mb-0!;
   }
 
-  .single-card-item .md3-list-item {
-    @apply rounded-2xl!;
+  /* Pressable surfaces: spring shrink plus a corner morph on press. */
+  .m3-press {
+    transition:
+      transform var(--m3-spring-fast-spatial-duration) var(--m3-spring-fast-spatial),
+      border-radius var(--m3-spring-fast-spatial-duration) var(--m3-spring-fast-spatial),
+      background-color var(--m3-spring-fast-effects-duration) var(--m3-spring-fast-effects);
+  }
+
+  .m3-press:active {
+    transform: scale(0.96);
+  }
+
+  .m3-press-morph:active {
+    border-radius: 12px !important;
+  }
+
+  .m3-card {
+    @apply bg-surface-container text-on-surface;
+    border-radius: 28px;
+  }
+
+  /* Emphasized headline: heavier, slightly condensed (Google Sans Flex axes). */
+  .m3-headline {
+    font-weight: 650;
+    font-stretch: 95%;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  .m3-section-title {
+    @apply text-sm text-primary px-4 pt-3 pb-2;
+    font-weight: 650;
+  }
+
+  /* Entry motion for cards: fade + rise with the default spatial spring. */
+  .m3-enter {
+    animation: m3-rise var(--m3-spring-slow-spatial-duration) var(--m3-spring-default-spatial) both;
+  }
+
+  @keyframes m3-rise {
+    from {
+      opacity: 0;
+      transform: translateY(16px) scale(0.98);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .m3-enter {
+      animation: none;
+    }
+
+    .m3-press,
+    .md3-list .md3-list-item {
+      transition: none;
+    }
   }
 }
 
 @theme {
+  --font-sans: 'Google Sans Flex', 'Poppins', system-ui, sans-serif;
+
+  /* M3 Expressive shape scale (Tailwind radius utilities follow it). */
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.75rem;
+  --radius-3xl: 2rem;
+  --radius-4xl: 3rem;
+
   --color-primary: var(--primary, #ffb0ccff);
   --color-on-primary: var(--onPrimary, #541d35ff);
   --color-primary-container: var(--primaryContainer, #6f334bff);

@@ -3,9 +3,9 @@
 
     <!-- Header -->
     <div class="sticky top-0 z-10 bg-background">
-      <div class="max-w-3xl mx-auto p-5 pb-3">
+      <div class="max-w-3xl mx-auto px-5 pt-6 pb-3">
         <div class="flex justify-between items-center text-on-surface">
-          <h1 class="text-xl font-semibold">{{ $t('monitor_page.title') }}</h1>
+          <h1 class="m3-headline text-[32px]">{{ $t('monitor_page.title') }}</h1>
           <div class="flex items-center gap-2">
             <span class="text-xs text-on-surface-variant font-medium">{{ $t('monitor_page.live') }}</span>
             <span class="live-dot w-2 h-2 rounded-full" :class="dotClass"></span>
@@ -106,7 +106,7 @@
         <div class="bg-surface-container rounded-2xl p-4 text-on-surface">
           <div class="flex items-center gap-2 mb-3">
             <ThermometerIcon :size="16" class="text-on-surface-variant" />
-            <p class="text-xs font-semibold uppercase tracking-widest text-on-surface-variant">
+            <p class="text-sm font-semibold text-primary">
               {{ $t('monitor_page.section.thermal') }}
             </p>
           </div>

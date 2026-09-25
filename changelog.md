@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### New
+- **Flux Boost** (Settings → Flux Boost): memory headroom, storage latency and game thread
+  priority while gaming, beyond the Encore profile. Each part can be switched off; values are only
+  raised and the stock values are restored when the game exits
+- **Material 3 Expressive WebUI**: spring motion throughout, shape-morphing loading indicator,
+  expressive switches (icon handle that grows when pressed), new navigation bar, segmented lists
+  that morph when pressed, redesigned Home with the active profile as a connected button group
+- **64-bit and 32-bit builds**: `arm64`, `arm` and `universal` zips with their own update
+  channels; the installer refuses a zip that does not match the ROM
 - **Native system monitor** in fluxd (binder observers via libbinder_ndk, approach from Encore
   Tweaks): no always-on Java process (about 100 MB of RAM saved) and no watchdog; SynthesisCore
   only resolves binder codes at boot and remains as an automatic fallback
@@ -21,6 +29,9 @@
   restores its thermal changes, and the device report / *Save log* include HiCo's state and log
 
 ### Fixed
+- GKI profile wrote `io_uring_disabled=1` believing it enabled io_uring (it restricts it; Android
+  disables io_uring on purpose) and `sched_cfs_bandwidth_slice_us=0` (below the kernel minimum);
+  both writes are removed
 - NOTICE.md was empty; Encore Tweaks and all third-party components are now credited
 - fluxd ignored SynthesisCore updates after startup (atomic rename raises IN_MOVED_TO)
 - Uninstalling left Flux's symlinks in the KernelSU/APatch bin directories, its config and the

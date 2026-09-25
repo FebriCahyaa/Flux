@@ -1,29 +1,28 @@
 <template>
+  <!--
+    M3 Expressive navigation bar (phones) / rail (md+). The active indicator pill
+    grows out of the icon on the default spatial spring; the icon bounces and the
+    label gets heavier when selected.
+  -->
   <nav ref="navEl"
-    class="footer fixed bottom-0 left-0 right-0 w-full flex items-end bg-surface-container shadow-lg z-50 md:left-0 md:top-0 md:bottom-0 md:w-23 md:h-full md:flex-col backdrop-blur-md"
+    class="m3-nav footer fixed bottom-0 left-0 right-0 w-full flex items-end bg-surface-container z-50 md:left-0 md:top-0 md:bottom-0 md:w-24 md:h-full md:flex-col"
     :style="{
       paddingBottom: 'var(--window-inset-bottom, 0px)',
       paddingRight: 'var(--window-inset-right, 0px)',
       paddingLeft: 'var(--window-inset-left, 0px)'
     }">
-    <div class="w-full h-20 flex items-center justify-center md:h-full md:flex-col md:justify-center">
+    <div class="w-full h-20 flex items-center justify-center px-2 md:h-full md:flex-col md:justify-center md:gap-3 md:px-0">
       <router-link v-for="item in navItems" :key="item.name" :to="item.path"
-        class="footer-btn gap-1 w-full max-w-50 text-on-secondary-container border-none bg-transparent text-sm flex justify-center items-center flex-col user-select-none p-0 no-underline transition-all duration-200 md:max-h-min md:py-3"
-        :class="{
-          'text-on-background': isActive(item),
-          'text-on-surface-variant': !isActive(item),
-        }">
-        <div
-          class="footer-btn-icon h-8 flex justify-center items-center rounded-full transition-all duration-200 ease-in-out"
-          :class="{
-            'bg-secondary-container px-5': isActive(item),
-            'px-0': !isActive(item),
-          }">
-          <component :is="item.icon" :active="isActive(item)" />
-        </div>
-        <div class="footer-btn-text text-xs">
-          <span class="font-medium">{{ item.label }}</span>
-        </div>
+        class="nav-item flex-1 max-w-40 flex flex-col items-center justify-center gap-1 no-underline select-none"
+        :class="isActive(item) ? 'is-active text-on-surface' : 'text-on-surface-variant'"
+        :aria-current="isActive(item) ? 'page' : undefined">
+        <span class="indicator-wrap">
+          <span class="indicator bg-secondary-container"></span>
+          <span class="icon" :class="isActive(item) ? 'text-on-secondary-container' : ''">
+            <component :is="item.icon" :active="isActive(item)" />
+          </span>
+        </span>
+        <span class="label text-xs">{{ item.label }}</span>
       </router-link>
     </div>
   </nav>
@@ -90,13 +89,71 @@ onBeforeUnmount(() => ro?.disconnect())
 </script>
 
 <style scoped>
-.footer-btn {
-  flex: 1;
+.m3-nav {
+  border-top-left-radius: 0;
 }
 
-.footer-btn-icon {
+.indicator-wrap {
+  position: relative;
+  width: 56px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+}
+
+.indicator {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  transform: scaleX(0.3);
+  opacity: 0;
   transition:
-    background-color 0.2s ease,
-    padding 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transform var(--m3-spring-default-spatial-duration) var(--m3-spring-fast-spatial),
+    opacity var(--m3-spring-fast-effects-duration) var(--m3-spring-fast-effects);
+}
+
+.is-active .indicator {
+  transform: scaleX(1);
+  opacity: 1;
+}
+
+.icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  transition: transform var(--m3-spring-fast-spatial-duration) var(--m3-spring-fast-spatial);
+}
+
+.is-active .icon {
+  animation: nav-bounce var(--m3-spring-default-spatial-duration) var(--m3-spring-fast-spatial);
+}
+
+.nav-item:active .icon {
+  transform: scale(0.88);
+}
+
+.label {
+  font-weight: 500;
+  transition:
+    font-weight var(--m3-spring-fast-effects-duration) var(--m3-spring-fast-effects),
+    color var(--m3-spring-fast-effects-duration) var(--m3-spring-fast-effects);
+}
+
+.is-active .label {
+  font-weight: 750;
+}
+
+@keyframes nav-bounce {
+  30% {
+    transform: translateY(-3px) scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .indicator,
+  .icon {
+    transition: none;
+    animation: none;
+  }
 }
 </style>

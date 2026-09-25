@@ -23,6 +23,16 @@
     "learn_flux": {
       "title": "Explore Flux",
       "description": "Deep-dive into profiles, tuning, and everything Flux Tweaks can do for your device."
+    },
+    "status_chip": {
+      "running": "Active",
+      "stopped": "Offline"
+    },
+    "profile_short": {
+      "performance": "Perf",
+      "performance_lite": "Lite",
+      "balanced": "Balanced",
+      "powersave": "Saver"
     }
   },
   "games_page": {
@@ -83,11 +93,16 @@
       "target": "Kernel Target",
       "license": "License",
       "description": "Flux Tweaks is a high-performance Magisk module engineered by FebriCahyaa, targeting Snapdragon SoCs with intelligent profiling, thermal awareness, and game-level CPU/GPU tuning. Built on a C++ daemon, Kotlin/Compose companion app, and a Vue 3 WebUI.",
-      "tagline": "Performance, evolved."
+      "tagline": "Performance, evolved.",
+      "entry": "Developer, license and links"
     },
     "flux_sched": {
       "title": "Flux Sched",
       "description": "Scheduler priority for games using uclamp (modern kernels)"
+    },
+    "flux_boost": {
+      "title": "Flux Boost",
+      "description": "Memory, storage and game thread priority while you play"
     }
   },
   "game_settings": {
@@ -128,7 +143,27 @@
   "device_mitigation": {
     "title": "Device Mitigation",
     "toggle_title": "Enable device mitigation",
-    "brief": "Device mitigation disables potentially incompatible tweaks for specific devices. Keep it disabled unless you have problems."
+    "brief": "Device mitigation disables potentially incompatible tweaks for specific devices. Keep it disabled unless you have problems.",
+    "state_on": "Tweaks known to misbehave on some devices are skipped",
+    "state_off": "All tweaks are applied",
+    "changes_title": "What it changes",
+    "applied": "Applied",
+    "not_applied": "Not applied",
+    "apply_note": "Changes take effect the next time a profile is applied.",
+    "items": {
+      "DISABLE_DDR_TWEAK": {
+        "title": "Keep memory bus stock",
+        "description": "Skips raising the memory (DDR) bus and latency floors in the performance profile. Helps devices that stutter or reboot when these are changed."
+      },
+      "NO_PERFORMANCE_CPUGOV": {
+        "title": "No performance governor",
+        "description": "Games keep the balanced CPU governor instead of \"performance\"; some kernels overheat or misbehave with it."
+      },
+      "QCOM_NO_GPU_POWERSAVE": {
+        "title": "Keep GPU floor in Powersave",
+        "description": "Snapdragon: Powersave no longer lowers the Adreno GPU minimum, which was reported to break video after waking the phone."
+      }
+    }
   },
   "cpu_governor": {
     "title": "CPU Governor",
@@ -228,6 +263,23 @@
     "supported": "Supported: this kernel exposes uclamp cgroups.",
     "unsupported": "Not supported: this kernel has no uclamp cgroups. Flux Sched has no effect here.",
     "brief": "While a game runs, Flux Sched raises the minimum CPU capacity of the foreground app and caps what background apps may request, so the game gets the fast cores first. This replaces the older schedtune boost, which modern (GKI) kernels no longer have. The stock values are saved and restored as soon as you leave the game.",
+    "apply_note": "Changes take effect the next time a profile is applied, for example when a game starts."
+  },
+  "flux_boost": {
+    "title": "Flux Boost",
+    "brief": "Extra tuning on top of the performance profile, applied only while a game runs and fully restored when you leave it. Values are only raised, never lowered below what your device ships with.",
+    "vm": {
+      "title": "Memory headroom",
+      "description": "Reclaims memory earlier in the background and allows more pending writes, so loading assets causes fewer frame drops."
+    },
+    "io": {
+      "title": "Storage latency",
+      "description": "Completes storage requests on the CPU that asked for them (the game's), keeping them off busy little cores."
+    },
+    "priority": {
+      "title": "Game priority",
+      "description": "Gives the game's worker threads higher CPU and storage priority than other apps. Threads Android already boosts are left alone."
+    },
     "apply_note": "Changes take effect the next time a profile is applied, for example when a game starts."
   }
 }
