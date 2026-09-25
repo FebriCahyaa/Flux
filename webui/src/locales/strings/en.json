@@ -93,7 +93,8 @@
       "target": "Kernel Target",
       "license": "License",
       "description": "Flux Tweaks is a high-performance Magisk module engineered by FebriCahyaa, targeting Snapdragon SoCs with intelligent profiling, thermal awareness, and game-level CPU/GPU tuning. Built on a C++ daemon, Kotlin/Compose companion app, and a Vue 3 WebUI.",
-      "tagline": "Performance, evolved."
+      "tagline": "Performance, evolved.",
+      "entry": "Developer, license and links"
     },
     "flux_sched": {
       "title": "Flux Sched",
