@@ -1,145 +1,205 @@
 <template>
   <div class="page game-settings-page h-full flex flex-col overflow-hidden bg-surface">
     <div class="max-w-3xl mx-auto h-full flex flex-col w-full">
-      <div class="flex-none p-5 mb-2 relative z-50">
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center gap-4">
-            <button @click="$router.back()" class="text-on-surface hover:text-primary transition-colors">
-              <ArrowLeftIcon class="w-6 h-6 cursor-pointer rtl:rotate-180" />
-            </button>
-            <h1 class="text-xl font-semibold text-on-surface">
-              {{ $t('game_settings.title') }}
-            </h1>
-          </div>
-
-          <DropdownMenu>
-            <template #trigger>
-              <button class="p-2 -mr-2 rounded-full text-on-surface hover:bg-on-surface/10 transition-colors">
-                <DotsVertical />
-              </button>
-            </template>
-
-            <template #content="{ close }">
-              <MenuItem @click="() => { handleLaunchApp(); close(); }">
-                <template #icon><OpenInNew :size="20" /></template>
-                {{ $t('game_settings.launch_app') }}
-              </MenuItem>
-
-              <MenuItem @click="() => { handleOpenAppInfo(); close(); }">
-                <template #icon><InformationOutline :size="20" /></template>
-                {{ $t('game_settings.app_info') }}
-              </MenuItem>
-            </template>
-          </DropdownMenu>
-
-        </div>
+      <div class="flex-none p-5 pb-3">
+        <button
+          @click="router.back()"
+          class="m3-press w-10 h-10 -ms-2 rounded-full grid place-items-center text-on-surface hover:bg-surface-container-high"
+          :aria-label="$t('common.cancel')"
+        >
+          <ArrowLeftIcon class="w-6 h-6 rtl:rotate-180" />
+        </button>
       </div>
 
-      <!-- Settings Content -->
-      <div class="scrollbar-hidden pb-safe-nav flex-1 min-h-0 overflow-y-scroll px-5">
-        <div class="space-y-6">
-          <h2 class="text-on-surface-variant text-sm font-medium tracking-wide">
-            {{ $t('game_settings.application') }}
-          </h2>
+      <div class="scrollbar-hidden pb-safe-nav flex-1 min-h-0 overflow-y-scroll px-4">
+        <!-- App header -->
+        <div class="flex flex-col items-center text-center mt-2 mb-5">
+          <span class="hero-icon shape-cookie12 bg-surface-container-high">
+            <img :src="currentApp.icon" @error="iconError" :alt="currentApp.appName" />
+          </span>
+          <h1 class="m3-headline text-3xl text-on-surface mt-4 px-4 break-words">
+            {{ currentApp.appName || currentApp.packageName }}
+          </h1>
+          <p class="allow-copy text-xs text-on-surface-variant mt-1">
+            {{ currentApp.packageName }}
+          </p>
+          <div class="flex gap-2 mt-4">
+            <button class="m3-press m3-press-morph pill bg-primary text-on-primary" @click="launch">
+              <OpenInNew :size="18" />{{ $t('game_settings.launch_app') }}
+            </button>
+            <button
+              class="m3-press m3-press-morph pill bg-secondary-container text-on-secondary-container"
+              @click="appInfo"
+            >
+              <InformationOutline :size="18" />{{ $t('game_settings.app_info') }}
+            </button>
+          </div>
+        </div>
 
-          <!-- App Info Section -->
-          <div class="flex items-center gap-4">
-            <img :src="currentApp.icon" @error="handleImageError" class="w-12 h-12 rounded-full object-cover"
-              :alt="currentApp.appName" />
-            <div class="flex-1 min-w-0">
-              <h3 class="text-base font-medium text-on-surface truncate">
-                {{ currentApp.appName || currentApp.packageName }}
-              </h3>
-              <p v-if="currentApp.appName && currentApp.appName !== currentApp.packageName"
-                class="allow-copy text-sm text-on-surface-variant truncate mt-1">
-                {{ currentApp.packageName }}
+        <!-- Main switch -->
+        <div
+          class="main-card m3-enter"
+          :class="
+            settings.isEnabled
+              ? 'bg-primary-container text-on-primary-container'
+              : 'bg-surface-container-high text-on-surface'
+          "
+        >
+          <span
+            class="badge shape-burst"
+            :class="
+              settings.isEnabled ? 'bg-primary text-on-primary' : 'bg-surface-container-highest'
+            "
+          >
+            <Candy />
+          </span>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-base font-semibold">{{ $t('game_settings.enable_tweaks') }}</h2>
+            <p class="text-xs opacity-80 mt-0.5">
+              {{
+                settings.isEnabled
+                  ? $t('game_settings.enabled_hint')
+                  : $t('game_settings.disabled_hint')
+              }}
+            </p>
+          </div>
+          <ToggleSwitch :model-value="settings.isEnabled" @update:model-value="setEnabled" />
+        </div>
+
+        <!-- Preferences -->
+        <h2
+          class="text-sm font-semibold text-primary px-4 pt-5 pb-2"
+          :class="{ 'opacity-50': !settings.isEnabled }"
+        >
+          {{ $t('game_settings.preferences') }}
+        </h2>
+        <div :class="{ 'opacity-50 pointer-events-none': !settings.isEnabled }">
+          <div class="md3-list">
+            <div class="md3-list-item flex items-center gap-4 px-5 py-4 cursor-default">
+              <span class="badge-sm shape-clover4 bg-tertiary-container text-on-tertiary-container"
+                ><Feather
+              /></span>
+              <div class="flex-1 min-w-0">
+                <h3 class="text-sm font-semibold text-on-surface">
+                  {{ $t('game_settings.lite_mode') }}
+                </h3>
+                <p class="text-xs text-on-surface-variant mt-0.5">
+                  {{
+                    globalLite
+                      ? $t('game_settings.lite_forced')
+                      : $t('game_settings.lite_mode_description')
+                  }}
+                </p>
+              </div>
+              <ToggleSwitch
+                :model-value="settings.isEnabled && (globalLite || settings.lite_mode)"
+                :disabled="!settings.isEnabled || globalLite"
+                @update:model-value="(v) => setOption('lite_mode', v)"
+              />
+            </div>
+          </div>
+          <div class="md3-list">
+            <div class="md3-list-item flex items-center gap-4 px-5 py-4 cursor-default">
+              <span
+                class="badge-sm shape-pentagon bg-secondary-container text-on-secondary-container"
+                ><NoEntry
+              /></span>
+              <div class="flex-1 min-w-0">
+                <h3 class="text-sm font-semibold text-on-surface">
+                  {{ $t('game_settings.dnd_mode') }}
+                </h3>
+                <p class="text-xs text-on-surface-variant mt-0.5">
+                  {{ $t('game_settings.dnd_mode_description') }}
+                </p>
+              </div>
+              <ToggleSwitch
+                :model-value="settings.isEnabled && settings.enable_dnd"
+                :disabled="!settings.isEnabled"
+                @update:model-value="(v) => setOption('enable_dnd', v)"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Play statistics from recorded sessions -->
+        <h2 class="text-sm font-semibold text-primary px-4 pt-5 pb-2">
+          {{ $t('game_settings.stats_title') }}
+        </h2>
+        <div v-if="!stats" class="m3-card p-5 text-sm text-on-surface-variant mb-8">
+          {{ $t('game_settings.no_stats') }}
+        </div>
+        <template v-else>
+          <div class="grid grid-cols-2 gap-2 mb-2">
+            <div class="tile bg-surface-container col-span-2 flex items-end justify-between">
+              <div>
+                <p class="text-xs text-on-surface-variant">{{ $t('game_settings.play_time') }}</p>
+                <p class="m3-headline text-4xl text-on-surface">
+                  {{ formatDuration(stats.totalSeconds) }}
+                </p>
+              </div>
+              <p class="text-xs text-on-surface-variant text-right">
+                {{ $t('game_settings.sessions_count', stats.count) }}<br />
+                {{ $t('games_page.last_played', { when: relativeTime(stats.lastStart, locale) }) }}
+              </p>
+            </div>
+            <div class="tile bg-primary-container text-on-primary-container">
+              <p class="text-xs opacity-80">{{ $t('sessions.avg_fps') }}</p>
+              <p class="m3-headline text-3xl tabular-nums">{{ fmt(stats.fpsAvg) }}</p>
+            </div>
+            <div class="tile bg-tertiary-container text-on-tertiary-container">
+              <p class="text-xs opacity-80">{{ $t('game_settings.hottest_cpu') }}</p>
+              <p class="m3-headline text-3xl tabular-nums">
+                {{ stats.cpuMax === null ? '–' : `${fmt(stats.cpuMax, 1)}°` }}
               </p>
             </div>
           </div>
 
-          <!-- Enable Tweaks Section -->
-          <div class="space-y-4">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-1.5">
-                <Candy class="text-primary shrink-0" />
-                <div class="pl-3 pr-4">
-                  <h3 class="text-base font-medium text-on-surface">
-                    {{ $t('game_settings.enable_tweaks') }}
-                  </h3>
-                </div>
-              </div>
-              <ToggleSwitch class="opacity-100!" :model-value="appSettings.isEnabled"
-                @update:model-value="toggleAppEnabled" />
-            </div>
-          </div>
-
-          <!-- Divider -->
-          <hr class="border-outline-variant opacity-40" />
-
-          <!-- Preferences Section -->
-          <div class="space-y-6">
-            <h2 class="text-on-surface-variant text-sm font-medium tracking-wide"
-              :class="{ 'opacity-50': !appSettings.isEnabled }">
-              {{ $t('game_settings.preferences') }}
-            </h2>
-
-            <div class="space-y-6">
-              <!-- Lite Mode -->
-              <div class="flex items-center justify-between"
-                :class="{ 'opacity-50': !appSettings.isEnabled || isGlobalLiteModeEnabled }">
-                <div class="flex items-center gap-1.5">
-                  <Feather class="shrink-0 text-primary" />
-                  <div class="pl-3 pr-4">
-                    <h3 class="text-base font-medium text-on-surface">
-                      {{ $t('game_settings.lite_mode') }}
-                    </h3>
-                    <p class="text-sm mt-1 text-on-surface-variant">
-                      {{ $t('game_settings.lite_mode_description') }}
+          <div class="pb-8">
+            <div v-for="s in stats.sessions.slice(0, 10)" :key="s.id" class="md3-list">
+              <RippleComponent
+                class="md3-list-item"
+                tabindex="0"
+                @click="router.push(`/monitor/session/${s.id}`)"
+              >
+                <div class="flex items-center gap-3 px-5 py-3.5">
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-semibold text-on-surface">{{ formatDate(s.start) }}</p>
+                    <p class="text-xs text-on-surface-variant">
+                      {{ formatDuration(s.duration) }} ·
+                      {{ $t('sessions.drops_count', s.summary.drops) }}
                     </p>
                   </div>
+                  <p class="m3-headline text-xl tabular-nums text-on-surface">
+                    {{ fmt(s.summary.fps_avg) }}
+                  </p>
+                  <ChevronRightIcon
+                    class="text-on-surface-variant shrink-0 rtl:rotate-180"
+                    :size="20"
+                  />
                 </div>
-                <ToggleSwitch class="opacity-100!" :model-value="liteModeSwitchValue"
-                  :disabled="!appSettings.isEnabled || isGlobalLiteModeEnabled" @update:model-value="toggleLiteMode" />
-              </div>
-
-              <!-- DND Mode -->
-              <div class="flex items-center justify-between" :class="{ 'opacity-50': !appSettings.isEnabled }">
-                <div class="flex items-center gap-1.5">
-                  <NoEntry class="text-primary shrink-0" />
-                  <div class="pl-3 pr-4">
-                    <h3 class="text-base font-medium text-on-surface">
-                      {{ $t('game_settings.dnd_mode') }}
-                    </h3>
-                    <p class="text-sm text-on-surface-variant mt-1">
-                      {{ $t('game_settings.dnd_mode_description') }}
-                    </p>
-                  </div>
-                </div>
-                <ToggleSwitch class="opacity-100!" :model-value="appSettings.enable_dnd"
-                  :disabled="!appSettings.isEnabled" @update:model-value="toggleDndMode" />
-              </div>
+              </RippleComponent>
             </div>
           </div>
-        </div>
+        </template>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, shallowRef } from 'vue'
-import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useGamesStore } from '@/stores/Games'
 import { useFluxConfigStore } from '@/stores/FluxConfig'
+import { useSessionsStore, formatDuration, fmt, relativeTime } from '@/stores/Sessions'
 import * as KernelSU from '@/helpers/KernelSU'
 
-import DropdownMenu from '@/components/ui/DropdownMenu.vue'
-import MenuItem from '@/components/ui/MenuItem.vue'
-
 import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
+import RippleComponent from '@/components/ui/Ripple.vue'
 import ArrowLeftIcon from '@/components/icons/ArrowLeft.vue'
+import ChevronRightIcon from '@/components/icons/ChevronRight.vue'
 import Candy from '@/components/icons/Candy.vue'
-import DotsVertical from '@/components/icons/DotsVertical.vue'
 import Feather from '@/components/icons/Feather.vue'
 import NoEntry from '@/components/icons/NoEntry.vue'
 import InformationOutline from '@/components/icons/InformationOutline.vue'
@@ -147,185 +207,148 @@ import OpenInNew from '@/components/icons/OpenInNew.vue'
 
 const route = useRoute()
 const router = useRouter()
+const { locale } = useI18n()
 const gamesStore = useGamesStore()
 const fluxConfigStore = useFluxConfigStore()
-
-const appSettings = shallowRef({ isEnabled: false, lite_mode: false, enable_dnd: false })
+const sessions = useSessionsStore()
 
 const currentApp = ref({})
-const originalSettings = ref({})
-const isLeaving = ref(false)
-const saveTimeout = ref(null)
-const showMenu = ref(false)
-const isGlobalLiteModeEnabled = ref(false)
+const globalLite = ref(false)
 
-const liteModeSwitchValue = computed(() => {
-  if (!appSettings.value.isEnabled) {
-    return false
+// Live view of this game's entry in gamelist.json (fluxd watches the file).
+const settings = computed(() => {
+  const pkg = currentApp.value.packageName
+  const cfg = gamesStore.gamelistConfig[pkg]
+  return { isEnabled: !!cfg, lite_mode: !!cfg?.lite_mode, enable_dnd: !!cfg?.enable_dnd }
+})
+const stats = computed(() => sessions.statsFor(currentApp.value.packageName))
+
+onMounted(async () => {
+  try {
+    if (!fluxConfigStore.isLoaded) await fluxConfigStore.loadConfig()
+    globalLite.value = fluxConfigStore.isLiteModeEnabled
+  } catch {
+    globalLite.value = false
   }
-
-  if (isGlobalLiteModeEnabled.value) {
-    return true
-  }
-
-  return appSettings.value.lite_mode
+  if (!sessions.historyLoaded) sessions.loadHistory()
 })
 
 watch(
   () => route.params.packageName,
-  (newPackageName, oldPackageName) => {
-    if (newPackageName && newPackageName !== oldPackageName) {
-      loadAppData(newPackageName)
-    }
-  },
+  (pkg) => pkg && loadApp(pkg),
   { immediate: true },
 )
 
-onMounted(async () => {
-  await loadGlobalConfig()
-  loadAppData()
-})
-
-onBeforeRouteLeave(async (to, from, next) => {
-  isLeaving.value = true
-  clearTimeout(saveTimeout.value)
-  await saveSettings()
-  next()
-})
-
-async function loadGlobalConfig() {
-  try {
-    if (!fluxConfigStore.isLoaded) {
-      await fluxConfigStore.loadConfig()
-    }
-    isGlobalLiteModeEnabled.value = fluxConfigStore.isLiteModeEnabled
-  } catch (error) {
-    console.error('Failed to load global config:', error)
-    isGlobalLiteModeEnabled.value = false
-  }
-}
-
-async function loadAppData(packageName = null) {
-  const targetPackageName = packageName || route.params.packageName
-  if (!targetPackageName) return router.push('/games')
-
-  currentApp.value = {}
-  appSettings.value = { isEnabled: false, lite_mode: false, enable_dnd: false }
-
-  // First try to get from store
-  const fromStore = gamesStore.userApps.find((a) => a.packageName === targetPackageName)
+async function loadApp(pkg) {
+  const fromStore = gamesStore.userApps.find((a) => a.packageName === pkg)
   if (fromStore) {
     currentApp.value = fromStore
-  } else {
-    try {
-      // Try to get app info and icon
-      const [info, icon] = await Promise.allSettled([
-        KernelSU.getAppLabel(targetPackageName),
-        KernelSU.getAppIcon(targetPackageName, 100),
-      ])
-
-      // Use results if successful, otherwise use fallbacks
-      const appName = info.status === 'fulfilled' ? info.value : targetPackageName
-      const appIcon =
-        icon.status === 'fulfilled' && icon.value ? icon.value : '/fallback_app_icon.avif'
-
-      currentApp.value = {
-        packageName: targetPackageName,
-        appName,
-        icon: appIcon,
-      }
-    } catch {
-      // Just use package name and fallback icon
-      currentApp.value = {
-        packageName: targetPackageName,
-        appName: targetPackageName,
-        icon: '/fallback_app_icon.avif',
-      }
-    }
-  }
-
-  loadAppSettings()
-  originalSettings.value = { ...appSettings.value }
-}
-
-function loadAppSettings() {
-  const cfg = gamesStore.gamelistConfig[currentApp.value.packageName] || {}
-  appSettings.value = {
-    isEnabled: currentApp.value.packageName in gamesStore.gamelistConfig,
-    lite_mode: !!cfg.lite_mode,
-    enable_dnd: !!cfg.enable_dnd,
-  }
-}
-
-function toggleAppEnabled() {
-  const newValue = !appSettings.value.isEnabled
-  appSettings.value = {
-    isEnabled: newValue,
-    lite_mode: newValue ? appSettings.value.lite_mode : false,
-    enable_dnd: newValue ? appSettings.value.enable_dnd : false,
-  }
-}
-
-function toggleLiteMode() {
-  if (isGlobalLiteModeEnabled.value) {
     return
   }
-
-  if (appSettings.value.isEnabled) {
-    appSettings.value = {
-      ...appSettings.value,
-      lite_mode: !appSettings.value.lite_mode,
-    }
+  currentApp.value = { packageName: pkg, appName: pkg, icon: '/app_icon_fallback.avif' }
+  const [label, icon] = await Promise.allSettled([
+    KernelSU.getAppLabel(pkg),
+    KernelSU.getAppIcon(pkg, 128),
+  ])
+  currentApp.value = {
+    packageName: pkg,
+    appName: label.status === 'fulfilled' ? label.value : pkg,
+    icon: icon.status === 'fulfilled' && icon.value ? icon.value : '/app_icon_fallback.avif',
   }
+  if (!Object.keys(gamesStore.gamelistConfig).length) await gamesStore.loadGamelistConfig?.()
 }
 
-function toggleDndMode() {
-  if (appSettings.value.isEnabled) {
-    appSettings.value = {
-      ...appSettings.value,
-      enable_dnd: !appSettings.value.enable_dnd,
-    }
-  }
-}
-
-function handleLaunchApp() {
-  showMenu.value = false
-  if (currentApp.value && currentApp.value.packageName) {
-    KernelSU.launchApp(currentApp.value.packageName)
-  }
-}
-
-function handleOpenAppInfo() {
-  showMenu.value = false
-  if (currentApp.value && currentApp.value.packageName) {
-    KernelSU.openAppInfo(currentApp.value.packageName)
-  }
-}
-
-async function saveSettings() {
-  if (JSON.stringify(appSettings.value) === JSON.stringify(originalSettings.value)) return
-
-  const pkg = currentApp.value.packageName
-  if (!pkg) return
-
+// Every change is written right away: closing the WebUI never loses it.
+async function setEnabled(enabled) {
   try {
-    if (appSettings.value.isEnabled) {
-      await gamesStore.updateAppConfig(pkg, {
-        lite_mode: appSettings.value.lite_mode,
-        enable_dnd: appSettings.value.enable_dnd,
-      })
-    } else {
-      await gamesStore.updateAppConfig(pkg, null)
-    }
-
-    originalSettings.value = { ...appSettings.value }
-    console.log('Settings saved successfully for:', pkg)
-  } catch (e) {
-    console.error('saveSettings failed', e)
+    await gamesStore.toggleAppEnabled(currentApp.value.packageName, enabled)
+  } catch (error) {
+    console.error('Failed to update game list:', error)
   }
 }
 
-function handleImageError(e) {
-  e.target.src = '/app_icon_fallback.avif'
+async function setOption(key, value) {
+  if (!settings.value.isEnabled) return
+  try {
+    await gamesStore.updateAppSetting(currentApp.value.packageName, key, value)
+  } catch (error) {
+    console.error(`Failed to set ${key}:`, error)
+  }
 }
+
+const launch = () =>
+  currentApp.value.packageName && KernelSU.launchApp(currentApp.value.packageName)
+const appInfo = () =>
+  currentApp.value.packageName && KernelSU.openAppInfo(currentApp.value.packageName)
+const iconError = (e) => (e.target.src = '/app_icon_fallback.avif')
+const formatDate = (ms) =>
+  new Date(ms).toLocaleString([], {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 </script>
+
+<style scoped>
+.hero-icon {
+  width: 104px;
+  height: 104px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  transition: clip-path var(--m3-spring-slow-spatial-duration) var(--m3-spring-default-spatial);
+}
+
+.hero-icon:active {
+  clip-path: var(--m3-shape-burst);
+}
+
+.hero-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.main-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 28px;
+  transition: background-color var(--m3-spring-default-effects-duration)
+    var(--m3-spring-default-effects);
+}
+
+.badge,
+.badge-sm {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.badge {
+  width: 48px;
+  height: 48px;
+}
+
+.badge-sm {
+  width: 40px;
+  height: 40px;
+}
+
+.tile {
+  border-radius: 24px;
+  padding: 16px;
+}
+</style>

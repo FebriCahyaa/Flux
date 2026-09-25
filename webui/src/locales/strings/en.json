@@ -40,8 +40,21 @@
     "search_placeholder": "Search apps",
     "no_apps_found": "No apps found",
     "badges": {
-      "tweak_enabled": "Enabled"
-    }
+      "tweak_enabled": "Enabled",
+      "dnd": "DND"
+    },
+    "count": "no games | {n} game | {n} games",
+    "tabs": {
+      "mine": "My games",
+      "all": "All apps"
+    },
+    "empty_title": "No games yet",
+    "empty_hint": "Add the games Flux should boost from All apps.",
+    "all_hint": "Tap Add on a game and Flux boosts it whenever it is on screen.",
+    "add": "Add",
+    "added": "Added",
+    "never_played": "Not played yet",
+    "last_played": "Played {when}"
   },
   "settings_page": {
     "title": "Settings",
@@ -115,7 +128,15 @@
     "dnd_mode": "Do Not Disturb",
     "dnd_mode_description": "Block notifications and calls while gaming",
     "launch_app": "Launch",
-    "app_info": "App info"
+    "app_info": "App info",
+    "enabled_hint": "Flux boosts this game while it is on screen",
+    "disabled_hint": "Not in your game list: runs with the normal profile",
+    "lite_forced": "Forced on by Enforce Lite Mode in Settings",
+    "stats_title": "Play statistics",
+    "no_stats": "No sessions recorded for this game yet. Play for at least 20 seconds to see FPS and temperatures here.",
+    "play_time": "Total play time",
+    "sessions_count": "no sessions | {n} session | {n} sessions",
+    "hottest_cpu": "Hottest CPU"
   },
   "language_selection": {
     "title": "Language",

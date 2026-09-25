@@ -40,8 +40,21 @@
     "search_placeholder": "Cari aplikasi",
     "no_apps_found": "Tidak ada aplikasi yang ditemukan",
     "badges": {
-      "tweak_enabled": "Aktif"
-    }
+      "tweak_enabled": "Aktif",
+      "dnd": "DND"
+    },
+    "count": "tanpa game | {n} game | {n} game",
+    "tabs": {
+      "mine": "Game saya",
+      "all": "Semua aplikasi"
+    },
+    "empty_title": "Belum ada game",
+    "empty_hint": "Tambahkan game yang ingin di-boost Flux dari Semua aplikasi.",
+    "all_hint": "Ketuk Tambah pada game, dan Flux akan mem-boost-nya setiap kali tampil di layar.",
+    "add": "Tambah",
+    "added": "Ditambahkan",
+    "never_played": "Belum dimainkan",
+    "last_played": "Dimainkan {when}"
   },
   "settings_page": {
     "title": "Pengaturan",
@@ -115,7 +128,15 @@
     "dnd_mode": "Jangan Ganggu",
     "dnd_mode_description": "Blokir notifikasi dan panggilan saat bermain game",
     "launch_app": "Buka",
-    "app_info": "Info aplikasi"
+    "app_info": "Info aplikasi",
+    "enabled_hint": "Flux mem-boost game ini saat tampil di layar",
+    "disabled_hint": "Tidak ada di daftar game: berjalan dengan profil biasa",
+    "lite_forced": "Dipaksa aktif oleh Paksa Mode Lite di Pengaturan",
+    "stats_title": "Statistik bermain",
+    "no_stats": "Belum ada sesi untuk game ini. Main minimal 20 detik untuk melihat FPS dan suhu di sini.",
+    "play_time": "Total waktu bermain",
+    "sessions_count": "tanpa sesi | {n} sesi | {n} sesi",
+    "hottest_cpu": "CPU terpanas"
   },
   "language_selection": {
     "title": "Bahasa",

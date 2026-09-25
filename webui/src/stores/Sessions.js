@@ -65,7 +65,45 @@ export const useSessionsStore = defineStore('sessions', () => {
 
   const byId = (id) => history.value.find((s) => String(s.id) === String(id))
 
-  return { live, liveActive, history, historyLoaded, labels, icons, readLive, loadHistory, byId }
+  /** Per-game totals from the session history (newest session first). */
+  function statsFor(pkg) {
+    const list = history.value.filter((x) => x.package === pkg)
+    if (!list.length) return null
+    let fpsWeighted = 0
+    let fpsSeconds = 0
+    let cpuMax = null
+    for (const x of list) {
+      const n = x.summary.fps_samples || 0
+      if (x.summary.fps_avg !== null && n) {
+        fpsWeighted += x.summary.fps_avg * n
+        fpsSeconds += n
+      }
+      if (x.summary.cpu_max !== null && (cpuMax === null || x.summary.cpu_max > cpuMax))
+        cpuMax = x.summary.cpu_max
+    }
+    return {
+      count: list.length,
+      totalSeconds: list.reduce((sum, x) => sum + (x.duration || 0), 0),
+      lastStart: list[0].start,
+      fpsAvg: fpsSeconds ? fpsWeighted / fpsSeconds : null,
+      drops: list.reduce((sum, x) => sum + (x.summary.drops || 0), 0),
+      cpuMax,
+      sessions: list,
+    }
+  }
+
+  return {
+    live,
+    liveActive,
+    history,
+    historyLoaded,
+    labels,
+    icons,
+    readLive,
+    loadHistory,
+    byId,
+    statsFor,
+  }
 })
 
 // ── Formatting helpers shared by the views ──────────────────────────────────
@@ -93,4 +131,22 @@ export function tempTone(value, kind = 'cpu') {
   if (value >= hot) return 'text-error'
   if (value >= warm) return 'text-tertiary'
   return 'text-primary'
+}
+
+/** "2 hours ago" / "2 jam yang lalu" in the UI language. */
+export function relativeTime(ms, locale) {
+  const diff = (ms - Date.now()) / 1000
+  const units = [
+    ['year', 31536000],
+    ['month', 2592000],
+    ['week', 604800],
+    ['day', 86400],
+    ['hour', 3600],
+    ['minute', 60],
+  ]
+  const rtf = new Intl.RelativeTimeFormat(locale || undefined, { numeric: 'auto' })
+  for (const [unit, secs] of units) {
+    if (Math.abs(diff) >= secs) return rtf.format(Math.round(diff / secs), unit)
+  }
+  return rtf.format(0, 'minute')
 }
