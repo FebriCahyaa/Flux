@@ -1,7 +1,7 @@
 {
-  "version": "v1.4.0",
-  "versionCode": 78,
-  "zipUrl": "https://github.com/FebriCahyaa/Flux/releases/download/v1.4.0/flux-1.4.0-78-43d6436-release-arm.zip",
+  "version": "v1.4.1",
+  "versionCode": 84,
+  "zipUrl": "https://github.com/FebriCahyaa/Flux/releases/download/v1.4.1/flux-1.4.1-84-f0302d8-release-arm.zip",
   "changelog": "https://raw.githubusercontent.com/FebriCahyaa/Flux/main/update/changelog.md",
-  "sha256": "0241f55acabdb44ba731832ff62635324d06fe05af6c710c73f2391879b08231"
+  "sha256": "3b06c272ef0b43e49083db9e0b6543669dc47903b84215100d71bfcbbf57d3ea"
 }
