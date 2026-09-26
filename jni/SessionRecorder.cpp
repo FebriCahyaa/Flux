@@ -18,6 +18,8 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -25,6 +27,8 @@
 #include <sstream>
 
 #include <dirent.h>
+#include <sys/wait.h>
+#include <time.h>
 #include <unistd.h>
 
 #include <rapidjson/document.h>
@@ -136,6 +140,116 @@ float fps_from_fpsgo(const std::vector<pid_t> &pids) {
     }
     return best;
 }
+
+/// Output of a program run directly (no shell, so arguments are never re-parsed), at most @p max bytes.
+std::string capture(const std::vector<std::string> &argv, size_t max = 64 * 1024) {
+    int fds[2];
+    if (pipe(fds) != 0) return {};
+    const pid_t pid = fork();
+    if (pid < 0) {
+        close(fds[0]);
+        close(fds[1]);
+        return {};
+    }
+    if (pid == 0) {
+        dup2(fds[1], STDOUT_FILENO);
+        close(fds[0]);
+        close(fds[1]);
+        std::vector<char *> args;
+        for (const auto &a : argv) args.push_back(const_cast<char *>(a.c_str()));
+        args.push_back(nullptr);
+        execv(args[0], args.data());
+        _exit(127);
+    }
+    close(fds[1]);
+    std::string out;
+    char buf[4096];
+    ssize_t n;
+    while ((n = read(fds[0], buf, sizeof(buf))) > 0) {
+        if (out.size() < max) out.append(buf, static_cast<size_t>(std::min<ssize_t>(n, static_cast<ssize_t>(max - out.size()))));
+    }
+    close(fds[0]);
+    int status = 0;
+    waitpid(pid, &status, 0);
+    return out;
+}
+
+/**
+ * The game's own frame rate from SurfaceFlinger: frames of the game's layer presented in the
+ * last second (`dumpsys SurfaceFlinger --latency <layer>`, the timestamps frame-rate overlays
+ * use). Unlike the display rate it does not fall when the panel lowers its refresh rate on a
+ * still screen (lobby, menus), and it counts only the game, not the whole display.
+ */
+class GameLayerFps {
+public:
+    float sample(const std::string &package) {
+        const int64_t now = mono_ns();
+        if (package != package_ || layer_.empty() || now >= next_lookup_) {
+            package_ = package;
+            layer_ = find_layer(package);
+            next_lookup_ = now + 10'000'000'000LL; // layers change with activities: look again every 10 s
+        }
+        if (layer_.empty()) return NAN;
+
+        const std::string out = capture({"/system/bin/dumpsys", "SurfaceFlinger", "--latency", layer_});
+        const int64_t end = mono_ns(); // after the call: every reported frame is in the past
+        std::istringstream in(out);
+        std::string line;
+        std::getline(in, line); // refresh period
+        int frames = 0;
+        int total = 0;
+        long long first = INT64_MAX, last = 0;
+        while (std::getline(in, line)) {
+            long long desired = 0, actual = 0, ready = 0;
+            if (std::sscanf(line.c_str(), "%lld %lld %lld", &desired, &actual, &ready) != 3) continue;
+            if (actual <= 0 || actual == INT64_MAX) continue; // pending / fence not signalled
+            ++total;
+            if (actual > end - 1'000'000'000LL && actual <= end) {
+                ++frames;
+                first = std::min(first, actual);
+                last = std::max(last, actual);
+            }
+        }
+        if (total == 0) {
+            next_lookup_ = 0; // wrong or gone layer: look it up again next time
+            return NAN;
+        }
+        // SurfaceFlinger keeps the last 128 frames: above ~128 FPS all of them fall inside the
+        // second, so the rate comes from their time span instead of their count.
+        if (frames == total && frames > 1 && last > first) {
+            return static_cast<float>(frames - 1) * 1e9f / static_cast<float>(last - first);
+        }
+        return static_cast<float>(frames);
+    }
+
+private:
+    static int64_t mono_ns() {
+        timespec ts{};
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        return static_cast<int64_t>(ts.tv_sec) * 1'000'000'000LL + ts.tv_nsec;
+    }
+
+    /// The game's rendering layer: a SurfaceView (games draw there) of the package, BLAST
+    /// variant first on Android 12+, otherwise any layer of the package.
+    static std::string find_layer(const std::string &package) {
+        std::istringstream in(capture({"/system/bin/dumpsys", "SurfaceFlinger", "--list"}));
+        std::string line, surface_blast, surface, other;
+        while (std::getline(in, line)) {
+            while (!line.empty() && std::isspace(static_cast<unsigned char>(line.back()))) line.pop_back();
+            if (line.find(package) == std::string::npos) continue;
+            const bool sv = line.find("SurfaceView") != std::string::npos;
+            const bool blast = line.find("BLAST") != std::string::npos;
+            if (sv && blast && surface_blast.empty()) surface_blast = line;
+            else if (sv && surface.empty()) surface = line;
+            else if (other.empty() && line.find("Background") == std::string::npos) other = line;
+        }
+        return !surface_blast.empty() ? surface_blast : !surface.empty() ? surface : other;
+    }
+
+    std::string package_;
+    std::string layer_;
+    int64_t next_lookup_ = 0;
+};
 
 /// Qualcomm SDE: frames committed to the display ("fps: 59.94 duration: ...").
 float fps_from_sde() {
@@ -438,6 +552,7 @@ void SessionRecorder::run() {
     const bool has_fpsgo = exists("/sys/kernel/fpsgo/fstb/fpsgo_status");
     const bool has_sde = !list_dir("/sys/class/drm", "sde-crtc-").empty();
     PageFlipCounter page_flips;
+    GameLayerFps game_layer;
 
     std::unique_lock lock(mutex_);
     while (running_) {
@@ -445,6 +560,7 @@ void SessionRecorder::run() {
         if (!running_) break;
         if (paused_) continue;
         const std::vector<pid_t> pids = pids_;
+        const std::string package = package_;
         const bool lite = lite_;
         lock.unlock();
 
@@ -452,6 +568,7 @@ void SessionRecorder::run() {
         std::string source;
         float fps = NAN;
         if (has_fpsgo && std::isfinite(fps = fps_from_fpsgo(pids))) source = "fpsgo";
+        if (!std::isfinite(fps) && std::isfinite(fps = game_layer.sample(package))) source = "game";
         if (!std::isfinite(fps) && has_sde && std::isfinite(fps = fps_from_sde())) source = "display";
         if (!std::isfinite(fps) && std::isfinite(fps = page_flips.sample())) source = "surfaceflinger";
 

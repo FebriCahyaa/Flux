@@ -434,7 +434,8 @@
       "fpsgo": "sumber: MediaTek FPSGO (proses game)",
       "display": "sumber: frame rate layar",
       "surfaceflinger": "sumber: frame SurfaceFlinger",
-      "none": "tidak ada sumber FPS"
+      "none": "tidak ada sumber FPS",
+      "game": "sumber: frame game itu sendiri"
     },
     "verdict": {
       "smooth": "Lancar",

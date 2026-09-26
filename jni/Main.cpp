@@ -138,6 +138,7 @@ void watch_java_lock() {
 
 struct DaemonState {
     FluxProfileMode cur_mode = PERFCOMMON;
+    bool audio_hold = false; ///< audio guard holding the performance tier (logged once)
     SynthesisCore synthesis_core = {};
 
     std::string active_package;
@@ -507,21 +508,29 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
  * Each branch is a no-op when the current mode already matches.
  */
 static void select_profile(DaemonState &state) {
-    // Audio guard: skip profile change if audio is playing and we're already
-    // in a performance tier — avoids micro-stutters from mid-session switches.
-    const bool in_perf_tier = (state.cur_mode == PERFORMANCE_PROFILE ||
-                                state.cur_mode == PERFORMANCE_LITE_PROFILE);
-    if (state.audio_active && in_perf_tier && !state.need_profile_checkup) {
-        LOGD("Audio active — suppressing profile switch");
-        return;
-    }
-
+    // The game tier comes first, every pass: it is a no-op while nothing changes and it is where
+    // thermal pressure moves the game between performance and performance_lite. The audio guard
+    // used to run before it and returned whenever audio played, which is always during a game,
+    // so the thermal check never ran in-game.
     if (!state.active_package.empty() && state.synthesis_core.screen_awake) {
         if (apply_game_profile(state)) {
+            state.audio_hold = false;
             SessionRecorder::get_instance().set_lite(state.cur_mode == PERFORMANCE_LITE_PROFILE);
             return;
         }
     }
+
+    // Audio guard: no game in focus, but audio still plays while we are in a performance tier
+    // (a notification shade or a quick app switch mid-game): hold the tier instead of dropping
+    // to balance and back, which would stutter the game's audio and frames.
+    const bool in_perf_tier = (state.cur_mode == PERFORMANCE_PROFILE ||
+                                state.cur_mode == PERFORMANCE_LITE_PROFILE);
+    if (state.audio_active && in_perf_tier && !state.need_profile_checkup) {
+        if (!state.audio_hold) LOGD("Audio active without a game in focus — holding the performance tier");
+        state.audio_hold = true;
+        return;
+    }
+    state.audio_hold = false;
 
     if (state.battery_saver_state) {
         if (state.cur_mode == POWERSAVE_PROFILE) return;

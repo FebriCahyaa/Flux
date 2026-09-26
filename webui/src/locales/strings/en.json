@@ -431,7 +431,8 @@
       "fpsgo": "source: MediaTek FPSGO (game process)",
       "display": "source: display frame rate",
       "surfaceflinger": "source: SurfaceFlinger frames",
-      "none": "no FPS source"
+      "none": "no FPS source",
+      "game": "source: the game’s own frames"
     },
     "verdict": {
       "smooth": "Smooth",
