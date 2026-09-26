@@ -69,7 +69,11 @@ jobs:
           git switch -C "$branch"
           git add prebuilt/synthesiscore.apk prebuilt/synthesiscore.apk.sha256 prebuilt/synthesiscore.json
           git commit -m "chore(prebuilt): sync SynthesisCore $TAG" -m "SHA-256: $SHA256"
-          git push --force-with-lease origin "$branch"
+          # actions/checkout fetches only the base branch, so a bare --force-with-lease has
+          # no tracking ref for a sync branch left by an earlier run and rejects the push
+          # as "stale info". Lease on the SHA the remote has now (empty = must not exist).
+          remote_sha=$(git ls-remote --heads origin "refs/heads/$branch" | cut -f1)
+          git push --force-with-lease="refs/heads/$branch:$remote_sha" origin "$branch"
 
           if [[ -n "$(gh pr list --head "$branch" --state open --json number --jq '.[].number')" ]]; then
             echo "Pull request for $branch already open; branch updated"
