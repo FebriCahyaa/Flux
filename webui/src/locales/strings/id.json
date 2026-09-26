@@ -561,7 +561,7 @@
     },
     "render_boost": {
       "title": "Thread render di core cepat",
-      "description": "Mencari thread render game (Unity, Unreal, GL, Vulkan) lalu mengunci ke core tercepat dengan nice -15; thread game lainnya keluar dari core kecil. Cluster dibaca dari kernel, diterapkan ulang tiap 3 detik untuk thread baru, dan afinitas serta prioritas setiap thread dikembalikan saat game ditutup."
+      "description": "Mencari thread render game (Unity, Unreal, GL, Vulkan) lalu mengunci ke core tercepat dengan nice -15; di ponsel dengan tiga cluster core (kecil / besar / prime) thread game lainnya juga keluar dari core kecil. Cluster dibaca dari kernel, diterapkan ulang tiap 3 detik untuk thread baru, dan afinitas serta prioritas setiap thread dikembalikan saat game ditutup."
     },
     "render_realtime": {
       "title": "Thread render realtime",

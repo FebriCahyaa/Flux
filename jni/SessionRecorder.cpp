@@ -633,6 +633,20 @@ void SessionRecorder::set_lite(bool lite) {
     lite_ = lite;
 }
 
+float SessionRecorder::recent_cpu_temp() {
+    constexpr size_t kWindow = 5;
+    std::lock_guard lock(mutex_);
+    if (!running_) return NAN;
+    float sum = 0.0f;
+    int n = 0;
+    for (size_t i = samples_.size(); i > 0 && samples_.size() - i < kWindow; --i) {
+        if (!std::isfinite(samples_[i - 1].cpu_c)) continue;
+        sum += samples_[i - 1].cpu_c;
+        ++n;
+    }
+    return n > 0 ? sum / static_cast<float>(n) : NAN;
+}
+
 void SessionRecorder::set_paused(bool paused) {
     std::lock_guard lock(mutex_);
     paused_ = paused;

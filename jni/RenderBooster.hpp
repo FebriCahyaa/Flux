@@ -43,7 +43,7 @@ struct CpuCluster {
 /// CPU sets the booster uses, derived from the clusters.
 struct BoostMasks {
     std::vector<int> render; ///< fastest clusters, at least two cores (render threads should not share one)
-    std::vector<int> game;   ///< every cluster but the slowest, when that leaves at least four cores
+    std::vector<int> game;   ///< with 3+ clusters: every cluster but the slowest, if that is 4+ cores
 };
 
 [[nodiscard]] BoostMasks boost_masks(const std::vector<CpuCluster> &clusters);

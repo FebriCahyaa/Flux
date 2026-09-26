@@ -84,6 +84,8 @@ public:
     void stop();
     void set_lite(bool lite);
     void set_paused(bool paused);
+    /// Hottest CPU zone averaged over the last few samples; NAN outside a session.
+    [[nodiscard]] float recent_cpu_temp();
 
     ~SessionRecorder();
     SessionRecorder(const SessionRecorder &) = delete;

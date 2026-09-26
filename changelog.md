@@ -2,11 +2,21 @@
 
 ## Unreleased
 
+### Fixed
+- **Performance Lite never engaged on hot devices**: Android's thermal headroom grows with heat
+  (1.0 = severe throttling) but was read as "headroom left", so Flux saw a phone at 96 °C as cool.
+  fluxd and SynthesisCore now publish the headroom left. Lite also starts at thermal status
+  "severe" or when the CPU averages 90 °C for 5 s (back below 82 °C), which still works while
+  HiCo Thermal has the thermal HAL stopped. The Monitor's thermal ring reads correctly too
+- Render threads on fast cores no longer moves the game's other threads off the little cores on
+  two-cluster phones (4+4, 2+6): all of MLBB on the four big cores of a Redmi Note 13 Pro 5G ran
+  at 96 °C. Phones with little / big / prime clusters keep it
+
 ### New
 - **Render threads on fast cores** (Game tweaks, on): fluxd finds the game's render threads
   (Unity UnityMain / UnityGfxDevice, Unreal GameThread / RenderThread / RHIThread, GLThread, or
-  the main thread of NativeActivity games) and pins them to the fastest cores with nice -15; the
-  game's other threads leave the little cores when at least four fast cores remain. Clusters are
+  the main thread of NativeActivity games) and pins them to the fastest cores with nice -15; on
+  phones with little / big / prime clusters the game's other threads also leave the little cores. Clusters are
   read from `cpu_capacity` (or max frequency), so the same rule fits 4+4, 1+3+4, 2+6 and other
   layouts. Re-applied every 3 s for new threads; every thread gets its original affinity, nice
   and policy back when the game closes. Optional **realtime** mode adds SCHED_FIFO 15 (never in

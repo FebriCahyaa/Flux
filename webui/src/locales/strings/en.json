@@ -558,7 +558,7 @@
     },
     "render_boost": {
       "title": "Render threads on fast cores",
-      "description": "Finds the game's render threads (Unity, Unreal, GL, Vulkan) and pins them to the fastest cores with nice -15; the game's other threads leave the little cores. Clusters are read from the kernel, re-applied every 3 s for new threads, and every thread gets its own affinity and priority back when the game closes."
+      "description": "Finds the game's render threads (Unity, Unreal, GL, Vulkan) and pins them to the fastest cores with nice -15; on phones with three core clusters (little / big / prime) the game's other threads also leave the little cores. Clusters are read from the kernel, re-applied every 3 s for new threads, and every thread gets its own affinity and priority back when the game closes."
     },
     "render_realtime": {
       "title": "Realtime render threads",

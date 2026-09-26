@@ -155,8 +155,13 @@ BoostMasks boost_masks(const std::vector<CpuCluster> &clusters) {
         if (masks.render.size() >= 2) break;
     }
 
-    for (size_t i = 0; i + 1 < clusters.size(); ++i)
-        masks.game.insert(masks.game.end(), clusters[i].cpus.begin(), clusters[i].cpus.end());
+    // The game's other threads leave the little cores only with three or more clusters
+    // (little / big / prime). On two-cluster phones (4+4, 2+6) that would put every game
+    // thread on the big cores: a Redmi Note 13 Pro 5G (4+4) reached 96 C that way.
+    if (clusters.size() >= 3) {
+        for (size_t i = 0; i + 1 < clusters.size(); ++i)
+            masks.game.insert(masks.game.end(), clusters[i].cpus.begin(), clusters[i].cpus.end());
+    }
     // Fewer than four fast cores would squeeze the game's worker threads together.
     if (masks.game.size() < 4) masks.game.clear();
     return masks;

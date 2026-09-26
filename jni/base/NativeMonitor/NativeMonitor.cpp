@@ -414,7 +414,9 @@ void sample_all_locked() {
     }
 
     if (auto v = read_float(transact(g.thermal, Tx::GetThermalHeadroom, [](AParcel *in) { AParcel_writeInt32(in, 1); }))) {
-        g.status.thermal_status = std::isnan(*v) ? "-1.00" : format_decimal(std::clamp(*v, 0.0f, 1.0f), 2);
+        // getThermalHeadroom() grows with heat (1.0 = SEVERE throttling, above 1.0 past it);
+        // thermal_status carries the headroom left, 1.00 = cool.
+        g.status.thermal_status = std::isnan(*v) ? "-1.00" : format_decimal(1.0f - std::clamp(*v, 0.0f, 1.0f), 2);
     }
     if (auto v = read_int(transact(g.thermal, Tx::GetCurrentThermalStatus))) {
         if (*v >= 0 && *v <= 6) g.status.thermal_level = *v;

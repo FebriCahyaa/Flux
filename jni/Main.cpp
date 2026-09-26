@@ -438,8 +438,12 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
     // Prefer headroom; when the thermal HAL does not provide it (-1), fall back to
     // the coarser thermal status level so thermal protection still works.
     const int thermal_level = get_thermal_level();
-    const bool thermal_lite = (thermal >= 0.0f) ? (thermal < THERMAL_LITE_THRESHOLD)
-                                                : (thermal_level >= THERMAL_LEVEL_LITE_THRESHOLD);
+    // Any one signal is enough: headroom, the thermal status level (severe and above) or
+    // the CPU zones themselves (HiCo Thermal may have stopped the HAL that feeds the others).
+    const float cpu_temp = SessionRecorder::get_instance().recent_cpu_temp();
+    const bool cpu_hot = std::isfinite(cpu_temp) && cpu_temp >= THERMAL_CPU_LITE_C;
+    const bool thermal_lite = (thermal >= 0.0f && thermal < THERMAL_LITE_THRESHOLD) ||
+                              thermal_level >= THERMAL_LEVEL_LITE_THRESHOLD || cpu_hot;
 
     if (config_lite) {
         // Config-forced lite mode: always lite, ignore thermal.
@@ -464,13 +468,14 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
 
         state.cur_mode              = PERFORMANCE_LITE_PROFILE;
         state.last_thermal_switch_tp = now;
-        LOGW("Thermal pressure (headroom {:.2f}, level {}) — downgrading to performance_lite for {}",
-             thermal, thermal_level, state.active_package);
+        LOGW("Thermal pressure (headroom {:.2f}, level {}, CPU {:.1f}C) — downgrading to performance_lite for {}",
+             thermal, thermal_level, cpu_temp, state.active_package);
         apply_performance_lite_profile(state.active_package, game_pid);
 
     } else {
         // Healthy headroom or thermal API unsupported — recover to full performance.
-        const bool can_upgrade = (thermal < 0.0f || thermal >= THERMAL_RECOVER_THRESHOLD);
+        const bool can_upgrade = (thermal < 0.0f || thermal >= THERMAL_RECOVER_THRESHOLD) &&
+                                 (!std::isfinite(cpu_temp) || cpu_temp < THERMAL_CPU_RECOVER_C);
         if (state.cur_mode == PERFORMANCE_PROFILE && !force_reapply) return true;
         if (state.cur_mode == PERFORMANCE_LITE_PROFILE && !can_upgrade) return true;
 
