@@ -229,4 +229,13 @@ Source: https://github.com/Rem01Gaming/encore
 
 ---
 
+## Third-party assets (WebUI and website)
+
+- **Google Sans Flex** font (`webui/src/assets/fonts`, `website/fonts`): Copyright Google LLC,
+  licensed under the SIL Open Font License 1.1 (https://openfontlicense.org).
+- **Material Symbols** icon paths (WebUI and `website/index.html`): Copyright Google LLC,
+  licensed under the Apache License 2.0.
+
+---
+
 This file must be included with all distributions of Flux Tweaks.
