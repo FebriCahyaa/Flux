@@ -22,37 +22,24 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Build job
+  # Build job: the site is static (website/: HTML, CSS, JS, modules.json), nothing to compile
   build:
     name: Build Website
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./website
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: actions/checkout@v6
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
-      - name: Install dependencies
-        run: bun install
-
-      - name: Build with VitePress
-        run: |
-          bun run build
-          touch docs/.vitepress/dist/.nojekyll
+      - name: Check the module list
+        run: python3 -m json.tool website/modules.json >/dev/null
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: website/docs/.vitepress/dist
+          path: website
 
   # Deployment job
   deploy:
