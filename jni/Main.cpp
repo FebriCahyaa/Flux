@@ -37,6 +37,7 @@
 #include <LockFile.hpp>
 #include <ModuleProperty.hpp>
 #include <PIDTracker.hpp>
+#include "RenderBooster.hpp"
 #include "SessionRecorder.hpp"
 #include <ShellUtility.hpp>
 #include <SignalHandler.hpp>
@@ -82,6 +83,9 @@ std::atomic<bool> daemon_stop_requested{false};
  * Uses a local snapshot of synthesis_core_event_fd to avoid a TOCTOU race
  * where another thread closes the fd between the ">= 0" check and the write().
  */
+/// Set by the config watcher; the main loop re-runs the system tweaks.
+std::atomic<bool> system_tweaks_pending{false};
+
 void signal_daemon_update() {
     const int fd = synthesis_core_event_fd; // atomic snapshot
     if (fd >= 0) {
@@ -314,6 +318,12 @@ static void clear_dnd_if_needed(DaemonState &state) {
     }
 }
 
+/// Ends the per-game workers: session statistics and the render booster (which restores the threads).
+static void stop_session_workers() {
+    SessionRecorder::get_instance().stop();
+    RenderBooster::get_instance().stop();
+}
+
 /**
  * @brief Handle the transition when the tracked game process exits.
  *
@@ -322,7 +332,7 @@ static void clear_dnd_if_needed(DaemonState &state) {
  */
 static void handle_game_exit(DaemonState &state) {
     LOGI("Game {} exited", state.active_package);
-    SessionRecorder::get_instance().stop();
+    stop_session_workers();
     clear_dnd_if_needed(state);
     state.active_package.clear();
     state.pid_tracker.invalidate();
@@ -363,7 +373,7 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
     auto *active_game = game_registry.find_game_ptr(state.active_package);
     if (!active_game) {
         LOGI("Game {} is no longer listed in registry", state.active_package);
-        SessionRecorder::get_instance().stop();
+        stop_session_workers();
         state.active_package.clear();
         state.pid_tracker.invalidate();
         state.in_game_session = false;
@@ -373,7 +383,7 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
     const pid_t game_pid = pidof_game(state.active_package);
     if (game_pid == 0) {
         LOGE("Unable to fetch PID of {}", state.active_package);
-        SessionRecorder::get_instance().stop();
+        stop_session_workers();
         state.active_package.clear();
         state.pid_tracker.invalidate();
         state.in_game_session = false;
@@ -396,7 +406,7 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
             "Game {} (PID: {}) exited while applying profile ({}), aborting session",
             state.active_package, tracked_pid, strerror(errno)
         );
-        SessionRecorder::get_instance().stop();
+        stop_session_workers();
         state.active_package.clear();
         state.pid_tracker.invalidate();
         state.in_game_session = false;
@@ -411,6 +421,12 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
 
     // Session statistics (play time, FPS, temperatures) follow the tracked game.
     SessionRecorder::get_instance().start(state.active_package, {game_pid, tracked_pid});
+    // Render threads on the fastest cores (re-applied every 3 s, restored when the session ends).
+    if (const auto prefs = config_store.get_preferences(); prefs.render_boost && !prefs.disable_tweaks) {
+        RenderBooster::get_instance().start({game_pid, tracked_pid}, prefs.render_realtime);
+    } else {
+        RenderBooster::get_instance().stop();
+    }
 
     // Save and clear the checkup flag.  The saved value is used in the
     // early-return guards so "force reapply" actually reapplies the profile.
@@ -516,6 +532,7 @@ static void select_profile(DaemonState &state) {
         if (apply_game_profile(state)) {
             state.audio_hold = false;
             SessionRecorder::get_instance().set_lite(state.cur_mode == PERFORMANCE_LITE_PROFILE);
+            RenderBooster::get_instance().set_lite(state.cur_mode == PERFORMANCE_LITE_PROFILE);
             return;
         }
     }
@@ -559,6 +576,7 @@ static void flux_main_daemon() {
     pthread_setname_np(pthread_self(), "MainThread");
 
     run_perfcommon();
+    apply_system_tweaks(true);
 
     // On any tracked process death, immediately wake the
     // main poll so handle_game_exit runs without delay.
@@ -600,6 +618,8 @@ static void flux_main_daemon() {
             uint64_t val;
             ssize_t rd = read(synthesis_core_event_fd, &val, sizeof(val));
             (void)rd;
+
+            if (system_tweaks_pending.exchange(false, std::memory_order_relaxed)) apply_system_tweaks();
 
             if (state.in_game_session && state.pid_tracker.get_current_pid() == 0) {
                 handle_game_exit(state);
@@ -664,7 +684,7 @@ static void flux_main_daemon() {
     }
 
     // Keep the running session when the daemon stops.
-    SessionRecorder::get_instance().stop();
+    stop_session_workers();
 }
 
 // ---------------------------------------------------------------------------

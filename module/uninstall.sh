@@ -37,15 +37,26 @@ for dir in /data/adb/ksu/bin /data/adb/ap/bin; do
 	done
 done
 
-# Configuration, logs and the boot cleanup hook
-rm -rf "$MODULE_CONFIG"
-rm -f /data/adb/service.d/.flux_cleanup.sh
 # Refresh rate forced while gaming: give the user's setting back
 if [ -f /dev/.flux_refresh_orig ]; then
 	read -r peak min </dev/.flux_refresh_orig
 	[ -n "$peak" ] && [ "$peak" != null ] && settings put system peak_refresh_rate "$peak"
 	[ -n "$min" ] && [ "$min" != null ] && settings put system min_refresh_rate "$min"
 fi
+# Adaptive refresh (System tweaks) changed the stored refresh range: the ROM's values back
+if [ -f "$MODULE_CONFIG/refresh_adaptive_orig" ]; then
+	read -r peak min <"$MODULE_CONFIG/refresh_adaptive_orig"
+	for pair in "peak_refresh_rate:$peak" "min_refresh_rate:$min"; do
+		if [ -z "${pair#*:}" ] || [ "${pair#*:}" = null ]; then
+			settings delete system "${pair%%:*}" >/dev/null 2>&1
+		else
+			settings put system "${pair%%:*}" "${pair#*:}"
+		fi
+	done
+fi
+# Configuration, logs and the boot cleanup hook
+rm -rf "$MODULE_CONFIG"
+rm -f /data/adb/service.d/.flux_cleanup.sh
 # Values Flux changed while gaming (Flux Boost, game tweaks, chipset boost):
 # "<group> <node> <mode> <value>" per line
 if [ -f /dev/.flux_boost_orig ]; then

@@ -244,8 +244,15 @@
       "QCOM_NO_GPU_POWERSAVE": {
         "title": "GPU tetap di Powersave",
         "description": "Snapdragon: Powersave tidak lagi menurunkan batas minimum GPU Adreno, yang dilaporkan membuat video tidak tampil setelah HP bangun dari tidur."
+      },
+      "NO_GPU_POWER_LOCK": {
+        "title": "Tanpa kunci daya GPU",
+        "description": "Clock dan jalur daya Adreno tidak pernah ditahan menyala saat bermain, meski clock maksimal atau kunci daya GPU aktif."
       }
-    }
+    },
+    "rules_title": "Aturan otomatis untuk chipset ini",
+    "rules_none": "Tidak ada aturan chipset yang cocok dengan perangkat ini.",
+    "rules_note": "Aturan ini berlaku sendiri, dengan atau tanpa sakelar di atas."
   },
   "cpu_governor": {
     "title": "Governor CPU",
@@ -404,7 +411,14 @@
       "title": "Prioritas game",
       "description": "Memberi thread kerja game prioritas CPU dan penyimpanan lebih tinggi dari aplikasi lain. Thread yang sudah dipercepat Android tidak diubah."
     },
-    "apply_note": "Perubahan berlaku saat profil diterapkan berikutnya, misalnya saat game dimulai."
+    "apply_note": "Perubahan berlaku saat profil diterapkan berikutnya, misalnya saat game dimulai.",
+    "sustained": {
+      "title": "Clock stabil",
+      "description": "CPU, GPU dan memori tetap bisa mencapai clock tertinggi, tapi governor yang menaikkan-turunkan dari batas tengah, bukan dikunci di puncak sepanjang game. Jauh lebih dingin di sesi panjang, jadi HP lebih lambat throttle dan FPS lebih stabil. Disarankan.",
+      "off_title": "Kunci clock di maksimum?",
+      "off_message": "Semua clock tetap di langkah tertinggi sepanjang game dengan governor performance. FPS puncak bisa sedikit naik di awal, tapi HP cepat panas lalu throttling termal membuat drop yang lebih besar.",
+      "off_action": "Kunci di maksimum"
+    }
   },
   "sessions": {
     "recording": "Merekam",
@@ -475,9 +489,12 @@
     "title": "Tweak Game",
     "brief": "Tweak tambahan yang hanya diterapkan saat game berjalan. Semuanya dikembalikan saat kamu keluar dari game.",
     "tags": {
-      "battery": "Lebih boros baterai",
+      "battery": "Hemat daya",
       "all_devices": "Semua perangkat",
-      "not_lite": "Tidak di mode Lite"
+      "not_lite": "Tidak di mode Lite",
+      "advanced": "Lanjutan",
+      "heat": "Lebih panas",
+      "reboot": "Efek penuh setelah reboot"
     },
     "net_tweaks": {
       "title": "Latensi jaringan",
@@ -488,10 +505,10 @@
       "description": "Memindahkan thread input Android (InputReader, InputDispatcher) ke grup CPU game di semua perangkat, dan mengaktifkan mode game panel sentuh jika driver-nya punya (OPPO, realme, OnePlus, Samsung)."
     },
     "game_refresh_rate": {
-      "title": "Refresh rate maksimum di game",
-      "description": "Mengunci layar di refresh rate tertinggi saat bermain. Beberapa ROM mungkin tetap mengubahnya.",
-      "confirm_title": "Kunci refresh rate tertinggi?",
-      "confirm_message": "Layar tetap di refresh rate maksimum selama game berjalan. Gerakan lebih halus tapi baterai lebih cepat habis. Pengaturan sebelumnya dikembalikan setelah game ditutup."
+      "title": "Refresh rate mengikuti game",
+      "description": "Mulai di refresh tertinggi layar, lalu turun ke mode terkecil yang masih menampilkan setiap frame game (mis. 90 Hz untuk game 90 FPS di layar 120 Hz): sama mulusnya dengan daya dan panas lebih kecil.",
+      "confirm_title": "Refresh rate mengikuti game?",
+      "confirm_message": "Selama game berjalan Flux mengatur refresh rate: mulai dari mode tertinggi lalu menetap di mode yang benar-benar dipakai game. Pengaturan Anda kembali setelah game ditutup. Beberapa ROM mungkin tetap mengubahnya."
     },
     "drop_caches": {
       "title": "Bersihkan cache memori",
@@ -536,6 +553,47 @@
       "input": "Thread input",
       "touchpanel": "Mode game panel OPLUS",
       "sec_touch": "Mode game panel Samsung"
+    },
+    "groups": {
+      "game": "Game",
+      "render": "Render & GPU",
+      "system": "Sistem (diterapkan saat boot)"
+    },
+    "render_boost": {
+      "title": "Thread render di core cepat",
+      "description": "Mencari thread render game (Unity, Unreal, GL, Vulkan) lalu mengunci ke core tercepat dengan nice -15; thread game lainnya keluar dari core kecil. Cluster dibaca dari kernel, diterapkan ulang tiap 3 detik untuk thread baru, dan afinitas serta prioritas setiap thread dikembalikan saat game ditutup."
+    },
+    "render_realtime": {
+      "title": "Thread render realtime",
+      "description": "Thread render juga dijalankan sebagai SCHED_FIFO 15. Frame time lebih stabil di sebagian game, tetapi thread render yang sibuk bisa menahan pekerjaan lain di core-nya. Tidak dipakai di Performance Lite.",
+      "confirm_title": "Aktifkan thread render realtime?",
+      "confirm_message": "SCHED_FIFO memberi thread render game prioritas di atas aplikasi dan layanan sistem biasa pada core-nya. Jika game patah-patah, input terlambat atau ponsel tidak responsif, matikan fitur ini."
+    },
+    "gpu_power_lock": {
+      "title": "Kunci daya GPU",
+      "description": "Clock, bus dan jalur daya Adreno tetap menyala di antara frame (kgsl force_clk_on, force_bus_on, force_rail_on, force_no_nap) meski clock Stabil aktif. Lonjakan frame time lebih kecil, suhu lebih tinggi. Aturan perangkat mematikannya pada chip yang dikenal cepat panas.",
+      "confirm_title": "Aktifkan kunci daya GPU?",
+      "confirm_message": "GPU tidak lagi mati di antara frame, sehingga ponsel lebih hangat dan baterai lebih boros saat bermain game."
+    },
+    "adreno_reflex": {
+      "title": "Adreno Reflex",
+      "description": "Kunci latensi: SurfaceFlinger me-latch buffer yang belum tersinyal dan memakai GL backpressure, tanpa render-ahead HWUI, EGL triple buffering; saat bermain adrenoboost, preemption tingkat ringbuffer, burst dispatcher, DCVS context-aware dan counter GPU mati jika kernel memilikinya. Mematikannya mengembalikan semua nilai bawaan.",
+      "confirm_title": "Aktifkan Adreno Reflex?",
+      "confirm_message": "Latch buffer yang belum tersinyal bisa menimbulkan glitch visual singkat di sebagian GPU dan ROM. Kunci SurfaceFlinger berlaku penuh setelah reboot; profiler GPU tidak bisa membaca counter saat bermain."
+    },
+    "graphics_tweaks": {
+      "title": "Pipeline grafis",
+      "description": "RenderEngine SurfaceFlinger di thread sendiri (skiaglthreaded, hanya jika ROM belum memilih backend lain), petunjuk frame HWUI ke power HAL agar UI dan blur lebih mulus, serta prediksi komposisi HWC. Ditulis ke system.prop modul dan dihapus saat dimatikan.",
+      "confirm_title": "Aktifkan tweak pipeline grafis?",
+      "confirm_message": "Properti ini dibaca saat SurfaceFlinger mulai: reboot untuk efek penuh. Jika UI bermasalah, matikan lalu reboot."
+    },
+    "adaptive_refresh": {
+      "title": "Refresh rate adaptif",
+      "description": "Layar boleh turun ke rate terendah (60 Hz atau lebih) saat konten diam, puncak tetap tertinggi; frame rate override aktif, turun saat diam setelah 3 detik, sentuhan langsung kembali ke puncak. Game tetap memakai pengaturan refresh-nya sendiri."
+    },
+    "zram_tune": {
+      "title": "Zram sesuai RAM",
+      "description": "Ukuran swap terkompresi disesuaikan dengan RAM (3/4 hingga 4 GB, setengah di atasnya, maksimal 6 GB) dengan kompresor lz4. Diterapkan saat boot; setelan vendor dengan writeback ke penyimpanan dibiarkan. Dimatikan = ukuran ROM dikembalikan."
     }
   }
 }

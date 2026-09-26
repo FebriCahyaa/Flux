@@ -20,6 +20,8 @@
 void set_profiler_env_vars();
 
 void run_perfcommon(void);
+/// Zram, refresh range and graphics props; skipped when unchanged unless @p force.
+void apply_system_tweaks(bool force = false);
 void apply_performance_profile(bool lite_mode, std::string game_pkg, pid_t game_pid);
 void apply_performance_lite_profile(std::string game_pkg, pid_t game_pid);
 void apply_balance_profile();

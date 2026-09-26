@@ -74,6 +74,7 @@ import BoltChargeIcon from '@/components/icons/BoltCharge.vue'
 import ChipsetIcon from '@/components/icons/Chipset.vue'
 import TuneIcon from '@/components/icons/Tune.vue'
 import StarIcon from '@/components/icons/Star.vue'
+import SpeedIcon from '@/components/icons/Speed.vue'
 import InformationOutlineIcon from '@/components/icons/InformationOutline.vue'
 import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
 
@@ -84,6 +85,13 @@ const notify = useNotifyStore()
 
 // Config keys match FluxConfigStore::Preferences in fluxd.
 const parts = [
+  {
+    key: 'sustained_mode',
+    label: 'sustained',
+    icon: SpeedIcon,
+    shape: 'shape-sunny',
+    tone: 'bg-secondary-container text-on-secondary-container',
+  },
   {
     key: 'flux_vm',
     label: 'vm',
@@ -107,7 +115,7 @@ const parts = [
   },
 ]
 
-const values = reactive({ flux_vm: true, flux_io: true, game_priority: true })
+const values = reactive({ flux_vm: true, flux_io: true, game_priority: true, sustained_mode: true })
 
 onMounted(async () => {
   try {
@@ -119,6 +127,16 @@ onMounted(async () => {
 })
 
 async function toggle(key, enabled) {
+  // Turning stable clocks off pins CPU, GPU and memory at their maximum all game.
+  if (key === 'sustained_mode' && !enabled) {
+    const ok = await notify.confirm({
+      tone: 'warning',
+      title: t('flux_boost.sustained.off_title'),
+      message: t('flux_boost.sustained.off_message'),
+      confirmText: t('flux_boost.sustained.off_action'),
+    })
+    if (!ok) return
+  }
   values[key] = enabled
   try {
     if (!fluxConfigStore.isLoaded) await fluxConfigStore.loadConfig()
