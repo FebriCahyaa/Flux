@@ -1,0 +1,72 @@
+{
+  "author": "FebriCahyaa",
+  "modules": [
+    {
+      "id": "flux",
+      "name": "Flux Tweaks",
+      "kind": "module",
+      "license": { "type": "open", "label": "Apache-2.0" },
+      "icon": { "glyph": "bolt", "shape": "cookie9", "tone": "primary" },
+      "tagline": {
+        "en": "Adaptive gaming and battery optimization",
+        "id": "Optimasi game dan baterai yang adaptif"
+      },
+      "description": {
+        "en": "Game-aware profiles for CPU, GPU, I/O and scheduler; render threads on the fast cores, thermal-aware Performance Lite, refresh rate that follows the game and per-chipset device rules. Every tweak is restored when you leave the game.",
+        "id": "Profil yang mengenali game untuk CPU, GPU, I/O dan scheduler; thread render di core cepat, Performance Lite yang peka suhu, refresh rate yang mengikuti game dan aturan otomatis per chipset. Semua tweak dikembalikan saat keluar dari game."
+      },
+      "tags": ["Gaming", "Battery", "WebUI"],
+      "requires": [],
+      "repo": "https://github.com/FebriCahyaa/Flux",
+      "releases": "https://github.com/FebriCahyaa/Flux/releases",
+      "update": {
+        "universal": "https://raw.githubusercontent.com/FebriCahyaa/Flux/main/update.json",
+        "arm64": "https://raw.githubusercontent.com/FebriCahyaa/Flux/main/update-arm64.json",
+        "arm": "https://raw.githubusercontent.com/FebriCahyaa/Flux/main/update-arm.json"
+      }
+    },
+    {
+      "id": "hico",
+      "name": "HiCo Thermal",
+      "kind": "module",
+      "license": { "type": "private", "label": "EULA" },
+      "icon": { "glyph": "thermostat", "shape": "flower", "tone": "tertiary" },
+      "tagline": {
+        "en": "Thermal unlock for games, with a temperature guard",
+        "id": "Buka batas termal saat bermain, dengan pengaman suhu"
+      },
+      "description": {
+        "en": "Lifts thermal throttling only while Flux runs a game and puts every stock value back afterwards. Tunes this phone's own thermal configs (encrypted mi_thermald included), holds max back while the phone is hot and hands control to stock thermal past the safety limits.",
+        "id": "Melepas throttling termal hanya saat Flux menjalankan game dan mengembalikan semua nilai bawaan setelahnya. Menyesuaikan config thermal milik HP itu sendiri (termasuk mi_thermald terenkripsi), menahan mode maksimal saat HP panas dan mengembalikan thermal bawaan bila melewati batas aman."
+      },
+      "tags": ["Thermal", "Xiaomi first", "GKI · Non-GKI"],
+      "requires": ["flux"],
+      "releases": "https://github.com/FebriCahyaa/HiCo-Release/releases",
+      "update": {
+        "universal": "https://raw.githubusercontent.com/FebriCahyaa/HiCo-Release/main/update.json",
+        "arm64": "https://raw.githubusercontent.com/FebriCahyaa/HiCo-Release/main/update-arm64.json",
+        "arm": "https://raw.githubusercontent.com/FebriCahyaa/HiCo-Release/main/update-arm.json"
+      }
+    },
+    {
+      "id": "synthesiscore",
+      "name": "SynthesisCore",
+      "kind": "component",
+      "license": { "type": "open", "label": "Apache-2.0" },
+      "icon": { "glyph": "insights", "shape": "clover4", "tone": "secondary" },
+      "tagline": {
+        "en": "Event-driven system monitor for root daemons",
+        "id": "Monitor sistem berbasis event untuk daemon root"
+      },
+      "description": {
+        "en": "Kotlin helper that runs through app_process and reports foreground app, screen, power, thermal headroom and audio state without polling dumpsys. Bundled and verified inside Flux; no separate install needed.",
+        "id": "Helper Kotlin yang berjalan lewat app_process dan melaporkan aplikasi aktif, layar, daya, sisa ruang termal dan audio tanpa polling dumpsys. Sudah dibundel dan diverifikasi di dalam Flux; tidak perlu dipasang terpisah."
+      },
+      "tags": ["Android 9–17", "Kotlin"],
+      "requires": [],
+      "repo": "https://github.com/FebriCahyaa/SynthesisCore",
+      "releases": "https://github.com/FebriCahyaa/SynthesisCore/releases",
+      "githubRelease": "FebriCahyaa/SynthesisCore"
+    }
+  ]
+}
