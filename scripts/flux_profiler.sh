@@ -392,8 +392,8 @@ snapdragon_performance() {
 	# Disable GPU Bus split
 	apply 0 /sys/class/kgsl/kgsl-3d0/bus_split
 
-	# Force GPU clock on
-	apply 1 /sys/class/kgsl/kgsl-3d0/force_clk_on
+	# Force GPU clock on (device rules can forbid holding the GPU on)
+	[ -z "$FLUX_NO_GPU_POWER_LOCK" ] && apply 1 /sys/class/kgsl/kgsl-3d0/force_clk_on
 }
 
 tegra_performance() {
@@ -834,14 +834,35 @@ flux_vm() {
 	apply 0 /sys/kernel/mm/ksm/run
 }
 
+# UFS (sd*), eMMC / SD (mmcblk*) and the dm devices on top of them (userdata is
+# dm-crypt / dm-default-key: file reads go through the dm device's read-ahead)
+flux_block_prefetch() {
+	for dir in /sys/block/sd* /sys/block/mmcblk* /sys/block/dm-*; do
+		case "$dir" in *rpmb | *boot[0-9]) continue ;; esac
+		for node in read_ahead_kb iostats; do
+			[ -f "$dir/queue/$node" ] && echo "$dir/queue/$node"
+		done
+	done
+}
+
 flux_io() {
 	queues=$(flux_block_queues)
+	prefetch=$(flux_block_prefetch)
 	# shellcheck disable=SC2086
-	flux_boost_save io $queues
+	flux_boost_save io $queues $prefetch
 	flux_boost_restore io
 	[ "$1" = boost ] && [ -z "$FLUX_IO_DISABLED" ] || return 0
 	for node in $queues; do
 		raise_to 2 "$node"
+	done
+	# Larger read-ahead while gaming: asset and texture streaming reads ahead in one
+	# request (Documentation/ABI/stable/sysfs-block); I/O accounting off saves a
+	# per-request timestamp. Both are restored when the game ends.
+	for node in $prefetch; do
+		case "$node" in
+		*/read_ahead_kb) raise_to 512 "$node" ;;
+		*/iostats) apply 0 "$node" ;;
+		esac
 	done
 }
 
@@ -944,6 +965,7 @@ flux_touch() {
 	else
 		flux_input restore
 	fi
+	flux_input_boost "$1"
 
 	# Samsung sec_ts / stm_ts: only switched off again if Flux switched it on
 	if sec_touch_game_mode; then
@@ -971,6 +993,31 @@ flux_touch() {
 		apply 0 $tp_path/oplus_tp_direction
 		apply 0 $tp_path/oppo_tp_direction
 	fi
+}
+
+# CPU input boost: a touch raises the CPU floor for a moment. msm cpu_boost
+# (drivers/cpufreq/cpu-boost.c, Qualcomm non-GKI) takes "cpu:freq" pairs; Sultan's
+# cpu_input_boost has a duration only. Kernels without either are left alone.
+flux_input_boost() {
+	cb=/sys/module/cpu_boost/parameters
+	cib=/sys/module/cpu_input_boost/parameters
+	flux_boost_save inputboost $cb/input_boost_ms $cb/input_boost_freq $cib/input_boost_duration
+	flux_boost_restore inputboost
+	[ "$1" = on ] && [ -z "$FLUX_TOUCH_DISABLED" ] || return 0
+
+	if [ -f $cb/input_boost_freq ]; then
+		freqs=""
+		for policy in /sys/devices/system/cpu/cpufreq/policy*; do
+			avail="$policy/scaling_available_frequencies"
+			[ -f "$avail" ] || continue
+			mid=$(which_midfreq "$avail")
+			case "$mid" in '' | *[!0-9]*) continue ;; esac
+			freqs="$freqs ${policy##*policy}:$mid"
+		done
+		[ -n "$freqs" ] && apply "${freqs# }" $cb/input_boost_freq
+		raise_to 120 $cb/input_boost_ms
+	fi
+	raise_to 120 $cib/input_boost_duration
 }
 
 # Highest refresh rate while gaming (opt-in: FLUX_REFRESH_ENABLED). flux_refresh <boost|restore>
@@ -1178,13 +1225,35 @@ flux_chipset() {
 		[ "$(cat "$node" 2>/dev/null)" = 2 ] || apply 1 "$node"
 	fi
 
-	# Adreno kgsl power control (not in Sustained mode: keeping the rails on costs heat all game)
+	# Adreno kgsl power lock: clock, bus and rail held on, no nap between frames.
+	# With max clocks, or with Stable clocks only when GPU power lock is switched
+	# on (keeping the rails on costs heat all game). Device rules can forbid it.
 	kgsl=/sys/class/kgsl/kgsl-3d0
-	if [ -d "$kgsl" ] && [ "$PIN_MAX" -eq 1 ]; then
-		flux_boost_save chipset $kgsl/force_bus_on $kgsl/force_rail_on $kgsl/force_no_nap
+	gpu_lock=$PIN_MAX
+	[ -n "$FLUX_GPU_LOCK" ] && gpu_lock=1
+	[ -n "$FLUX_NO_GPU_POWER_LOCK" ] && gpu_lock=0
+	if [ -d "$kgsl" ] && [ "$gpu_lock" -eq 1 ]; then
+		flux_boost_save chipset $kgsl/force_clk_on $kgsl/force_bus_on $kgsl/force_rail_on $kgsl/force_no_nap
+		apply 1 $kgsl/force_clk_on
 		apply 1 $kgsl/force_bus_on
 		apply 1 $kgsl/force_rail_on
 		apply 1 $kgsl/force_no_nap
+	fi
+
+	# Adreno Reflex (opt-in): kgsl dispatcher and DCVS keys, only where the kernel has them
+	if [ -d "$kgsl" ] && [ -n "$FLUX_REFLEX" ]; then
+		flux_boost_save chipset $kgsl/devfreq/adrenoboost $kgsl/preempt_level $kgsl/dispatch/context_burst_count \
+			$kgsl/ctxt_aware_enable $kgsl/perfcounter
+		# adrenoboost (custom kernels, msm_adreno_tz): 0-3, 2 = medium ramp-up bias
+		apply 2 $kgsl/devfreq/adrenoboost
+		# Ringbuffer-level preemption: the game's command stream is not cut mid-frame
+		apply 0 $kgsl/preempt_level
+		# More command batches per context per dispatcher round (default 5)
+		raise_to 10 $kgsl/dispatch/context_burst_count
+		# Context-aware DCVS: a busy context does not get clocked down
+		apply 1 $kgsl/ctxt_aware_enable
+		# GPU performance counters off (profilers such as Snapdragon Profiler stop reading them)
+		apply 0 $kgsl/perfcounter
 	fi
 
 	# Per-CPU instead of "power efficient" unbound workqueues: kernel work
@@ -1550,11 +1619,280 @@ powersave_profile() {
 }
 
 ###################################
+# System tweaks: graphics props, adaptive refresh, zram
+###################################
+
+# Run by fluxd at start and whenever one of these switches changes
+# ("flux_profiler system"). A switch that is off puts back the values saved
+# before Flux first changed them, so every part reverts fully.
+
+FLUX_PROPS_ORIG="$MODULE_CONFIG/props_orig"
+FLUX_PROPS_STAGE="$MODULE_CONFIG/props_stage"
+FLUX_SYSTEM_PROP=/data/adb/modules/flux/system.prop
+
+flux_resetprop() {
+	for bin in resetprop /data/adb/magisk/resetprop /data/adb/ksu/bin/resetprop /data/adb/ap/bin/resetprop; do
+		command -v "$bin" >/dev/null 2>&1 && {
+			echo "$bin"
+			return 0
+		}
+	done
+	return 1
+}
+
+# flux_prop_live <name> <value|"">: the live value (debug.* also through setprop)
+flux_prop_live() {
+	if rp=$(flux_resetprop); then
+		if [ -n "$2" ]; then
+			"$rp" -n "$1" "$2" >/dev/null 2>&1
+		else
+			"$rp" -d "$1" >/dev/null 2>&1
+		fi
+	else
+		case "$1" in debug.*) setprop "$1" "$2" >/dev/null 2>&1 ;; esac
+	fi
+}
+
+# flux_prop <name> <value>: the value now and from the next boot on (module
+# system.prop, loaded before SurfaceFlinger starts); the ROM's value is kept once
+flux_prop() {
+	grep -q "^$1=" "$FLUX_PROPS_ORIG" 2>/dev/null || echo "$1=$(getprop "$1")" >>"$FLUX_PROPS_ORIG"
+	echo "$1=$2" >>"$FLUX_PROPS_STAGE"
+	flux_prop_live "$1" "$2"
+}
+
+# The ROM's value of a prop Flux may have changed
+flux_prop_orig() {
+	if grep -q "^$1=" "$FLUX_PROPS_ORIG" 2>/dev/null; then
+		sed -n "s/^$1=//p" "$FLUX_PROPS_ORIG" | head -n 1
+	else
+		getprop "$1"
+	fi
+}
+
+# flux_prop_lower <name> <value>: only when the ROM's value is unset, 0 or higher
+flux_prop_lower() {
+	cur=$(flux_prop_orig "$1")
+	case "$cur" in '' | *[!0-9]*) cur=0 ;; esac
+	if [ "$cur" -eq 0 ] || [ "$cur" -gt "$2" ]; then
+		flux_prop "$1" "$2"
+	fi
+}
+
+# flux_prop_default <name> <value>: only when the ROM leaves it unset
+flux_prop_default() {
+	[ -z "$(flux_prop_orig "$1")" ] && flux_prop "$1" "$2"
+	return 0
+}
+
+# Props of every enabled group go to system.prop; all others get the ROM value back.
+flux_props_commit() {
+	if [ -f "$FLUX_PROPS_ORIG" ]; then
+		: >"$FLUX_PROPS_ORIG.new"
+		while IFS='=' read -r name value; do
+			[ -n "$name" ] || continue
+			if grep -q "^$name=" "$FLUX_PROPS_STAGE" 2>/dev/null; then
+				echo "$name=$value" >>"$FLUX_PROPS_ORIG.new"
+			else
+				flux_prop_live "$name" "$value"
+			fi
+		done <"$FLUX_PROPS_ORIG"
+		mv -f "$FLUX_PROPS_ORIG.new" "$FLUX_PROPS_ORIG"
+		[ -s "$FLUX_PROPS_ORIG" ] || rm -f "$FLUX_PROPS_ORIG"
+	fi
+
+	if [ -s "$FLUX_PROPS_STAGE" ] && [ -d "${FLUX_SYSTEM_PROP%/*}" ]; then
+		{
+			echo "# Written by Flux (Settings > System tweaks); removed when those are off"
+			cat "$FLUX_PROPS_STAGE"
+		} >"$FLUX_SYSTEM_PROP"
+	else
+		rm -f "$FLUX_SYSTEM_PROP"
+	fi
+	rm -f "$FLUX_PROPS_STAGE"
+}
+
+# Adreno Reflex: SurfaceFlinger / EGL latency keys (the kgsl part runs while gaming).
+flux_reflex_props() {
+	[ -n "$FLUX_REFLEX" ] || return 0
+	# Latch buffers whose GPU fence has not signalled yet: the frame is shown one
+	# vsync earlier (auto_ on Android 13+, the older key before)
+	flux_prop debug.sf.auto_latch_unsignaled 1
+	flux_prop debug.sf.latch_unsignaled 1
+	# GL backpressure: SurfaceFlinger skips a composition instead of queueing behind the GPU
+	flux_prop debug.sf.enable_gl_backpressure 1
+	# No frames rendered ahead by HWUI (some vendors raise it for smoother benchmarks)
+	flux_prop debug.hwui.render_ahead 0
+	# Adreno EGL swapchain: triple buffering, no extra queued frame
+	flux_prop debug.egl.buffcount 3
+}
+
+# Graphics pipeline: threaded RenderEngine, HWUI performance hints, composition prediction.
+flux_graphics_props() {
+	[ -n "$FLUX_GRAPHICS" ] || return 0
+	# SurfaceFlinger's RenderEngine on its own thread; a ROM that already picked a
+	# (Vulkan or threaded) backend keeps it
+	case "$(flux_prop_orig debug.renderengine.backend)" in
+	'' | skiagl) flux_prop debug.renderengine.backend skiaglthreaded ;;
+	esac
+	# HWUI reports frame timing to the power HAL (ADPF hint sessions, Android 12+):
+	# the CPU ramps up for UI frames before they are late
+	flux_prop debug.hwui.use_hint_manager true
+	# Predict the HWC composition strategy and start GPU composition early (Android 13+)
+	flux_prop debug.sf.predict_hwc_composition_strategy 1
+}
+
+FLUX_ADAPTIVE_ORIG="$MODULE_CONFIG/refresh_adaptive_orig"
+
+# Refresh rates the display supports, ascending, one per line
+flux_refresh_rates() {
+	dumpsys display 2>/dev/null | grep -oE 'fps=[0-9]+(\.[0-9]+)?' | cut -d= -f2 | cut -d. -f1 | sort -un
+}
+
+# Adaptive refresh: the panel may drop to its lowest rate (>= 60 Hz) when the
+# content allows it; the peak stays at the highest. Vendors that pin
+# min_refresh_rate to the peak keep the panel at 120/144 Hz all the time.
+flux_adaptive_refresh() {
+	if [ -n "$FLUX_ADAPTIVE_REFRESH" ]; then
+		# Frame rate override: apps and games get their own rate (60 fps game on a 120 Hz panel)
+		flux_prop ro.surface_flinger.enable_frame_rate_override true
+		# Content-based rate selection; idle drop after 3 s instead of a longer vendor timer
+		flux_prop_default ro.surface_flinger.use_content_detection_for_refresh_rate true
+		flux_prop_lower ro.surface_flinger.set_idle_timer_ms 3000
+		# A touch returns to the peak rate at once
+		flux_prop_default ro.surface_flinger.set_touch_timer_ms 200
+
+		# During a game the game's refresh handling owns these settings.
+		[ -f "$FLUX_REFRESH_BACKUP" ] && return 0
+		rates=$(flux_refresh_rates)
+		low=""
+		for rate in $rates; do
+			if [ "$rate" -ge 60 ]; then
+				low=$rate
+				break
+			fi
+		done
+		high=$(echo "$rates" | tail -n 1)
+		case "$low$high" in '' | *[!0-9]*) return 0 ;; esac
+		[ "$high" -gt "$low" ] || return 0
+		[ -f "$FLUX_ADAPTIVE_ORIG" ] ||
+			echo "$(settings get system peak_refresh_rate) $(settings get system min_refresh_rate)" >"$FLUX_ADAPTIVE_ORIG"
+		settings put system min_refresh_rate "$low"
+		settings put system peak_refresh_rate "$high"
+		return 0
+	fi
+
+	[ -f "$FLUX_ADAPTIVE_ORIG" ] || return 0
+	[ -f "$FLUX_REFRESH_BACKUP" ] && return 0
+	read -r peak min <"$FLUX_ADAPTIVE_ORIG"
+	for pair in "peak_refresh_rate:$peak" "min_refresh_rate:$min"; do
+		key=${pair%%:*}
+		val=${pair#*:}
+		if [ -z "$val" ] || [ "$val" = null ]; then
+			settings delete system "$key" >/dev/null 2>&1
+		else
+			settings put system "$key" "$val"
+		fi
+	done
+	rm -f "$FLUX_ADAPTIVE_ORIG"
+}
+
+FLUX_ZRAM_ORIG="$MODULE_CONFIG/zram_orig"
+FLUX_ZRAM_APPLIED="$MODULE_CONFIG/zram_applied"
+
+# Active compressor: the bracketed entry of comp_algorithm
+zram_algo() {
+	sed -n 's/.*\[\([^]]*\)\].*/\1/p' "$1/comp_algorithm" 2>/dev/null
+}
+
+# zram_resize <dir> <size> <algo>: swapoff, reset, new size and compressor, swapon
+zram_resize() {
+	name=${1##*/}
+	dev=/dev/block/$name
+	[ -b "$dev" ] || dev=/dev/$name
+	[ -b "$dev" ] || return 1
+	# swapoff moves every swapped page back to RAM; it fails (and zram stays
+	# as it is) when there is not enough free memory
+	if grep -qE "^(/dev/block/|/dev/)$name " /proc/swaps; then
+		swapoff "$dev" >/dev/null 2>&1 || return 1
+	fi
+	echo 1 >"$1/reset" 2>/dev/null
+	[ -n "$3" ] && echo "$3" >"$1/comp_algorithm" 2>/dev/null
+	echo "$2" >"$1/disksize" 2>/dev/null || return 1
+	mkswap "$dev" >/dev/null 2>&1 || return 1
+	swapon "$dev" >/dev/null 2>&1
+}
+
+# Zram sized to the RAM: 3/4 of it up to 4 GB, half above, at most 6 GB; lz4
+# (fastest to decompress: pages a game touches again come back quickest).
+# Sizes in MB, the shell's arithmetic may be 32-bit.
+flux_zram() {
+	zram=/sys/block/zram0
+	[ -f $zram/disksize ] || return 0
+	# Writeback to a backing file (Xiaomi / Samsung memory extension) is the vendor's setup
+	case "$(cat $zram/backing_dev 2>/dev/null)" in '' | none) ;; *) return 0 ;; esac
+
+	if [ -z "$FLUX_ZRAM" ]; then
+		[ -f "$FLUX_ZRAM_ORIG" ] || return 0
+		read -r size algo <"$FLUX_ZRAM_ORIG"
+		# The ROM sets zram up again at every boot: only undo what this boot changed
+		if [ "$(cat $zram/disksize)" = "$(cat "$FLUX_ZRAM_APPLIED" 2>/dev/null)" ]; then
+			case "$size" in '' | *[!0-9]*) ;; *) zram_resize $zram "$size" "$algo" ;; esac
+		fi
+		rm -f "$FLUX_ZRAM_ORIG" "$FLUX_ZRAM_APPLIED"
+		return 0
+	fi
+
+	mem_kb=0
+	while read -r key value _; do
+		if [ "$key" = MemTotal: ]; then
+			mem_kb=$value
+			break
+		fi
+	done </proc/meminfo
+	case "$mem_kb" in '' | *[!0-9]*) return 0 ;; esac
+	mem_mb=$((mem_kb / 1024))
+	[ "$mem_mb" -gt 0 ] || return 0
+	if [ "$mem_mb" -le 4096 ]; then
+		size_mb=$((mem_mb * 3 / 4))
+	else
+		size_mb=$((mem_mb / 2))
+	fi
+	[ "$size_mb" -gt 6144 ] && size_mb=6144
+	[ "$size_mb" -ge 256 ] || return 0
+
+	algo=$(zram_algo $zram)
+	for want in lz4 lzo-rle lzo; do
+		if grep -qw "$want" $zram/comp_algorithm 2>/dev/null; then
+			algo=$want
+			break
+		fi
+	done
+
+	cur=$(cat $zram/disksize)
+	# Already set up by Flux this boot
+	[ "$cur" = "$(cat "$FLUX_ZRAM_APPLIED" 2>/dev/null)" ] && [ "$(zram_algo $zram)" = "$algo" ] && return 0
+
+	[ -f "$FLUX_ZRAM_ORIG" ] || echo "$cur $(zram_algo $zram)" >"$FLUX_ZRAM_ORIG"
+	zram_resize $zram "${size_mb}M" "$algo" && cat $zram/disksize >"$FLUX_ZRAM_APPLIED"
+}
+
+flux_system() {
+	rm -f "$FLUX_PROPS_STAGE"
+	flux_reflex_props
+	flux_graphics_props
+	flux_adaptive_refresh
+	flux_props_commit
+	flux_zram
+}
+
+###################################
 # Main Function
 ###################################
 
 case "$1" in
 "perfcommon") perfcommon ;;
+"system") flux_system ;;
 "performance") performance_profile ;;
 "performance_lite") performance_profile lite ;;
 "balance") balance_profile ;;

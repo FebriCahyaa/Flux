@@ -87,6 +87,13 @@ bool FluxConfigStore::save_config(const std::string &config_path) {
     prefs_obj.AddMember("surface_boost", config_.preferences.surface_boost, allocator);
     prefs_obj.AddMember("chipset_boost", config_.preferences.chipset_boost, allocator);
     prefs_obj.AddMember("sustained_mode", config_.preferences.sustained_mode, allocator);
+    prefs_obj.AddMember("render_boost", config_.preferences.render_boost, allocator);
+    prefs_obj.AddMember("render_realtime", config_.preferences.render_realtime, allocator);
+    prefs_obj.AddMember("gpu_power_lock", config_.preferences.gpu_power_lock, allocator);
+    prefs_obj.AddMember("adreno_reflex", config_.preferences.adreno_reflex, allocator);
+    prefs_obj.AddMember("graphics_tweaks", config_.preferences.graphics_tweaks, allocator);
+    prefs_obj.AddMember("adaptive_refresh", config_.preferences.adaptive_refresh, allocator);
+    prefs_obj.AddMember("zram_tune", config_.preferences.zram_tune, allocator);
     prefs_obj.AddMember("log_level", config_.preferences.log_level, allocator);
     doc.AddMember("preferences", prefs_obj, allocator);
 
@@ -198,6 +205,13 @@ bool FluxConfigStore::create_default_config() {
             .surface_boost = true,
             .chipset_boost = true,
             .sustained_mode = true,
+            .render_boost = true,
+            .render_realtime = false,
+            .gpu_power_lock = false,
+            .adreno_reflex = false,
+            .graphics_tweaks = false,
+            .adaptive_refresh = false,
+            .zram_tune = false,
             .log_level = 4
         },
         .cpu_governor = {
@@ -249,7 +263,14 @@ bool FluxConfigStore::parse_config(const rapidjson::Document &doc) {
                                          std::pair{"drop_caches", &Preferences::drop_caches},
                                          std::pair{"surface_boost", &Preferences::surface_boost},
                                          std::pair{"chipset_boost", &Preferences::chipset_boost},
-                                         std::pair{"sustained_mode", &Preferences::sustained_mode}}) {
+                                         std::pair{"sustained_mode", &Preferences::sustained_mode},
+                                         std::pair{"render_boost", &Preferences::render_boost},
+                                         std::pair{"render_realtime", &Preferences::render_realtime},
+                                         std::pair{"gpu_power_lock", &Preferences::gpu_power_lock},
+                                         std::pair{"adreno_reflex", &Preferences::adreno_reflex},
+                                         std::pair{"graphics_tweaks", &Preferences::graphics_tweaks},
+                                         std::pair{"adaptive_refresh", &Preferences::adaptive_refresh},
+                                         std::pair{"zram_tune", &Preferences::zram_tune}}) {
             if (prefs.HasMember(key) && prefs[key].IsBool()) {
                 new_config.preferences.*field = prefs[key].GetBool();
             }

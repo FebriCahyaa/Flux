@@ -3,6 +3,32 @@
 ## Unreleased
 
 ### New
+- **Render threads on fast cores** (Game tweaks, on): fluxd finds the game's render threads
+  (Unity UnityMain / UnityGfxDevice, Unreal GameThread / RenderThread / RHIThread, GLThread, or
+  the main thread of NativeActivity games) and pins them to the fastest cores with nice -15; the
+  game's other threads leave the little cores when at least four fast cores remain. Clusters are
+  read from `cpu_capacity` (or max frequency), so the same rule fits 4+4, 1+3+4, 2+6 and other
+  layouts. Re-applied every 3 s for new threads; every thread gets its original affinity, nice
+  and policy back when the game closes. Optional **realtime** mode adds SCHED_FIFO 15 (never in
+  Lite). Stops by itself when SELinux denies it
+- **GPU power lock** (opt-in): Adreno clock, bus and rail held on while gaming even with Stable clocks
+- **Adreno Reflex** (opt-in): unsignaled-buffer latching, GL backpressure, no HWUI render-ahead,
+  triple-buffered EGL; while gaming adrenoboost, ringbuffer-level preemption, dispatcher burst,
+  context-aware DCVS and GPU counters off where the kernel has them. Off restores every value
+- **Graphics pipeline** (opt-in): threaded RenderEngine where the ROM has no backend of its own,
+  HWUI performance hints and HWC composition prediction
+- **Adaptive refresh rate** (opt-in): removes a vendor pin of `min_refresh_rate` at the peak, so
+  the panel can drop to its lowest mode (>= 60 Hz) on static content; frame rate override on,
+  idle drop after 3 s, touch timer 200 ms. Games keep their own refresh handling
+- **Zram sized to RAM** (opt-in): 3/4 of RAM up to 4 GB, half above, at most 6 GB, lz4;
+  vendor writeback setups are left alone
+- **I/O prefetch**: read-ahead of UFS / eMMC and the dm devices over them raised to 512 KB and
+  I/O accounting off while gaming (Flux Boost)
+- **CPU input boost**: msm `cpu_boost` and Sultan's `cpu_input_boost` get a mid-frequency touch
+  boost while gaming, where the kernel has them
+- **Device rules per chipset**, applied automatically: Snapdragon 888 / 8 Gen 1, Parrot
+  (7s Gen 2, 6 Gen 1), Exynos 2100 / 2200 and Dimensity 9000 get no performance governor, and the
+  Snapdragon ones no GPU power lock. The Device mitigation page lists the rules that match
 - **Stable clocks** (Flux Boost, on by default): the performance profile no longer pins CPU, GPU
   and memory bus at their highest clock (min = max, performance governor) for the whole game.
   The highest clocks stay reachable, but the vendor governor moves them from a mid floor, and the

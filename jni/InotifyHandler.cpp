@@ -29,6 +29,7 @@
 
 // signal_daemon_update and signal_daemon_stop are defined in Main.cpp
 extern void signal_daemon_update();
+extern std::atomic<bool> system_tweaks_pending;
 extern void signal_daemon_stop();
 
 /**
@@ -76,6 +77,10 @@ void on_json_modified(const struct inotify_event *event, const std::string &path
         // Apply new log level
         auto prefs = config_store.get_preferences();
         FluxLog::set_log_level(prefs.log_level);
+        // System tweaks follow their switches at once; the main loop runs them
+        // (setenv and the profiler are not safe from this thread).
+        system_tweaks_pending.store(true, std::memory_order_relaxed);
+        signal_daemon_update();
     };
 
     auto OnSynthesisCoreModified = [&](const std::string &path) -> void {

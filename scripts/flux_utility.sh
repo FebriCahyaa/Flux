@@ -90,8 +90,20 @@ capabilities() {
 	printf '"core_ctl":%s,"sched_boost":%s,"kgsl":%s,"mali":%s,"workqueue":%s,' \
 		"$core_ctl" "$sched_boost" "$(has /sys/class/kgsl/kgsl-3d0/force_rail_on)" "$mali" \
 		"$(has /sys/module/workqueue/parameters/power_efficient)"
-	printf '"input":%s,"sec_touch":%s,"ksm":%s}\n' \
-		"$(has /dev/cpuset/top-app/tasks)" "$sec_touch" "$(has /sys/kernel/mm/ksm/run)"
+	# More than one CPU cluster (render threads can move to the fast cores)
+	clusters=$(cat /sys/devices/system/cpu/cpu[0-9]*/cpu_capacity 2>/dev/null | sort -u | wc -l)
+	[ "${clusters:-0}" -gt 1 ] ||
+		clusters=$(cat /sys/devices/system/cpu/cpu[0-9]*/cpufreq/cpuinfo_max_freq 2>/dev/null | sort -u | wc -l)
+	multi_cluster=false
+	[ "${clusters:-0}" -gt 1 ] && multi_cluster=true
+	# zram that Flux may resize (vendor writeback setups are left alone)
+	zram=false
+	if [ -f /sys/block/zram0/disksize ]; then
+		case "$(cat /sys/block/zram0/backing_dev 2>/dev/null)" in '' | none) zram=true ;; esac
+	fi
+
+	printf '"input":%s,"sec_touch":%s,"ksm":%s,"clusters":%s,"zram":%s}\n' \
+		"$(has /dev/cpuset/top-app/tasks)" "$sec_touch" "$(has /sys/kernel/mm/ksm/run)" "$multi_cluster" "$zram"
 }
 
 # Best-effort ROM family from well-known vendor properties.

@@ -28,6 +28,8 @@
 #include "DeviceMitigationStore.hpp"
 #include "FluxConfigStore.hpp"
 
+#include <mutex>
+
 #include <FluxUtility.hpp>
 #include <SynthesisCore.hpp>
 
@@ -82,6 +84,13 @@ void set_profiler_env_vars() {
     if (!prefs.surface_boost) setenv("FLUX_SURFACE_DISABLED", "1", 1);
     if (!prefs.chipset_boost) setenv("FLUX_CHIPSET_DISABLED", "1", 1);
     if (prefs.sustained_mode) setenv("FLUX_SUSTAINED", "1", 1);
+    if (prefs.gpu_power_lock) setenv("FLUX_GPU_LOCK", "1", 1);
+
+    // System tweaks (flux_profiler.sh system); off means the stock values are restored.
+    if (prefs.adreno_reflex && !prefs.disable_tweaks) setenv("FLUX_REFLEX", "1", 1);
+    if (prefs.graphics_tweaks && !prefs.disable_tweaks) setenv("FLUX_GRAPHICS", "1", 1);
+    if (prefs.adaptive_refresh && !prefs.disable_tweaks) setenv("FLUX_ADAPTIVE_REFRESH", "1", 1);
+    if (prefs.zram_tune && !prefs.disable_tweaks) setenv("FLUX_ZRAM", "1", 1);
 
     // Set CPU Governor variables
     FluxConfigStore::CPUGovernor cpu_governor_preference = config_store.get_cpu_governor();
@@ -107,6 +116,28 @@ void set_profiler_env_vars() {
             setenv("FLUX_IS_GKI_KERNEL",        "0", 1);
             setenv("FLUX_THERMAL_API_AVAILABLE", "0", 1);
         }
+    }
+}
+
+void apply_system_tweaks(bool force) {
+    // Boot-time and on-change tweaks (zram, refresh range, graphics props). They run
+    // even with tweaks disabled so that switching them off restores the stock values.
+    static std::mutex mutex;
+    static std::string applied;
+    const auto prefs = config_store.get_preferences();
+    const bool off = prefs.disable_tweaks;
+    const std::string wanted = std::string(prefs.adreno_reflex && !off ? "r" : "-") +
+                               (prefs.graphics_tweaks && !off ? "g" : "-") +
+                               (prefs.adaptive_refresh && !off ? "a" : "-") + (prefs.zram_tune && !off ? "z" : "-");
+
+    std::lock_guard lock(mutex);
+    if (!force && wanted == applied) return;
+    applied = wanted;
+
+    set_profiler_env_vars();
+    LOGI_TAG("Profiler", "Applying system tweaks ({})", wanted);
+    if (system("flux_profiler system") != 0) {
+        LOGE("Unable to execute profiler changes to system tweaks");
     }
 }
 

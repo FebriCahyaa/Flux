@@ -41,46 +41,51 @@
           </div>
         </div>
 
-        <div class="mb-6">
-          <div
-            v-for="(item, i) in visibleItems"
-            :key="item.key"
-            class="md3-list m3-enter"
-            :style="{ animationDelay: `${i * 50}ms` }"
-          >
-            <div class="md3-list-item flex items-center gap-4 px-5 py-4">
-              <span class="item-badge" :class="[item.shape, item.tone]">
-                <component :is="item.icon" :size="22" />
-              </span>
-              <span class="flex-1 min-w-0">
-                <span class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <span class="text-sm font-semibold text-on-surface">{{
-                    $t(`game_tweaks.${item.key}.title`)
-                  }}</span>
-                  <span v-if="item.tag" class="tag" :class="item.tagTone">{{
-                    $t(`game_tweaks.tags.${item.tag}`)
-                  }}</span>
+        <template v-for="group in GROUPS" :key="group">
+          <h2 v-if="visibleIn(group).length" class="text-sm font-semibold text-primary px-4 pb-2">
+            {{ $t(`game_tweaks.groups.${group}`) }}
+          </h2>
+          <div v-if="visibleIn(group).length" class="mb-6">
+            <div
+              v-for="(item, i) in visibleIn(group)"
+              :key="item.key"
+              class="md3-list m3-enter"
+              :style="{ animationDelay: `${i * 50}ms` }"
+            >
+              <div class="md3-list-item flex items-center gap-4 px-5 py-4">
+                <span class="item-badge" :class="[item.shape, item.tone]">
+                  <component :is="item.icon" :size="22" />
                 </span>
-                <span class="block text-xs text-on-surface-variant mt-1 leading-relaxed">{{
-                  $t(`game_tweaks.${item.key}.description`)
-                }}</span>
-                <span v-if="partsOf(item.key).length" class="flex flex-wrap gap-1 mt-2">
-                  <span
-                    v-for="part in partsOf(item.key)"
-                    :key="part"
-                    class="tag bg-surface-container-highest text-on-surface"
-                    >{{ $t(`game_tweaks.parts.${part}`) }}</span
-                  >
+                <span class="flex-1 min-w-0">
+                  <span class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span class="text-sm font-semibold text-on-surface">{{
+                      $t(`game_tweaks.${item.key}.title`)
+                    }}</span>
+                    <span v-if="item.tag" class="tag" :class="item.tagTone">{{
+                      $t(`game_tweaks.tags.${item.tag}`)
+                    }}</span>
+                  </span>
+                  <span class="block text-xs text-on-surface-variant mt-1 leading-relaxed">{{
+                    $t(`game_tweaks.${item.key}.description`)
+                  }}</span>
+                  <span v-if="partsOf(item.key).length" class="flex flex-wrap gap-1 mt-2">
+                    <span
+                      v-for="part in partsOf(item.key)"
+                      :key="part"
+                      class="tag bg-surface-container-highest text-on-surface"
+                      >{{ $t(`game_tweaks.parts.${part}`) }}</span
+                    >
+                  </span>
                 </span>
-              </span>
-              <ToggleSwitch
-                :id="`tweak-${item.key}`"
-                :model-value="values[item.key]"
-                @update:modelValue="(v) => toggle(item, v)"
-              />
+                <ToggleSwitch
+                  :id="`tweak-${item.key}`"
+                  :model-value="values[item.key]"
+                  @update:modelValue="(v) => toggle(item, v)"
+                />
+              </div>
             </div>
           </div>
-        </div>
+        </template>
 
         <!-- Tweaks this device cannot use are hidden -->
         <div v-if="hiddenItems.length" class="hidden-card mb-4">
@@ -123,6 +128,9 @@ import SparkleIcon from '@/components/icons/Sparkle.vue'
 import LayersIcon from '@/components/icons/Layers.vue'
 import ChipsetIcon from '@/components/icons/Chipset.vue'
 import EyeOffIcon from '@/components/icons/EyeOff.vue'
+import GpuIcon from '@/components/icons/Gpu.vue'
+import MonitorIcon from '@/components/icons/Monitor.vue'
+import BoltChargeIcon from '@/components/icons/BoltCharge.vue'
 import InformationOutlineIcon from '@/components/icons/InformationOutline.vue'
 import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
 
@@ -188,12 +196,86 @@ const items = [
     shape: 'shape-pentagon',
     tone: 'bg-surface-container-highest text-on-surface',
   },
+  // Render & GPU (fluxd RenderBooster, kgsl while gaming)
+  {
+    key: 'render_boost',
+    group: 'render',
+    icon: SpeedIcon,
+    shape: 'shape-cookie9',
+    tone: 'bg-primary-container text-on-primary-container',
+    tag: 'all_devices',
+    tagTone: 'bg-primary-container text-on-primary-container',
+  },
+  {
+    key: 'render_realtime',
+    group: 'render',
+    cap: 'clusters',
+    icon: BoltChargeIcon,
+    shape: 'shape-burst',
+    tone: 'bg-tertiary-container text-on-tertiary-container',
+    tag: 'advanced',
+    tagTone: 'bg-tertiary-container text-on-tertiary-container',
+    confirmOn: true,
+  },
+  {
+    key: 'gpu_power_lock',
+    group: 'render',
+    cap: 'kgsl',
+    icon: GpuIcon,
+    shape: 'shape-sunny',
+    tone: 'bg-secondary-container text-on-secondary-container',
+    tag: 'heat',
+    tagTone: 'bg-tertiary-container text-on-tertiary-container',
+    confirmOn: true,
+  },
+  {
+    key: 'adreno_reflex',
+    group: 'render',
+    cap: 'kgsl',
+    icon: TouchTapIcon,
+    shape: 'shape-flower',
+    tone: 'bg-primary-container text-on-primary-container',
+    tag: 'reboot',
+    tagTone: 'bg-secondary-container text-on-secondary-container',
+    confirmOn: true,
+  },
+  // System (flux_profiler system: at boot and when switched)
+  {
+    key: 'graphics_tweaks',
+    group: 'system',
+    icon: LayersIcon,
+    shape: 'shape-clover4',
+    tone: 'bg-secondary-container text-on-secondary-container',
+    tag: 'reboot',
+    tagTone: 'bg-secondary-container text-on-secondary-container',
+    confirmOn: true,
+  },
+  {
+    key: 'adaptive_refresh',
+    group: 'system',
+    cap: 'refresh',
+    icon: MonitorIcon,
+    shape: 'shape-pentagon',
+    tone: 'bg-tertiary-container text-on-tertiary-container',
+    tag: 'reboot',
+    tagTone: 'bg-secondary-container text-on-secondary-container',
+  },
+  {
+    key: 'zram_tune',
+    group: 'system',
+    cap: 'zram',
+    icon: ChipsetIcon,
+    shape: 'shape-cookie9',
+    tone: 'bg-primary-container text-on-primary-container',
+  },
 ]
+const GROUPS = ['game', 'render', 'system']
 
 const values = reactive({ ...fluxConfigStore.gameTweaks })
 
 const caps = computed(() => capabilities.caps)
 const visibleItems = computed(() => items.filter((i) => capabilities.supports(i.cap)))
+const visibleIn = (group) => visibleItems.value.filter((i) => (i.group || 'game') === group)
 const hiddenItems = computed(() => items.filter((i) => !capabilities.supports(i.cap)))
 const detected = (list) => list.filter((p) => caps.value?.[p])
 const partsOf = (key) =>

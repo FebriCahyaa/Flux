@@ -269,8 +269,15 @@
       "QCOM_NO_GPU_POWERSAVE": {
         "title": "Keep GPU floor in Powersave",
         "description": "Snapdragon: Powersave no longer lowers the Adreno GPU minimum, which was reported to break video after waking the phone."
+      },
+      "NO_GPU_POWER_LOCK": {
+        "title": "No GPU power lock",
+        "description": "The Adreno clock and rails are never held on during games, even with max clocks or GPU power lock switched on."
       }
-    }
+    },
+    "rules_title": "Automatic rules for this chipset",
+    "rules_none": "No chipset rule matches this device.",
+    "rules_note": "These apply on their own, with or without the switch above."
   },
   "cpu_governor": {
     "title": "CPU Governor",
@@ -481,7 +488,10 @@
     "tags": {
       "battery": "Saves power",
       "all_devices": "All devices",
-      "not_lite": "Not in Lite mode"
+      "not_lite": "Not in Lite mode",
+      "advanced": "Advanced",
+      "heat": "More heat",
+      "reboot": "Full effect after reboot"
     },
     "net_tweaks": {
       "title": "Network latency",
@@ -540,6 +550,47 @@
       "input": "Input threads",
       "touchpanel": "OPLUS panel game mode",
       "sec_touch": "Samsung panel game mode"
+    },
+    "groups": {
+      "game": "Game",
+      "render": "Render & GPU",
+      "system": "System (applied at boot)"
+    },
+    "render_boost": {
+      "title": "Render threads on fast cores",
+      "description": "Finds the game's render threads (Unity, Unreal, GL, Vulkan) and pins them to the fastest cores with nice -15; the game's other threads leave the little cores. Clusters are read from the kernel, re-applied every 3 s for new threads, and every thread gets its own affinity and priority back when the game closes."
+    },
+    "render_realtime": {
+      "title": "Realtime render threads",
+      "description": "Also runs the render threads as SCHED_FIFO 15. Steadier frame times on some games, but a busy render thread can starve other work on its core. Never used in Performance Lite.",
+      "confirm_title": "Enable realtime render threads?",
+      "confirm_message": "SCHED_FIFO gives the game's render threads priority over normal apps and system services on their cores. If a game stutters, lags input or the phone gets unresponsive, switch this off."
+    },
+    "gpu_power_lock": {
+      "title": "GPU power lock",
+      "description": "Keeps the Adreno clock, bus and power rail on between frames (kgsl force_clk_on, force_bus_on, force_rail_on, force_no_nap) even with Stable clocks. Lower frame-time spikes, more heat. Device rules switch it off on chips known to overheat.",
+      "confirm_title": "Enable GPU power lock?",
+      "confirm_message": "The GPU no longer powers down between frames, so the phone runs warmer and uses more battery during games."
+    },
+    "adreno_reflex": {
+      "title": "Adreno Reflex",
+      "description": "Latency keys: SurfaceFlinger latches unsignaled buffers and uses GL backpressure, no HWUI render-ahead, triple-buffered EGL; while gaming adrenoboost, ringbuffer-level preemption, dispatcher burst, context-aware DCVS and GPU counters off where the kernel has them. Switching it off restores every stock value.",
+      "confirm_title": "Enable Adreno Reflex?",
+      "confirm_message": "Latching unsignaled buffers can show brief visual glitches on some GPUs and ROMs. SurfaceFlinger keys take full effect after a reboot; GPU profilers cannot read counters while gaming."
+    },
+    "graphics_tweaks": {
+      "title": "Graphics pipeline",
+      "description": "SurfaceFlinger RenderEngine on its own thread (skiaglthreaded, only when the ROM has not chosen another backend), HWUI frame hints to the power HAL for smoother UI and blur, and HWC composition prediction. Written to the module's system.prop and removed when off.",
+      "confirm_title": "Enable graphics pipeline tweaks?",
+      "confirm_message": "These properties are read when SurfaceFlinger starts: reboot for the full effect. If the UI misbehaves, switch this off and reboot."
+    },
+    "adaptive_refresh": {
+      "title": "Adaptive refresh rate",
+      "description": "Lets the panel drop to its lowest rate (60 Hz or more) on static content while the peak stays at the highest; frame rate override on, idle drop after 3 s, touch returns to the peak at once. Games keep their own refresh handling."
+    },
+    "zram_tune": {
+      "title": "Zram sized to RAM",
+      "description": "Resizes compressed swap to the device RAM (3/4 up to 4 GB, half above, at most 6 GB) with the lz4 compressor. Applied at boot; vendor setups with writeback to storage are left alone. Off puts the ROM's size back."
     }
   }
 }

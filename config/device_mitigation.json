@@ -2,5 +2,42 @@
   "default": {
     "items": ["DISABLE_DDR_TWEAK", "NO_PERFORMANCE_CPUGOV", "QCOM_NO_GPU_POWERSAVE"]
   },
-  "device_rules": {}
+  "device_rules": {
+    "qcom_hot_flagship": {
+      "name": "Snapdragon 888 / 8 Gen 1",
+      "description": "Lahaina (SM8350) and Waipio (SM8450) throttle hard under sustained load: no performance governor, no GPU power lock.",
+      "filter_type": "any",
+      "filter_condition": {
+        "soc": { "operator": "regex", "value": "[Ll]ahaina|[Ww]aipio|SM8350|SM8450" }
+      },
+      "items": ["NO_PERFORMANCE_CPUGOV", "NO_GPU_POWER_LOCK"]
+    },
+    "qcom_parrot": {
+      "name": "Snapdragon 7s Gen 2 / 6 Gen 1 (Parrot)",
+      "description": "Parrot phones (Redmi Note 13 Pro 5G, POCO X6, ...) are passively cooled: clocks pinned at max and rails held on averaged 77 °C CPU in games.",
+      "filter_type": "any",
+      "filter_condition": {
+        "soc": { "operator": "regex", "value": "[Pp]arrot|SM7435|SM6450" }
+      },
+      "items": ["NO_PERFORMANCE_CPUGOV", "NO_GPU_POWER_LOCK"]
+    },
+    "exynos_hot": {
+      "name": "Exynos 2100 / 2200",
+      "description": "Exynos 2100 (S5E9840) and 2200 (S5E9925) overheat with the performance governor.",
+      "filter_type": "any",
+      "filter_condition": {
+        "soc": { "operator": "regex", "value": "S5E9840|S5E9925|[Ee]xynos ?2[12]00" }
+      },
+      "items": ["NO_PERFORMANCE_CPUGOV"]
+    },
+    "mtk_dimensity_9000": {
+      "name": "Dimensity 9000 / 9000+",
+      "description": "MT6983 runs its big cores far past the phone's sustained power budget: no performance governor.",
+      "filter_type": "any",
+      "filter_condition": {
+        "soc": { "operator": "regex", "value": "MT6983" }
+      },
+      "items": ["NO_PERFORMANCE_CPUGOV"]
+    }
+  }
 }

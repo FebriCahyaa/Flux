@@ -46,6 +46,15 @@ public:
         bool surface_boost = true;      ///< SurfaceFlinger / composer threads on the top-app cgroups while gaming
         bool chipset_boost = true;      ///< core_ctl, sched_boost and GPU power-rail tuning while gaming
         bool sustained_mode = true;     ///< governor-managed clocks with a mid floor instead of pinning them at max
+        // Render booster (RenderBooster.cpp): game render threads on the fastest cores while gaming
+        bool render_boost = true;       ///< render threads on big/prime cores, nice -15, other game threads off the little cores
+        bool render_realtime = false;   ///< render threads additionally SCHED_FIFO 15
+        // System tweaks (flux_profiler.sh system): applied at boot and on change, reverted when off
+        bool gpu_power_lock = false;    ///< KGSL clocks and rails held on while gaming, even with stable clocks
+        bool adreno_reflex = false;     ///< Adreno / SurfaceFlinger latency keys (kgsl sysfs + debug props)
+        bool graphics_tweaks = false;   ///< RenderEngine / HWUI pipeline and composition prediction props
+        bool adaptive_refresh = false;  ///< let the panel drop to its lowest rate outside games (vendor min pin removed)
+        bool zram_tune = false;         ///< zram sized to the device RAM with a fast compressor
         int log_level = 4;
     };
 
