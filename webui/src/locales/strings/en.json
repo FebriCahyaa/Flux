@@ -401,7 +401,14 @@
       "title": "Game priority",
       "description": "Gives the game's worker threads higher CPU and storage priority than other apps. Threads Android already boosts are left alone."
     },
-    "apply_note": "Changes take effect the next time a profile is applied, for example when a game starts."
+    "apply_note": "Changes take effect the next time a profile is applied, for example when a game starts.",
+    "sustained": {
+      "title": "Stable clocks",
+      "description": "CPU, GPU and memory can still reach their highest clock, but the governor moves them from a mid floor instead of pinning them at the top all game. Much cooler in long sessions, so the phone throttles later and FPS stays steadier. Recommended.",
+      "off_title": "Pin clocks at maximum?",
+      "off_message": "Every clock stays at its highest step for the whole game, with the performance governor. Peak FPS can rise slightly at the start, but the phone heats up quickly and thermal throttling then causes bigger drops.",
+      "off_action": "Pin at maximum"
+    }
   },
   "sessions": {
     "recording": "Recording",
@@ -472,7 +479,7 @@
     "title": "Game Tweaks",
     "brief": "Extra tweaks applied only while a game runs. Everything is put back when you leave the game.",
     "tags": {
-      "battery": "Uses more battery",
+      "battery": "Saves power",
       "all_devices": "All devices",
       "not_lite": "Not in Lite mode"
     },
@@ -485,10 +492,10 @@
       "description": "Moves Android's input threads (InputReader, InputDispatcher) onto the game's CPU group on every device, and turns on the touch panel's game mode where the driver has one (OPPO, realme, OnePlus, Samsung)."
     },
     "game_refresh_rate": {
-      "title": "Max refresh rate in games",
-      "description": "Locks the display at its highest refresh rate while you play. Some ROMs may still override it.",
-      "confirm_title": "Lock the highest refresh rate?",
-      "confirm_message": "The screen stays at its maximum refresh rate while a game runs. Motion looks smoother but the battery drains faster. Your previous setting is restored after the game."
+      "title": "Refresh rate follows the game",
+      "description": "Starts at the panel's highest rate, then settles on the smallest mode that still shows every frame the game renders (e.g. 90 Hz for a 90 FPS game on a 120 Hz screen): the same smoothness with less power and heat.",
+      "confirm_title": "Let the refresh rate follow the game?",
+      "confirm_message": "While a game runs Flux controls the refresh rate: it starts at the highest mode and settles on the one the game actually uses. Your own setting comes back when the game ends. Some ROMs may override it."
     },
     "drop_caches": {
       "title": "Clear memory cache",

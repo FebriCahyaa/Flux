@@ -84,6 +84,9 @@ apply_gki() {
 # Detect at script startup
 detect_kernel_type
 
+# Clock pinning (performance_profile sets it); other profiles never pin.
+PIN_MAX=0
+
 # HiCo Thermal owns the thermal layer when it is installed and not switched off:
 # it unlocks thermal during games under its own safety guard and restores the
 # exact stock values afterwards. Flux then leaves thermal nodes alone, so the
@@ -178,7 +181,7 @@ cpufreq_ppm_max_perf() {
 		cpu_maxfreq=$(<"$path/cpuinfo_max_freq")
 		write "$cluster $cpu_maxfreq" /proc/ppm/policy/hard_userlimit_max_cpu_freq
 
-		[ $LITE_MODE -eq 1 ] && {
+		[ $PIN_MAX -eq 0 ] && {
 			cpu_midfreq=$(which_midfreq "$path/scaling_available_frequencies")
 			write "$cluster $cpu_midfreq" /proc/ppm/policy/hard_userlimit_min_cpu_freq
 			continue
@@ -193,7 +196,7 @@ cpufreq_max_perf() {
 		cpu_maxfreq=$(<"$path/cpuinfo_max_freq")
 		apply "$cpu_maxfreq" "$path/scaling_max_freq"
 
-		[ $LITE_MODE -eq 1 ] && {
+		[ $PIN_MAX -eq 0 ] && {
 			cpu_midfreq=$(which_midfreq "$path/scaling_available_frequencies")
 			apply "$cpu_midfreq" "$path/scaling_min_freq"
 			continue
@@ -317,7 +320,7 @@ mediatek_performance() {
 	apply 0 /proc/gpufreq/gpufreq_opp_freq
 	apply -1 /proc/gpufreqv2/fix_target_opp_index
 
-	[ $LITE_MODE -eq 0 ] && {
+	[ $PIN_MAX -eq 1 ] && {
 		if [ -d /proc/gpufreqv2 ]; then
 			apply 0 /proc/gpufreqv2/fix_target_opp_index
 		else
@@ -343,7 +346,7 @@ mediatek_performance() {
 		apply 0 "$path/helio-dvfsrc/dvfsrc_req_ddr_opp"
 	done
 
-	if [ $LITE_MODE -eq 0 ]; then
+	if [ $PIN_MAX -eq 1 ]; then
 		devfreq_max_perf /sys/class/devfreq/mtk-dvfsrc-devfreq
 	else
 		devfreq_mid_perf /sys/class/devfreq/mtk-dvfsrc-devfreq
@@ -361,7 +364,7 @@ snapdragon_performance() {
 			/sys/class/devfreq/*latfloor* \
 			/sys/class/devfreq/*ddr-lat*; do
 
-			if [ $LITE_MODE -eq 0 ]; then
+			if [ $PIN_MAX -eq 1 ]; then
 				devfreq_max_perf "$path"
 			else
 				devfreq_mid_perf "$path"
@@ -370,7 +373,7 @@ snapdragon_performance() {
 
 		for component in DDR LLCC L3; do
 			path="/sys/devices/system/cpu/bus_dcvs/$component"
-			if [ "$LITE_MODE" -eq 0 ]; then
+			if [ "$PIN_MAX" -eq 1 ]; then
 				qcom_cpudcvs_max_perf "$path"
 			else
 				qcom_cpudcvs_mid_perf "$path"
@@ -380,7 +383,7 @@ snapdragon_performance() {
 
 	# GPU tweak
 	gpu_path="/sys/class/kgsl/kgsl-3d0/devfreq"
-	if [ "$LITE_MODE" -eq 0 ]; then
+	if [ "$PIN_MAX" -eq 1 ]; then
 		devfreq_max_perf "$gpu_path"
 	else
 		devfreq_unlock "$gpu_path"
@@ -399,7 +402,7 @@ tegra_performance() {
 		max_freq=$(which_maxfreq "$gpu_path/available_frequencies")
 		apply "$max_freq" "$gpu_path/gpu_cap_rate"
 
-		if [ $LITE_MODE -eq 0 ]; then
+		if [ $PIN_MAX -eq 1 ]; then
 			apply "$max_freq" "$gpu_path/gpu_floor_rate"
 		else
 			min_freq=$(which_minfreq "$gpu_path/available_frequencies")
@@ -415,7 +418,7 @@ exynos_performance() {
 		max_freq=$(which_maxfreq "$gpu_path/gpu_available_frequencies")
 		apply "$max_freq" "$gpu_path/gpu_max_clock"
 
-		if [ $LITE_MODE -eq 0 ]; then
+		if [ $PIN_MAX -eq 1 ]; then
 			apply "$max_freq" "$gpu_path/gpu_min_clock"
 		else
 			min_freq=$(which_minfreq "$gpu_path/gpu_available_frequencies")
@@ -429,7 +432,7 @@ exynos_performance() {
 	# DRAM and Buses Frequency
 	[ -z "$FLUX_DISABLE_DDR_TWEAK" ] && {
 		for path in /sys/class/devfreq/*devfreq_mif*; do
-			if [ $LITE_MODE -eq 1 ]; then
+			if [ $PIN_MAX -eq 0 ]; then
 				devfreq_mid_perf "$path"
 			else
 				devfreq_max_perf "$path"
@@ -442,7 +445,7 @@ unisoc_performance() {
 	# GPU Frequency
 	gpu_path=$(find /sys/class/devfreq/ -type d -iname "*.gpu" -print -quit 2>/dev/null)
 	[ -n "$gpu_path" ] && {
-		if [ $LITE_MODE -eq 0 ]; then
+		if [ $PIN_MAX -eq 1 ]; then
 			devfreq_max_perf "$gpu_path"
 		else
 			devfreq_unlock "$gpu_path"
@@ -457,7 +460,7 @@ tensor_performance() {
 		max_freq=$(which_maxfreq "$gpu_path/available_frequencies")
 		apply "$max_freq" "$gpu_path/scaling_max_freq"
 
-		if [ $LITE_MODE -eq 0 ]; then
+		if [ $PIN_MAX -eq 1 ]; then
 			apply "$max_freq" "$gpu_path/scaling_min_freq"
 		else
 			min_freq=$(which_minfreq "$gpu_path/available_frequencies")
@@ -468,7 +471,7 @@ tensor_performance() {
 	# DRAM frequency
 	[ -z "$FLUX_DISABLE_DDR_TWEAK" ] && {
 		for path in /sys/class/devfreq/*devfreq_mif*; do
-			if [ $LITE_MODE -eq 1 ]; then
+			if [ $PIN_MAX -eq 0 ]; then
 				devfreq_mid_perf "$path"
 			else
 				devfreq_max_perf "$path"
@@ -1175,9 +1178,9 @@ flux_chipset() {
 		[ "$(cat "$node" 2>/dev/null)" = 2 ] || apply 1 "$node"
 	fi
 
-	# Adreno kgsl power control
+	# Adreno kgsl power control (not in Sustained mode: keeping the rails on costs heat all game)
 	kgsl=/sys/class/kgsl/kgsl-3d0
-	if [ -d "$kgsl" ]; then
+	if [ -d "$kgsl" ] && [ "$PIN_MAX" -eq 1 ]; then
 		flux_boost_save chipset $kgsl/force_bus_on $kgsl/force_rail_on $kgsl/force_no_nap
 		apply 1 $kgsl/force_bus_on
 		apply 1 $kgsl/force_rail_on
@@ -1196,6 +1199,7 @@ flux_chipset() {
 
 	# ARM Mali kbase power policy; the file lists all policies, the active one in brackets
 	[ "$SOC" = 3 ] && return 0
+	[ "$PIN_MAX" -eq 1 ] || return 0 # Sustained: the GPU may power down between frames
 	: >"$FLUX_MALI_BACKUP"
 	for node in $(mali_policy_nodes); do
 		cur=$(sed -n 's/.*\[\([a-z_]*\)\].*/\1/p' "$node" 2>/dev/null)
@@ -1331,6 +1335,15 @@ performance_profile() {
 	LITE_MODE=0
 	[ "$1" = "lite" ] && LITE_MODE=1
 
+	# PIN_MAX=1 pins CPU, GPU and memory bus at their highest clock (min = max) and uses the
+	# performance governor: the most heat. Sustained mode (default, Settings -> Flux Boost) and
+	# Lite keep the highest clocks reachable but let the governor move between a mid floor and
+	# the top, so a game that does not need every MHz does not heat the phone into throttling.
+	PIN_MAX=1
+	if [ $LITE_MODE -eq 1 ] || [ -n "$FLUX_SUSTAINED" ]; then
+		PIN_MAX=0
+	fi
+
 	# Disable battery saver module
 	[ -f /sys/module/battery_saver/parameters/enabled ] && {
 		if grep -qo '[0-9]\+' /sys/module/battery_saver/parameters/enabled; then
@@ -1389,13 +1402,13 @@ performance_profile() {
 	# If lite mode enabled, use the default governor instead.
 	# device mitigation also will prevent performance gov to be
 	# applied (some device hates performance governor).
-	if [ $LITE_MODE -eq 0 ] && [ -z "$FLUX_NO_PERFORMANCE_CPUGOV" ]; then
+	if [ $PIN_MAX -eq 1 ] && [ -z "$FLUX_NO_PERFORMANCE_CPUGOV" ]; then
 		change_cpu_gov performance
 	else
 		change_cpu_gov "$DEFAULT_CPU_GOV"
 	fi
 
-	# Force CPU to highest possible frequency.
+	# CPU clocks: pinned at the maximum, or a mid floor with the maximum reachable (PIN_MAX=0).
 	if [ -d /proc/ppm ]; then
 		cpufreq_ppm_max_perf
 	else

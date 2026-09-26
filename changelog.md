@@ -3,6 +3,15 @@
 ## Unreleased
 
 ### New
+- **Stable clocks** (Flux Boost, on by default): the performance profile no longer pins CPU, GPU
+  and memory bus at their highest clock (min = max, performance governor) for the whole game.
+  The highest clocks stay reachable, but the vendor governor moves them from a mid floor, and the
+  Adreno / Mali power rails may power down between frames. Much less heat in long sessions, so
+  thermal throttling starts later and FPS stays steadier. Switch it off to pin clocks as before
+- **Refresh rate follows the game** (Game tweaks): starts at the panel's highest mode, then settles
+  on the smallest mode that still shows every frame the game renders, measured from the game's
+  own frames (e.g. 90 Hz for MLBB's 90 FPS on a 120 Hz panel); when the game hits the panel limit
+  the next mode is tried once and kept only if the game uses it
 - **HiCo Thermal sync**: when HiCo is installed and not switched off, Flux leaves the thermal
   zone governors and MediaTek EARA thermal to HiCo, so HiCo's safety guard controls them and
   restores the exact stock values

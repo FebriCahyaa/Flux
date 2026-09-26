@@ -81,6 +81,7 @@ void set_profiler_env_vars() {
     if (!prefs.drop_caches) setenv("FLUX_DROP_CACHES_DISABLED", "1", 1);
     if (!prefs.surface_boost) setenv("FLUX_SURFACE_DISABLED", "1", 1);
     if (!prefs.chipset_boost) setenv("FLUX_CHIPSET_DISABLED", "1", 1);
+    if (prefs.sustained_mode) setenv("FLUX_SUSTAINED", "1", 1);
 
     // Set CPU Governor variables
     FluxConfigStore::CPUGovernor cpu_governor_preference = config_store.get_cpu_governor();

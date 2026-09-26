@@ -251,6 +251,100 @@ private:
     int64_t next_lookup_ = 0;
 };
 
+/**
+ * Game refresh rate matching (Game tweaks -> refresh rate): the profiler raises the panel to its
+ * highest mode when a game starts; this lowers it to the smallest mode at or above what the game
+ * actually renders, e.g. 90 Hz for a game capped at 90 FPS on a 120 Hz panel: the same
+ * smoothness for less power and heat. Every 30 s of the game's own frame rate:
+ *   - well below the panel rate  -> the matching lower mode
+ *   - at the panel rate          -> probe the next mode up (the game may want more, e.g. a
+ *                                   lobby at 60 then a match at 90); if the game does not use
+ *                                   it, go back and keep that rate for the rest of the session
+ * Only while the profiler holds the refresh rate (/dev/.flux_refresh_orig: the user's setting,
+ * restored when the game ends) and only from the game's own frames, never the panel rate.
+ */
+class RefreshMatcher {
+public:
+    void on_sample(float fps, const std::string &source) {
+        if (source != "game" && source != "fpsgo") return;
+        if (!exists("/dev/.flux_refresh_orig")) return;
+        if (++seconds_ <= kWarmup) return;
+        if (std::isfinite(fps)) window_.push_back(fps);
+        if (window_.size() < kWindow) return;
+
+        std::sort(window_.begin(), window_.end());
+        const float p90 = window_[window_.size() * 9 / 10];
+        window_.clear();
+        if (rates_.empty()) load_rates();
+        if (rates_.empty()) return;
+        if (current_ == 0) current_ = rates_.back();
+
+        // The game's highest rate is known: keep it for the rest of the session, so a lobby
+        // does not drop the panel just before the next match needs it again.
+        if (locked_) return;
+        if (probe_from_ != 0) {
+            const int back = probe_from_;
+            probe_from_ = 0;
+            if (p90 < static_cast<float>(back + kSlack)) {
+                set(back, p90);
+                locked_ = true; // the game does not go faster: this is its rate
+            }
+            return;
+        }
+        if (p90 < static_cast<float>(current_ - kSlack)) {
+            const int target = pick(p90);
+            if (target < current_) set(target, p90);
+        } else if (!locked_) {
+            const auto next = std::upper_bound(rates_.begin(), rates_.end(), current_);
+            if (next != rates_.end()) {
+                probe_from_ = current_;
+                set(*next, p90);
+            }
+        }
+    }
+
+private:
+    static constexpr int kWarmup = 15;      ///< s ignored after the game starts (loading)
+    static constexpr size_t kWindow = 30;   ///< samples per decision
+    static constexpr int kSlack = 3;        ///< FPS margin under a panel mode
+
+    void load_rates() {
+        std::istringstream in(capture({"/system/bin/dumpsys", "display"}, 512 * 1024));
+        std::string word;
+        while (in >> word) {
+            const auto at = word.find("fps=");
+            if (at == std::string::npos) continue;
+            const int r = std::atoi(word.c_str() + at + 4);
+            if (r >= 60 && r <= 240 && std::find(rates_.begin(), rates_.end(), r) == rates_.end()) rates_.push_back(r);
+        }
+        std::sort(rates_.begin(), rates_.end());
+    }
+
+    /// Smallest mode that still shows every frame (a 60 FPS game renders ~59.x: 60 Hz).
+    int pick(float fps) const {
+        for (const int r : rates_) {
+            if (static_cast<float>(r) >= fps - 1.0f) return r;
+        }
+        return rates_.back();
+    }
+
+    void set(int rate, float fps) {
+        const std::string v = std::to_string(rate);
+        capture({"/system/bin/settings", "put", "system", "peak_refresh_rate", v});
+        capture({"/system/bin/settings", "put", "system", "min_refresh_rate", v});
+        if (probe_from_ != 0) LOGI("Refresh rate: trying {} Hz, the game is at the panel limit ({:.0f} FPS)", rate, fps);
+        else LOGI("Refresh rate matched to the game: {} Hz (game at {:.0f} FPS)", rate, fps);
+        current_ = rate;
+    }
+
+    std::vector<int> rates_;
+    std::vector<float> window_;
+    int seconds_ = 0;
+    int current_ = 0;
+    int probe_from_ = 0;
+    bool locked_ = false;
+};
+
 /// Qualcomm SDE: frames committed to the display ("fps: 59.94 duration: ...").
 float fps_from_sde() {
     float best = NAN;
@@ -553,6 +647,7 @@ void SessionRecorder::run() {
     const bool has_sde = !list_dir("/sys/class/drm", "sde-crtc-").empty();
     PageFlipCounter page_flips;
     GameLayerFps game_layer;
+    RefreshMatcher refresh;
 
     std::unique_lock lock(mutex_);
     while (running_) {
@@ -573,6 +668,7 @@ void SessionRecorder::run() {
         if (!std::isfinite(fps) && std::isfinite(fps = page_flips.sample())) source = "surfaceflinger";
 
         const SessionSample sample{fps, hottest(cpu_nodes), battery_temp(), lite};
+        refresh.on_sample(fps, source);
 
         lock.lock();
         if (!running_) break;

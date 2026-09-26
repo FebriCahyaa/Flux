@@ -28,6 +28,7 @@ export const useFluxConfigStore = defineStore('fluxConfig', () => {
     flux_vm: config.value?.preferences?.flux_vm ?? true,
     flux_io: config.value?.preferences?.flux_io ?? true,
     game_priority: config.value?.preferences?.game_priority ?? true,
+    sustained_mode: config.value?.preferences?.sustained_mode ?? true,
   }))
   // Game tweaks (fluxd defaults: network, touch and cache drop on; refresh rate off)
   const gameTweaks = computed(() => ({
@@ -141,7 +142,7 @@ export const useFluxConfigStore = defineStore('fluxConfig', () => {
   }
 
   function setFluxBoost(key, enabled) {
-    if (!['flux_vm', 'flux_io', 'game_priority'].includes(key)) return
+    if (!['flux_vm', 'flux_io', 'game_priority', 'sustained_mode'].includes(key)) return
     ensureConfigStructure()
     config.value.preferences[key] = enabled
   }

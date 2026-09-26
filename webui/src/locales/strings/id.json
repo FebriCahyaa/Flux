@@ -404,7 +404,14 @@
       "title": "Prioritas game",
       "description": "Memberi thread kerja game prioritas CPU dan penyimpanan lebih tinggi dari aplikasi lain. Thread yang sudah dipercepat Android tidak diubah."
     },
-    "apply_note": "Perubahan berlaku saat profil diterapkan berikutnya, misalnya saat game dimulai."
+    "apply_note": "Perubahan berlaku saat profil diterapkan berikutnya, misalnya saat game dimulai.",
+    "sustained": {
+      "title": "Clock stabil",
+      "description": "CPU, GPU dan memori tetap bisa mencapai clock tertinggi, tapi governor yang menaikkan-turunkan dari batas tengah, bukan dikunci di puncak sepanjang game. Jauh lebih dingin di sesi panjang, jadi HP lebih lambat throttle dan FPS lebih stabil. Disarankan.",
+      "off_title": "Kunci clock di maksimum?",
+      "off_message": "Semua clock tetap di langkah tertinggi sepanjang game dengan governor performance. FPS puncak bisa sedikit naik di awal, tapi HP cepat panas lalu throttling termal membuat drop yang lebih besar.",
+      "off_action": "Kunci di maksimum"
+    }
   },
   "sessions": {
     "recording": "Merekam",
@@ -475,7 +482,7 @@
     "title": "Tweak Game",
     "brief": "Tweak tambahan yang hanya diterapkan saat game berjalan. Semuanya dikembalikan saat kamu keluar dari game.",
     "tags": {
-      "battery": "Lebih boros baterai",
+      "battery": "Hemat daya",
       "all_devices": "Semua perangkat",
       "not_lite": "Tidak di mode Lite"
     },
@@ -488,10 +495,10 @@
       "description": "Memindahkan thread input Android (InputReader, InputDispatcher) ke grup CPU game di semua perangkat, dan mengaktifkan mode game panel sentuh jika driver-nya punya (OPPO, realme, OnePlus, Samsung)."
     },
     "game_refresh_rate": {
-      "title": "Refresh rate maksimum di game",
-      "description": "Mengunci layar di refresh rate tertinggi saat bermain. Beberapa ROM mungkin tetap mengubahnya.",
-      "confirm_title": "Kunci refresh rate tertinggi?",
-      "confirm_message": "Layar tetap di refresh rate maksimum selama game berjalan. Gerakan lebih halus tapi baterai lebih cepat habis. Pengaturan sebelumnya dikembalikan setelah game ditutup."
+      "title": "Refresh rate mengikuti game",
+      "description": "Mulai di refresh tertinggi layar, lalu turun ke mode terkecil yang masih menampilkan setiap frame game (mis. 90 Hz untuk game 90 FPS di layar 120 Hz): sama mulusnya dengan daya dan panas lebih kecil.",
+      "confirm_title": "Refresh rate mengikuti game?",
+      "confirm_message": "Selama game berjalan Flux mengatur refresh rate: mulai dari mode tertinggi lalu menetap di mode yang benar-benar dipakai game. Pengaturan Anda kembali setelah game ditutup. Beberapa ROM mungkin tetap mengubahnya."
     },
     "drop_caches": {
       "title": "Bersihkan cache memori",
