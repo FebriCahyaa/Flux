@@ -7,8 +7,7 @@ LOCAL_PATH := $(call my-dir)
 ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
   FLUX_ARCH_FLAGS := \
     -march=armv8.2-a+crypto+dotprod+fp16 \
-    -mtune=cortex-a55 \
-    -mfpu=neon-fp-armv8
+    -mtune=cortex-a55
 else ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
   FLUX_ARCH_FLAGS := \
     -march=armv7-a \
