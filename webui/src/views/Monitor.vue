@@ -146,6 +146,26 @@
               </p>
             </div>
           </div>
+
+          <!-- Battery + call (protocol 3+; hidden on older SynthesisCore) -->
+          <template v-if="monitorStore.batteryLevel !== null || monitorStore.callActive">
+            <div class="border-t border-current opacity-10 my-3" />
+            <div class="flex items-center gap-3 flex-wrap">
+              <div v-if="monitorStore.batteryLevel !== null" class="flex items-center gap-2">
+                <component :is="batteryIcon" :size="16" class="text-on-secondary-container opacity-70" />
+                <span class="text-sm font-semibold tabular-nums">{{ monitorStore.batteryLevel }}%</span>
+                <span v-if="monitorStore.batteryTemp !== null" class="text-xs opacity-60 tabular-nums">
+                  · {{ fmt(monitorStore.batteryTemp, 1) }}°
+                </span>
+              </div>
+              <span
+                v-if="monitorStore.callActive"
+                class="text-xs px-2.5 py-1 rounded-full font-semibold flex items-center gap-1.5 bg-tertiary text-on-tertiary"
+              >
+                <CallIcon :size="12" />{{ $t('monitor_page.call_active') }}
+              </span>
+            </div>
+          </template>
         </div>
 
         <!-- ── Thermal Card ──────────────────────────────────────────────── -->
@@ -183,9 +203,15 @@
               </div>
 
               <div class="flex-1">
-                <div class="flex items-center gap-2 mb-1">
+                <div class="flex items-center gap-2 mb-1 flex-wrap">
                   <span class="text-xs px-2.5 py-0.5 rounded-full font-semibold" :class="thermalBadgeClass">
                     {{ $t(`monitor_page.thermal_label.${monitorStore.thermalLabel}`) }}
+                  </span>
+                  <span
+                    v-if="monitorStore.thermalLevel !== null && monitorStore.thermalLevel >= 2"
+                    class="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-surface-container-high text-on-surface-variant"
+                  >
+                    {{ $t(`monitor_page.thermal_status.${monitorStore.thermalLevel}`) }}
                   </span>
                 </div>
                 <p class="text-sm font-medium text-on-surface-variant">{{ $t('monitor_page.thermal_headroom') }}</p>
@@ -302,25 +328,39 @@
               <p class="text-sm font-semibold mt-0.5">{{ zenModeLabel }}</p>
             </div>
           </div>
-        </div>
 
-        <!-- ── Battery Saver full-width ──────────────────────────────────── -->
-        <div
-          class="status-chip rounded-2xl p-4 flex items-center gap-3 transition-all duration-300"
-          :class="monitorStore.batterySaver ? 'bg-error-container text-on-error-container chip-active' : 'bg-surface-container text-on-surface'"
-        >
-          <div class="status-icon-wrap w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-            :class="monitorStore.batterySaver ? 'bg-error bg-opacity-20' : 'bg-surface-container-high'">
-            <BatterySaverIcon :size="18" />
+          <!-- Battery Saver -->
+          <div
+            class="status-chip rounded-2xl p-4 flex items-center gap-3 transition-all duration-300"
+            :class="monitorStore.batterySaver ? 'bg-error-container text-on-error-container chip-active' : 'bg-surface-container text-on-surface'"
+          >
+            <div class="status-icon-wrap w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              :class="monitorStore.batterySaver ? 'bg-error bg-opacity-20' : 'bg-surface-container-high'">
+              <BatterySaverIcon :size="18" />
+            </div>
+            <div>
+              <p class="text-xs opacity-60 font-medium">{{ $t('monitor_page.battery_saver') }}</p>
+              <p class="text-sm font-semibold mt-0.5">
+                {{ monitorStore.batterySaver ? $t('common.enabled') : $t('common.disabled') }}
+              </p>
+            </div>
           </div>
-          <div>
-            <p class="text-xs opacity-60 font-medium">{{ $t('monitor_page.battery_saver') }}</p>
-            <p class="text-sm font-semibold mt-0.5">
-              {{ monitorStore.batterySaver ? $t('monitor_page.battery_saver_on') : $t('monitor_page.battery_saver_off') }}
-            </p>
-          </div>
-          <div class="ml-auto">
-            <div class="w-2 h-2 rounded-full" :class="monitorStore.batterySaver ? 'bg-error animate-pulse' : 'bg-primary'"></div>
+
+          <!-- Call -->
+          <div
+            class="status-chip rounded-2xl p-4 flex items-center gap-3 transition-all duration-300"
+            :class="monitorStore.callActive ? 'bg-tertiary-container text-on-tertiary-container chip-active' : 'bg-surface-container text-on-surface'"
+          >
+            <div class="status-icon-wrap w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              :class="monitorStore.callActive ? 'bg-tertiary bg-opacity-20' : 'bg-surface-container-high'">
+              <CallIcon :size="18" />
+            </div>
+            <div>
+              <p class="text-xs opacity-60 font-medium">{{ $t('monitor_page.call') }}</p>
+              <p class="text-sm font-semibold mt-0.5">
+                {{ monitorStore.callActive ? $t('monitor_page.call_active') : $t('common.disabled') }}
+              </p>
+            </div>
           </div>
         </div>
 
@@ -389,6 +429,8 @@ import NotificationsActiveIcon from '@/components/icons/NotificationsActive.vue'
 import BatterySaverIcon from '@/components/icons/BatterySaver.vue'
 import ThermometerIcon from '@/components/icons/Thermostat.vue'
 import AppWindowIcon from '@/components/icons/AppWindow.vue'
+import CallIcon from '@/components/icons/Call.vue'
+import BatteryChargingIcon from '@/components/icons/BatteryCharging.vue'
 
 // Profile icons (reuse existing icon components)
 import RocketIcon from '@/components/icons/Star.vue'
@@ -536,6 +578,10 @@ const thermalSparkColor = computed(() => {
 const thermalChart = computed(() =>
   monitorStore.thermalHistory.filter(p => p.v >= 0).map(p => Math.round(p.v * 100)),
 )
+
+// ── Idle-session battery pill ───────────────────────────────────────────────────
+
+const batteryIcon = computed(() => (monitorStore.charging ? BatteryChargingIcon : BatteryFullIcon))
 
 // ── Zen mode label ────────────────────────────────────────────────────────────
 

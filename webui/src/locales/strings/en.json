@@ -387,7 +387,16 @@
     "battery_saver_off": "Inactive",
     "thermal_unsupported_title": "Thermal API Unavailable",
     "thermal_gki_note": "GKI kernels may not expose thermal headroom API",
-    "profile_active": "Active"
+    "profile_active": "Active",
+    "thermal_status": {
+      "2": "Moderate",
+      "3": "Severe",
+      "4": "Critical",
+      "5": "Emergency",
+      "6": "Shutdown imminent"
+    },
+    "call": "Call",
+    "call_active": "In call"
   },
   "flux_sched": {
     "title": "Flux Sched",

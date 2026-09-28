@@ -390,7 +390,16 @@
     "battery_saver_off": "Tidak aktif",
     "thermal_unsupported_title": "API Termal Tidak Tersedia",
     "thermal_gki_note": "Kernel GKI mungkin tidak mengekspos API thermal headroom",
-    "profile_active": "Aktif"
+    "profile_active": "Aktif",
+    "thermal_status": {
+      "2": "Sedang",
+      "3": "Parah",
+      "4": "Kritis",
+      "5": "Darurat",
+      "6": "Akan mati"
+    },
+    "call": "Panggilan",
+    "call_active": "Sedang menelepon"
   },
   "flux_sched": {
     "title": "Flux Sched",
