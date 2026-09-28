@@ -39,6 +39,9 @@
 #define DEFAULT_CPU_GOV CONFIG_DIR "/default_cpu_gov"
 #define FLUX_GAMELIST CONFIG_DIR "/gamelist.json"
 #define SYNTHESIS_CORE_FILE CONFIG_DIR "/synthesis_core.json"
+/// Canonical capability model (schema v4), written by `fluxd capabilities`.
+/// The schema is owned by SynthesisCore; see jni/gfx/capability_schema_v4.json.
+#define CAPABILITY_FILE CONFIG_DIR "/capabilities.json"
 /// Minimum SynthesisCore synthesis_version (PROTOCOL_VERSION) this build expects.
 /// Keep in sync with SYNTHESIS_MIN_VERSION in module/service.sh and the WebUI monitor store.
 #define SYNTHESIS_CORE_MIN_VERSION 2

@@ -1,0 +1,24 @@
+LOCAL_PATH := $(call my-dir)
+ROOT_PATH := $(call my-dir)/..
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := FluxGfx
+
+LOCAL_SRC_FILES := $(wildcard $(LOCAL_PATH)/*.cpp)
+LOCAL_SRC_FILES := $(LOCAL_SRC_FILES:$(LOCAL_PATH)/%=%)
+
+LOCAL_C_INCLUDES := $(ROOT_PATH)/include
+
+LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)
+
+# rapidjson serialises the canonical model. Vulkan is reached through dlopen, so
+# there is deliberately no libvulkan in LOCAL_LDLIBS: the daemon must load on a
+# device that has no Vulkan at all.
+LOCAL_STATIC_LIBRARIES := rapidjson
+
+LOCAL_CPPFLAGS += -fexceptions -std=c++23 $(FLUX_PERF_FLAGS)
+LOCAL_CPPFLAGS += -Wpedantic -Wall -Wextra -Werror -Wformat -Wuninitialized
+
+LOCAL_LDLIBS += -ldl
+
+include $(BUILD_STATIC_LIBRARY)

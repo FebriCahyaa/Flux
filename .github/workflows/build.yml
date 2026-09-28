@@ -13,6 +13,8 @@ on:
       - '.github/scripts/**'
       - 'java/**'
       - 'jni/**'
+      - 'tests/**'
+      - 'CMakeLists.txt'
       - 'scripts/**'
       - 'module/**'
       - 'prebuilt/**'
@@ -26,6 +28,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Compiles the daemon logic for the build machine and runs it against fakes.
+  # Independent of the zip build below, so a logic regression is reported even
+  # when the NDK build is fine, and vice versa.
+  host_tests:
+    name: Host Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: true
+
+      - name: Build and run host tests
+        run: |
+          set -euo pipefail
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+          cmake --build build -j"$(nproc)"
+          ctest --test-dir build --output-on-failure
+
   build:
     name: Build Flashable Zip
     runs-on: ubuntu-latest
