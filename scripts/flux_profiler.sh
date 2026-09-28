@@ -2017,16 +2017,61 @@ flux_reflex_props() {
 # Graphics pipeline: threaded RenderEngine, HWUI performance hints, composition prediction.
 flux_graphics_props() {
 	[ -n "$FLUX_GRAPHICS" ] || return 0
-	# SurfaceFlinger's RenderEngine on its own thread; a ROM that already picked a
-	# (Vulkan or threaded) backend keeps it
+	# SurfaceFlinger's RenderEngine backend upgrade path:
+	#   skiagl (legacy SW)  → skiaglthreaded (threaded GL, Android 12+)
+	#                       → skiavk (Skia Vulkan, lowest latency on devices
+	#                         with solid Vulkan 1.1+ drivers)
+	# Detection: ro.hardware.vulkan set by vendor OR /dev/kgsl-3d0 present
+	# (Adreno 500+/600+/700 all ship proper Vulkan; Mali GXX/GTX do too).
+	# A ROM that already chose a Vulkan backend is never downgraded.
 	case "$(flux_prop_orig debug.renderengine.backend)" in
-	'' | skiagl) flux_prop debug.renderengine.backend skiaglthreaded ;;
+	'' | skiagl | skiaglthreaded)
+		if getprop ro.hardware.vulkan 2>/dev/null | grep -q . \
+		   || [ -c /dev/kgsl-3d0 ]; then
+			flux_prop debug.renderengine.backend skiavk
+			# Also tell HWUI to use its Vulkan renderer (app-level drawing)
+			flux_prop debug.hwui.renderer skiavk
+		else
+			flux_prop debug.renderengine.backend skiaglthreaded
+		fi
+		;;
 	esac
 	# HWUI reports frame timing to the power HAL (ADPF hint sessions, Android 12+):
 	# the CPU ramps up for UI frames before they are late
 	flux_prop debug.hwui.use_hint_manager true
 	# Predict the HWC composition strategy and start GPU composition early (Android 13+)
 	flux_prop debug.sf.predict_hwc_composition_strategy 1
+}
+
+# Touch calibration: low-latency geometric/amplitude model for more precise and
+# responsive touch coordinates.  These props are read by InputReader at boot;
+# a reboot is needed for them to take effect, which is why they live in
+# flux_system() (applied at module boot via service.d, not per-game).
+flux_touch_calibration() {
+	flux_prop touch.size.calibration geometric
+	flux_prop touch.pressure.calibration amplitude
+	# Scale factor for pressure values reported by the digitiser.  0.001 maps
+	# raw ADC counts (typically 0-1000) to a 0.0-1.0 normalised float.
+	flux_prop touch.pressure.scale 0.001
+}
+
+# System-service power reduction: disables background radio scanning and the
+# perfetto tracing daemon that adds ~2 MB RSS and occasional CPU wakeups even
+# when no trace is active.  Frozen cached apps keep their memory pages warm
+# instead of being killed, so re-launching them is near-instant.
+flux_system_services() {
+	# Disable always-on WiFi scanning (location/network); re-enabled by the
+	# Settings UI when the user turns it back on manually.
+	flux_prop wifi_scan_always_enabled 0
+	# Disable BLE always-on scanning (used only for nearby-devices features)
+	flux_prop ble_scan_always_enabled 0
+	# Disable the 5G icon overhead group polling (cosmetic status bar work)
+	flux_prop 5g_icon_group_mode 0
+	# Perfetto system-wide trace daemon — only useful during profiling sessions
+	flux_prop persist.traced.enable 0
+	# Cached-apps freezer: freeze app process images in memory rather than
+	# killing them; reduces re-launch latency at zero extra RAM cost
+	flux_prop cached_apps_freezer enabled
 }
 
 FLUX_ADAPTIVE_ORIG="$MODULE_CONFIG/refresh_adaptive_orig"
@@ -2270,6 +2315,8 @@ flux_system() {
 	rm -f "$FLUX_PROPS_STAGE"
 	flux_reflex_props
 	flux_graphics_props
+	flux_touch_calibration
+	flux_system_services
 	flux_adaptive_refresh
 	flux_props_commit
 	flux_zram
