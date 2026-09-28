@@ -11,6 +11,14 @@
 - Render threads on fast cores no longer moves the game's other threads off the little cores on
   two-cluster phones (4+4, 2+6): all of MLBB on the four big cores of a Redmi Note 13 Pro 5G ran
   at 96 °C. Phones with little / big / prime clusters keep it
+- **CPU topology detection could fragment one cluster into several** on kernels that report
+  `cpu_capacity` per physical core rather than per cluster, where silicon binning makes cores of
+  the same cluster differ by a few percent: exact-value grouping saw those as separate
+  single-core "clusters" and could badly confuse which cores render threads and other game
+  threads were pinned to. Cores within 15% of each other are now grouped as one cluster (a real
+  little/big/prime boundary is always a far larger jump). New host test
+  (`tests/render_booster_test.cpp`) covers 4+4, 1+3+4, 2+6, single-cluster, the max-frequency
+  fallback and this binning case directly
 - **Adaptive refresh made the home screen laggy**: on panels without LTPO every drop to the low
   rate and back is a display mode switch that costs a frame or two, and on the launcher that
   happened at the start of almost every swipe. fluxd now keeps the peak rate while the launcher
