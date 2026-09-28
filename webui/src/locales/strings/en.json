@@ -402,7 +402,7 @@
     },
     "io": {
       "title": "Storage latency",
-      "description": "Completes storage requests on the CPU that asked for them (the game's), keeping them off busy little cores."
+      "description": "Completes storage requests on the CPU that asked for them (the game's), keeping them off busy little cores; raises read-ahead for streaming assets and textures. On UFS/NVMe (a real multi-queue device) also widens the queue and lets the storage controller's own command reordering take over from the kernel scheduler; eMMC gets a more modest queue and keeps a scheduler suited to its single command queue. Everything reverts when the game ends."
     },
     "priority": {
       "title": "Game priority",
@@ -590,7 +590,7 @@
     },
     "zram_tune": {
       "title": "Zram sized to RAM",
-      "description": "Resizes compressed swap to the device RAM (3/4 up to 4 GB, half above, at most 6 GB) with the lz4 compressor. Applied at boot; vendor setups with writeback to storage are left alone. Off puts the ROM's size back."
+      "description": "Resizes compressed swap to the device's RAM tier (≈133% at 3 GB, down to ≈62% at 16 GB+) with the lz4 compressor. Applied at boot; vendor setups with writeback to storage are left alone. Off puts the ROM's size back."
     }
   }
 }

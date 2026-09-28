@@ -793,6 +793,17 @@ flux_boost_save() {
 	done
 }
 
+# Like flux_boost_save, but for a queue/scheduler node: stores the active value only
+# ("[mq-deadline] kyber bfq none" -> "mq-deadline"). The raw file content is the whole offered
+# list, not something the node accepts as input, so replaying it verbatim on restore (as
+# flux_boost_restore always does) would just fail to write.
+flux_boost_save_scheduler() { # <group> <node>
+	[ -f "$2" ] || return 0
+	grep -q "^$1 $2 " "$FLUX_BOOST_BACKUP" 2>/dev/null && return 0
+	current=$(sed -n 's/.*\[\([^]]*\)\].*/\1/p' "$2")
+	[ -n "$current" ] && echo "$1 $2 $(stat -c %a "$2") $current" >>"$FLUX_BOOST_BACKUP"
+}
+
 # flux_boost_restore <group> : put back every saved node of the group
 flux_boost_restore() {
 	[ -f "$FLUX_BOOST_BACKUP" ] || return 0
@@ -817,6 +828,49 @@ flux_block_queues() {
 	for dir in /sys/block/sd* /sys/block/mmcblk* /sys/block/nvme*; do
 		[ -f "$dir/queue/rq_affinity" ] && echo "$dir/queue/rq_affinity"
 	done
+}
+
+# Storage class of a /sys/block/<dev> directory, so tuning matches what the hardware can
+# actually use: ufs/nvme have a real multi-queue command protocol (NVMe: queue depth in the
+# thousands; UFS 2.x/3.x/4.0: native command queuing, typically 32 deep), while eMMC has a
+# single, much shallower queue (Command Queuing per the eMMC 5.1 spec, in practice often
+# effectively 1-8 deep on budget controllers) — pushing eMMC as hard as UFS just adds queuing
+# latency without the throughput to back it up. Removable SD (mmcblk* with removable=1) is left
+# out entirely: it is often the slowest, least predictable storage in the phone and not something
+# to tune aggressively.
+flux_storage_class() { # <dir> -> ufs|emmc|sd|other, on stdout
+	case "${1##*/}" in
+	sd* | nvme*) echo ufs ;;
+	mmcblk*)
+		if [ -f "$1/removable" ] && [ "$(cat "$1/removable" 2>/dev/null)" = 1 ]; then
+			echo sd
+		else
+			echo emmc
+		fi
+		;;
+	*) echo other ;;
+	esac
+}
+
+# nr_requests and scheduler nodes for internal UFS/eMMC storage (never removable SD, never the
+# small rpmb/boot partitions, which do not benefit from either and some vendors lock down).
+flux_block_storage_nodes() {
+	for dir in /sys/block/sd* /sys/block/mmcblk* /sys/block/nvme*; do
+		case "$dir" in *rpmb | *boot[0-9]) continue ;; esac
+		[ "$(flux_storage_class "$dir")" = sd ] && continue
+		for node in nr_requests scheduler; do
+			[ -f "$dir/queue/$node" ] && echo "$dir/queue/$node"
+		done
+	done
+}
+
+# Sets queue/scheduler to $2 when the device actually offers it (bracketed active-value format,
+# like a cpufreq governor file: "[mq-deadline] kyber bfq none").
+flux_set_scheduler() { # <node> <wanted>
+	[ -f "$1" ] || return 0
+	current=$(sed -n 's/.*\[\([^]]*\)\].*/\1/p' "$1")
+	[ "$current" = "$2" ] && return 0
+	grep -qw -- "$2" "$1" 2>/dev/null && apply "$2" "$1"
 }
 
 flux_vm() {
@@ -848,8 +902,17 @@ flux_block_prefetch() {
 flux_io() {
 	queues=$(flux_block_queues)
 	prefetch=$(flux_block_prefetch)
+	storage_requests=""
+	storage_sched=""
+	for node in $(flux_block_storage_nodes); do
+		case "$node" in
+		*/scheduler) storage_sched="$storage_sched $node" ;;
+		*) storage_requests="$storage_requests $node" ;;
+		esac
+	done
 	# shellcheck disable=SC2086
-	flux_boost_save io $queues $prefetch
+	flux_boost_save io $queues $prefetch $storage_requests
+	for node in $storage_sched; do flux_boost_save_scheduler io "$node"; done
 	flux_boost_restore io
 	[ "$1" = boost ] && [ -z "$FLUX_IO_DISABLED" ] || return 0
 	for node in $queues; do
@@ -862,6 +925,24 @@ flux_io() {
 		case "$node" in
 		*/read_ahead_kb) raise_to 512 "$node" ;;
 		*/iostats) apply 0 "$node" ;;
+		esac
+	done
+	# UFS/NVMe: a real multi-queue device, deep queue, and its own command reordering makes
+	# the kernel's own scheduler redundant work ("none" is the standard recommendation for
+	# multi-queue block devices with native command queuing). eMMC: shallower queue, kept
+	# modest, and mq-deadline still bounds worst-case latency on a single command queue.
+	for node in $storage_requests $storage_sched; do
+		dir=${node%/queue/*}
+		class=$(flux_storage_class "$dir")
+		case "$node" in
+		*/nr_requests)
+			[ "$class" = ufs ] && raise_to 256 "$node"
+			[ "$class" = emmc ] && raise_to 64 "$node"
+			;;
+		*/scheduler)
+			[ "$class" = ufs ] && { flux_set_scheduler "$node" none || flux_set_scheduler "$node" mq-deadline; }
+			[ "$class" = emmc ] && flux_set_scheduler "$node" mq-deadline
+			;;
 		esac
 	done
 }
@@ -1903,9 +1984,36 @@ zram_resize() {
 	swapon "$dev" >/dev/null 2>&1
 }
 
-# Zram sized to the RAM: 3/4 of it up to 4 GB, half above, at most 6 GB; lz4
-# (fastest to decompress: pages a game touches again come back quickest).
+# Zram sized to the device's RAM tier (3/4/6/8/12/16 GB); lz4 preferred (fastest to
+# decompress: pages a game touches again come back quickest).
+#
+# The ratio to RAM shrinks as RAM grows: a 3-4 GB phone leans on zram heavily because
+# LMKD otherwise kills background apps almost immediately under any pressure, while a
+# 16 GB phone already has enough headroom that a smaller relative share is enough — and
+# a zram device larger than it needs to be just means more CPU spent compressing pages
+# that would never have been reclaimed anyway. /proc/meminfo's MemTotal always reads a
+# little under the advertised size (radio/vendor reserved regions), so tiers are picked
+# by the nearest advertised size rather than an exact match.
 # Sizes in MB, the shell's arithmetic may be 32-bit.
+flux_zram_size_for() { # <mem_mb> -> zram size in MB, on stdout
+	mem_mb=$1
+	if [ "$mem_mb" -le 3584 ]; then
+		echo 4096 # 3 GB tier: ~133%, most memory-constrained
+	elif [ "$mem_mb" -le 5120 ]; then
+		echo 4096 # 4 GB tier: 100%
+	elif [ "$mem_mb" -le 7168 ]; then
+		echo 4096 # 6 GB tier: ~67%
+	elif [ "$mem_mb" -le 10240 ]; then
+		echo 6144 # 8 GB tier: 75%
+	elif [ "$mem_mb" -le 14336 ]; then
+		echo 8192 # 12 GB tier: ~67%
+	elif [ "$mem_mb" -le 18432 ]; then
+		echo 10240 # 16 GB tier: 62%
+	else
+		echo 12288 # future-proofing past 16 GB
+	fi
+}
+
 flux_zram() {
 	zram=/sys/block/zram0
 	[ -f $zram/disksize ] || return 0
@@ -1933,12 +2041,7 @@ flux_zram() {
 	case "$mem_kb" in '' | *[!0-9]*) return 0 ;; esac
 	mem_mb=$((mem_kb / 1024))
 	[ "$mem_mb" -gt 0 ] || return 0
-	if [ "$mem_mb" -le 4096 ]; then
-		size_mb=$((mem_mb * 3 / 4))
-	else
-		size_mb=$((mem_mb / 2))
-	fi
-	[ "$size_mb" -gt 6144 ] && size_mb=6144
+	size_mb=$(flux_zram_size_for "$mem_mb")
 	[ "$size_mb" -ge 256 ] || return 0
 
 	algo=$(zram_algo $zram)

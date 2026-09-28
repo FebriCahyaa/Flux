@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### Fixed
+- **Zram now sized by RAM tier, not a flat 6 GB cap**: a 12 GB and a 16 GB phone used to get
+  identical zram (both hit the cap); the size now follows an explicit tier table (3/4/6/8/12/16 GB,
+  ~133% down to ~62% of RAM) so it keeps scaling on higher-RAM devices instead of flattening out
+- **Storage tuning now tells UFS/NVMe apart from eMMC**: while gaming, `nr_requests` and the I/O
+  scheduler used to get the same values on every storage type. UFS/NVMe (a real multi-queue device)
+  now gets a wider queue and `none` when offered (the controller's own command reordering makes the
+  kernel scheduler redundant work); eMMC keeps a more modest queue and `mq-deadline`, which bounds
+  latency better on its single command queue. Removable SD is left alone entirely
 - **Performance Lite never engaged on hot devices**: Android's thermal headroom grows with heat
   (1.0 = severe throttling) but was read as "headroom left", so Flux saw a phone at 96 °C as cool.
   fluxd and SynthesisCore now publish the headroom left. Lite also starts at thermal status

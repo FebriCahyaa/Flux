@@ -405,7 +405,7 @@
     },
     "io": {
       "title": "Latensi penyimpanan",
-      "description": "Menyelesaikan permintaan penyimpanan di CPU yang memintanya (milik game), bukan di core kecil yang sibuk."
+      "description": "Menyelesaikan permintaan penyimpanan di CPU yang memintanya (milik game), bukan di core kecil yang sibuk; menaikkan read-ahead untuk streaming aset dan tekstur. Di UFS/NVMe (perangkat multi-queue sungguhan) antrean juga diperlebar dan pengurutan perintah diserahkan ke controller penyimpanannya sendiri, bukan scheduler kernel; eMMC mendapat antrean lebih sederhana dan scheduler yang cocok untuk command queue tunggalnya. Semua dikembalikan saat game selesai."
     },
     "priority": {
       "title": "Prioritas game",
@@ -593,7 +593,7 @@
     },
     "zram_tune": {
       "title": "Zram sesuai RAM",
-      "description": "Ukuran swap terkompresi disesuaikan dengan RAM (3/4 hingga 4 GB, setengah di atasnya, maksimal 6 GB) dengan kompresor lz4. Diterapkan saat boot; setelan vendor dengan writeback ke penyimpanan dibiarkan. Dimatikan = ukuran ROM dikembalikan."
+      "description": "Mengubah ukuran swap terkompresi sesuai tingkatan RAM perangkat (≈133% di 3 GB, turun sampai ≈62% di 16 GB+) dengan kompresor lz4. Diterapkan saat boot; setup vendor dengan writeback ke penyimpanan dibiarkan. Nonaktif mengembalikan ukuran bawaan ROM."
     }
   }
 }
