@@ -129,6 +129,21 @@
     "congestion_control": {
       "title": "Kontrol Kemacetan Jaringan",
       "description": "Pilih algoritma TCP yang dipakai game, atau biarkan pada bawaan yang direkomendasikan"
+    },
+    "ram_optimizer": {
+      "title": "RAM Optimizer",
+      "description": "Manajemen memori adaptif yang menyesuaikan diri dengan ukuran RAM perangkat"
+    },
+    "perf_boost": {
+      "title": "Performance Boost",
+      "description": "Penyetelan halus scheduler dan bandwidth memori untuk frame yang lebih mulus"
+    },
+    "clean_cache": {
+      "title": "Bersihkan Cache Aplikasi",
+      "description": "Bebaskan data cache dari semua aplikasi sekarang — tidak ada yang dihapus otomatis",
+      "cleaning": "Membersihkan…",
+      "done": "Cache aplikasi berhasil dibersihkan",
+      "failed": "Gagal membersihkan cache — periksa akses root"
     }
   },
   "game_settings": {
@@ -621,5 +636,65 @@
       "title": "Zram sesuai RAM",
       "description": "Mengubah ukuran swap terkompresi sesuai tingkatan RAM perangkat (≈133% di 3 GB, turun sampai ≈62% di 16 GB+) dengan kompresor lz4. Diterapkan saat boot; setup vendor dengan writeback ke penyimpanan dibiarkan. Nonaktif mengembalikan ukuran bawaan ROM."
     }
+  },
+  "ram_optimizer": {
+    "title": "RAM Optimizer",
+    "brief": "Membaca ukuran RAM perangkat dan menerapkan pengaturan manajemen memori yang sesuai — swappiness, watermark memori bebas, tekanan page-cache, dan waktu writeback — sehingga ponsel 3 GB dikonfigurasi berbeda dari ponsel 16 GB. Semua nilai dikembalikan saat game selesai.",
+    "toggle_title": "Aktifkan RAM Optimizer",
+    "state_on": "Aktif — manajemen memori menyesuaikan tier RAM perangkat",
+    "state_off": "Nonaktif — pengaturan memori kernel bawaan saat bermain",
+    "tier_title": "Tier RAM {tier} GB terdeteksi",
+    "tier_description": "Flux otomatis memilih profil yang sesuai dengan jumlah RAM ini. Tidak perlu penyetelan manual.",
+    "tunes_title": "Yang disetel",
+    "tunes": {
+      "swappiness": {
+        "title": "Agresivitas swap",
+        "description": "Lebih rendah pada ponsel RAM besar (lebih sedikit kebutuhan swap), lebih tinggi pada ponsel RAM kecil (pemulihan OOM lebih cepat). Berkisar dari 15 hingga 100 di enam tier RAM."
+      },
+      "watermark": {
+        "title": "Watermark memori bebas",
+        "description": "min_free_kbytes dan extra_free_kbytes disesuaikan dari 16 MB (tier 3 GB) hingga 96 MB (tier 16 GB), sehingga kswapd bangun cukup awal untuk membebaskan memori sebelum game harus menunggu."
+      },
+      "vfs_cache": {
+        "title": "Tekanan page-cache",
+        "description": "Lebih tinggi pada ponsel RAM kecil (bebaskan dentry dan inode lebih cepat untuk game), lebih rendah pada yang besar (jaga launcher dan aplikasi tetap hangat). Rentang: 60–150."
+      },
+      "writeback": {
+        "title": "Writeback halaman kotor",
+        "description": "Halaman kotor kedaluwarsa lebih jarang (5 d / 50 d alih-alih default), sehingga thread writeback kernel lebih jarang mengganggu game."
+      },
+      "compaction": {
+        "title": "Kompaksi memori",
+        "description": "Kompaksi proaktif dinonaktifkan saat bermain — proses ini memakai siklus CPU untuk mencari halaman yang berdekatan sementara game sudah membuat core sibuk."
+      }
+    },
+    "apply_note": "Pengaturan berlaku di awal sesi game berikutnya dan dikembalikan saat Anda keluar dari game."
+  },
+  "perf_boost": {
+    "title": "Performance Boost",
+    "brief": "Sekumpulan penyetelan halus yang mengurangi latensi scheduler dan meningkatkan alokasi bandwidth memori saat game berjalan. Semua nilai disimpan sebelum diubah dan dikembalikan saat Anda keluar dari game.",
+    "toggle_title": "Aktifkan Performance Boost",
+    "state_on": "Aktif — penyetelan scheduler dan bandwidth tambahan aktif saat bermain",
+    "state_off": "Nonaktif — pengaturan scheduler bawaan saat bermain",
+    "effects_title": "Yang diubah",
+    "effects": {
+      "migration": {
+        "title": "Biaya migrasi tugas",
+        "description": "Meningkatkan estimasi scheduler tentang betapa mahalnya migrasi antar-core, sehingga thread game lebih jarang dipindahkan dan data panas tetap di cache per-core."
+      },
+      "latency": {
+        "title": "Target latensi scheduler",
+        "description": "Menyesuaikan granularitas CFS dan latensi wakeup agar thread game mendapatkan time slice yang lebih panjang dan dapat diprediksi tanpa di-preempt oleh pekerjaan latar belakang."
+      },
+      "autogroup": {
+        "title": "Autogroup tugas nonaktif",
+        "description": "Autogroup berbasis sesi Android dinonaktifkan saat bermain. Engine game multi-thread lebih diuntungkan dengan scheduling datar daripada isolasi sesi."
+      },
+      "bandwidth": {
+        "title": "Petunjuk bandwidth bus memori",
+        "description": "Pada platform Qualcomm, meningkatkan batas atas DCVS bus untuk L3/DDR/LLCC agar game mendapatkan bandwidth memori tinggi tanpa menunggu bus meningkat kecepatannya."
+      }
+    },
+    "apply_note": "Perubahan berlaku di awal sesi game berikutnya dan sepenuhnya dikembalikan saat Anda keluar."
   }
 }

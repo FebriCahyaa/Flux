@@ -22,6 +22,8 @@ import DeviceMitigation from '@/views/DeviceMitigation.vue'
 import GpuGovernor from '@/views/GpuGovernor.vue'
 import GameTweaks from '@/views/GameTweaks.vue'
 import NetworkTweaks from '@/views/NetworkTweaks.vue'
+import RamOptimizer from '@/views/RamOptimizer.vue'
+import PerfBoost from '@/views/PerfBoost.vue'
 
 window.wx = new WXEventHandler()
 
@@ -117,6 +119,16 @@ const routes = [
     path: '/settings/log_level',
     name: 'LogLevelSelection',
     component: LogLevelSelection,
+  },
+  {
+    path: '/settings/ram_optimizer',
+    name: 'RamOptimizer',
+    component: RamOptimizer,
+  },
+  {
+    path: '/settings/perf_boost',
+    name: 'PerfBoost',
+    component: PerfBoost,
   },
 
   // catch-all route

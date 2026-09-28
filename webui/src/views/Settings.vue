@@ -118,6 +118,7 @@ import { useI18n } from 'vue-i18n'
 import { useLanguageStore } from '@/stores/Language'
 import { useFluxConfigStore } from '@/stores/FluxConfig'
 import { useCapabilitiesStore } from '@/stores/Capabilities'
+import { useNotifyStore } from '@/stores/Notify'
 
 import RippleComponent from '@/components/ui/Ripple.vue'
 import ChevronRightIcon from '@/components/icons/ChevronRight.vue'
@@ -139,6 +140,10 @@ import GamesIcon from '@/components/icons/Games.vue'
 import GpuIcon from '@/components/icons/Gpu.vue'
 import ShieldIcon from '@/components/icons/Shield.vue'
 import WifiIcon from '@/components/icons/Wifi.vue'
+import MemoryIcon from '@/components/icons/Memory.vue'
+import BroomIcon from '@/components/icons/Broom.vue'
+import SpeedIcon from '@/components/icons/Speed.vue'
+import StarlyGearIcon from '@/components/icons/StarlyGear.vue'
 
 import * as KernelSU from '@/helpers/KernelSU'
 import { exec } from 'kernelsu'
@@ -151,6 +156,7 @@ const showExportModal = ref(false)
 const exportStatus = ref('idle')
 const exportPath = ref('')
 const exportErrorMsg = ref('')
+const cleaningCache = ref(false)
 
 const currentLanguage = computed(() => {
   if (languageStore.userPreference === null) {
@@ -164,6 +170,7 @@ const currentLanguage = computed(() => {
 
 const fluxConfigStore = useFluxConfigStore()
 const capabilities = useCapabilitiesStore()
+const notify = useNotifyStore()
 onMounted(() => {
   if (!fluxConfigStore.isLoaded) fluxConfigStore.loadConfig().catch(() => {})
   capabilities.load()
@@ -220,6 +227,22 @@ const allSections = () => [
         shape: 'shape-pentagon',
         tone: tone.secondary,
         run: go('flux_sched'),
+      },
+      {
+        key: 'ram_optimizer',
+        icon: MemoryIcon,
+        shape: 'shape-cookie12',
+        tone: tone.secondary,
+        run: go('ram_optimizer'),
+        status: () => onPill(fluxConfigStore.ramOptimizer),
+      },
+      {
+        key: 'perf_boost',
+        icon: StarlyGearIcon,
+        shape: 'shape-burst',
+        tone: tone.tertiary,
+        run: go('perf_boost'),
+        status: () => onPill(fluxConfigStore.perfBoost),
       },
       {
         key: 'disable_tweaks',
@@ -285,6 +308,15 @@ const allSections = () => [
     key: 'others',
     items: [
       {
+        key: 'clean_cache',
+        icon: BroomIcon,
+        shape: 'shape-flower',
+        tone: tone.secondary,
+        run: cleanCache,
+        subtitle: () =>
+          cleaningCache.value ? t('settings_page.clean_cache.cleaning') : null,
+      },
+      {
         key: 'save_log',
         icon: ContentSaveIcon,
         shape: 'shape-cookie9',
@@ -317,6 +349,23 @@ const sections = computed(() =>
     items: section.items.filter((item) => capabilities.supports(item.cap)),
   })),
 )
+
+async function cleanCache() {
+  if (cleaningCache.value) return
+  cleaningCache.value = true
+  try {
+    // pm trim-caches frees all app caches (requires root); drop_caches also clears
+    // dentries/inodes from the kernel page cache so the effect is system-wide.
+    await exec('pm trim-caches 9223372036854775807')
+    await exec('sync && echo 3 > /proc/sys/vm/drop_caches')
+    notify.success(t('settings_page.clean_cache.done'))
+  } catch (err) {
+    console.error('cleanCache failed:', err)
+    notify.error(t('settings_page.clean_cache.failed'))
+  } finally {
+    cleaningCache.value = false
+  }
+}
 
 function openExportModal() {
   exportStatus.value = 'loading'

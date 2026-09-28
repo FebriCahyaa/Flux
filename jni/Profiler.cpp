@@ -94,6 +94,10 @@ void set_profiler_env_vars() {
     if (prefs.adaptive_refresh && !prefs.disable_tweaks) setenv("FLUX_ADAPTIVE_REFRESH", "1", 1);
     if (prefs.zram_tune && !prefs.disable_tweaks) setenv("FLUX_ZRAM", "1", 1);
 
+    // RAM optimizer and performance boost (on by default; disabled flag restores stock values).
+    if (!prefs.ram_optimizer) setenv("FLUX_RAM_OPT_DISABLED", "1", 1);
+    if (!prefs.perf_boost) setenv("FLUX_PERF_BOOST_DISABLED", "1", 1);
+
     // Set CPU Governor variables
     FluxConfigStore::CPUGovernor cpu_governor_preference = config_store.get_cpu_governor();
     setenv("FLUX_BALANCED_CPUGOV", cpu_governor_preference.balance.c_str(), 1);

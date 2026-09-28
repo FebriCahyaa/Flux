@@ -43,6 +43,25 @@
   which, and the bug report gains a Display / refresh rate section
 
 ### New
+- **RAM Optimizer** (Settings → RAM Optimizer): reads the device's actual MemTotal and maps it to
+  one of six tiers (3/4/6/8/12/16 GB). Each tier applies a matching set of memory-management
+  tunings — swappiness (15–100), free-memory watermarks (min_free_kbytes / extra_free_kbytes
+  16–96 MB), vfs_cache_pressure (60–150), dirty writeback timing, page-cluster=0, and KSM scan
+  rate — so a 3 GB phone is tuned differently from a 16 GB one without any manual input. All
+  values are saved before being changed and fully restored when the game ends. Can be toggled
+  off per-device from the WebUI
+- **Performance Boost** (Settings → Performance Boost): a set of scheduler and memory-bus
+  micro-tunings that reduce task-migration overhead (sched_migration_cost_ns, sched_nr_migrate),
+  improve CFS time-slice predictability (granularity / wakeup targets), disable session autogroups
+  while gaming, suppress proactive stat-interval overhead, and — on Qualcomm platforms — raise the
+  DCVS bus ceiling for L3/DDR/LLCC so the game sees high memory bandwidth without waiting for the
+  bus to ramp. On GKI kernels the same knobs are written to debugfs when available. Xiaomi's migt
+  is enabled on devices that have it. Fully restored on game exit. Toggleable from the WebUI
+- **Clean App Cache** (Settings → Clean App Cache button): triggers `pm trim-caches` (Android's
+  official package manager command) with the maximum value to request all app caches freed, then
+  drops kernel dentries/inodes via `/proc/sys/vm/drop_caches`. Runs only when the button is
+  tapped — nothing happens automatically. Shows a "Cleaning…" indicator while running and a
+  success/failure notification when done
 - **Network Congestion Control picker** (Settings → Network Congestion Control): the TCP algorithm
   used while gaming is no longer fixed — pick a specific one (whatever this kernel's
   `tcp_available_congestion_control` offers) or leave it on Auto, which keeps fluxd's own priority

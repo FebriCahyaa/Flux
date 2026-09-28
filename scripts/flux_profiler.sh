@@ -888,6 +888,200 @@ flux_vm() {
 	apply 0 /sys/kernel/mm/ksm/run
 }
 
+# ──────────────────────────────────────────────────────────────────────────────
+# RAM Optimizer: read the device's actual RAM tier, then apply scaled memory
+# management settings so a 3 GB phone is tuned differently from a 16 GB one.
+#
+# Tier table (matches the zram tier table in flux_zram_size_for):
+#   ≤ 3.5 GB  →  tier "3"   aggressive reclaim, high swappiness
+#   ≤ 4.5 GB  →  tier "4"
+#   ≤ 6.5 GB  →  tier "6"
+#   ≤ 8.5 GB  →  tier "8"
+#   ≤ 12.5 GB →  tier "12"
+#   > 12.5 GB →  tier "16"  conservative: plenty of RAM, keep more pages hot
+#
+# Every write uses flux_boost_save / flux_boost_restore so the original kernel
+# values are put back when the game ends.  FLUX_RAM_OPT_DISABLED skips the
+# boost path without skipping the restore.
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Returns the RAM tier ("3" / "4" / "6" / "8" / "12" / "16") based on
+# /proc/meminfo MemTotal.
+flux_ram_tier() {
+	# MemTotal is in kB; integer arithmetic only, no awk needed.
+	mem_kb=$(awk '/^MemTotal:/{print $2;exit}' /proc/meminfo 2>/dev/null)
+	case "$mem_kb" in '' | *[!0-9]*) echo 4; return ;; esac
+	# Convert to MB (round down)
+	mem_mb=$((mem_kb / 1024))
+	if   [ "$mem_mb" -le 3584  ]; then echo 3
+	elif [ "$mem_mb" -le 4608  ]; then echo 4
+	elif [ "$mem_mb" -le 6656  ]; then echo 6
+	elif [ "$mem_mb" -le 8704  ]; then echo 8
+	elif [ "$mem_mb" -le 12800 ]; then echo 12
+	else echo 16
+	fi
+}
+
+flux_ram_optimizer() {
+	ram_nodes="/proc/sys/vm/swappiness /proc/sys/vm/min_free_kbytes \
+/proc/sys/vm/extra_free_kbytes /proc/sys/vm/vfs_cache_pressure \
+/proc/sys/vm/dirty_expire_centisecs /proc/sys/vm/dirty_writeback_centisecs \
+/proc/sys/vm/watermark_boost_factor /proc/sys/vm/page-cluster \
+/sys/kernel/mm/ksm/sleep_millisecs /sys/kernel/mm/ksm/pages_to_scan"
+	# shellcheck disable=SC2086
+	flux_boost_save ram_opt $ram_nodes
+	flux_boost_restore ram_opt
+	[ "$1" = boost ] && [ -z "$FLUX_RAM_OPT_DISABLED" ] || return 0
+
+	tier=$(flux_ram_tier)
+
+	# ── swappiness ──────────────────────────────────────────────────────────
+	# Lower = keep pages in RAM longer; higher = swap out aggressively to free
+	# memory for the game.  Small-RAM phones benefit from aggressive swapping
+	# (less OOM pressure); large-RAM phones don't need to swap at all.
+	case "$tier" in
+	3)  swap=100 ;;
+	4)  swap=80  ;;
+	6)  swap=60  ;;
+	8)  swap=40  ;;
+	12) swap=25  ;;
+	16) swap=15  ;;
+	*)  swap=60  ;;
+	esac
+	apply "$swap" /proc/sys/vm/swappiness
+
+	# ── min_free_kbytes ─────────────────────────────────────────────────────
+	# Larger reserve → kswapd wakes earlier and reclaims before the game has
+	# to wait on the direct reclaim path.  Scale with RAM so the reserve is
+	# not a big fraction of a 3 GB phone's already-thin free pool.
+	case "$tier" in
+	3)  minfree=16384  ;;
+	4)  minfree=24576  ;;
+	6)  minfree=32768  ;;
+	8)  minfree=49152  ;;
+	12) minfree=65536  ;;
+	16) minfree=98304  ;;
+	*)  minfree=32768  ;;
+	esac
+	raise_to "$minfree" /proc/sys/vm/min_free_kbytes
+
+	# extra_free_kbytes: second watermark layer (Android-specific).
+	# Half of min_free_kbytes keeps the gap without over-reserving.
+	raise_to $((minfree / 2)) /proc/sys/vm/extra_free_kbytes
+
+	# ── vfs_cache_pressure ───────────────────────────────────────────────────
+	# > 100 → reclaim dentries/inodes faster, freeing RAM for the game;
+	# < 100 → keep the cache hot for launcher / background processes.
+	# Small-RAM phones: reclaim aggressively (150); large: be conservative (60).
+	case "$tier" in
+	3)  vfs=150 ;;
+	4)  vfs=130 ;;
+	6)  vfs=110 ;;
+	8)  vfs=90  ;;
+	12) vfs=75  ;;
+	16) vfs=60  ;;
+	*)  vfs=110 ;;
+	esac
+	apply "$vfs" /proc/sys/vm/vfs_cache_pressure
+
+	# ── dirty page writeback ─────────────────────────────────────────────────
+	# Longer intervals → fewer interruptions by the kernel's pdflush/writeback
+	# threads during a game; the tradeoff is slightly more data at risk if the
+	# phone crashes.  5 s / 50 s are safe values that most OEMs use.
+	raise_to 500  /proc/sys/vm/dirty_expire_centisecs
+	raise_to 5000 /proc/sys/vm/dirty_writeback_centisecs
+
+	# ── watermark_boost_factor ───────────────────────────────────────────────
+	# 0 disables async kswapd wakeups triggered by watermark boosts (kernel
+	# 5.x+) — on gaming workloads the burst-of-latency from a surprise kswapd
+	# run is worse than waiting for the normal watermark threshold.
+	apply 0 /proc/sys/vm/watermark_boost_factor
+
+	# ── page-cluster ─────────────────────────────────────────────────────────
+	# 0 = read one swap page at a time (no speculative read-ahead into swap).
+	# Games rarely benefit from swap read-ahead; it just wastes I/O bandwidth.
+	apply 0 /proc/sys/vm/page-cluster
+
+	# ── KSM tuning ───────────────────────────────────────────────────────────
+	# When KSM is running (run=1), keep its scan rate low so it doesn't steal
+	# cycles from the game.  flux_vm already pauses it (run=0) during gaming;
+	# these only matter when KSM is later re-enabled by someone else.
+	raise_to 2000 /sys/kernel/mm/ksm/sleep_millisecs
+	apply 64      /sys/kernel/mm/ksm/pages_to_scan
+}
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Performance Boost: additional micro-tunings that go beyond the stock
+# performance profile.  Each tweak is a small, reversible sysfs or procfs
+# write targeting latency, scheduler responsiveness and memory bandwidth.
+# FLUX_PERF_BOOST_DISABLED: restore only (WebUI toggle off).
+# ──────────────────────────────────────────────────────────────────────────────
+
+flux_perf_boost() {
+	perf_nodes="/proc/sys/kernel/sched_nr_migrate \
+/proc/sys/kernel/sched_migration_cost_ns \
+/proc/sys/kernel/sched_wakeup_granularity_ns \
+/proc/sys/kernel/sched_min_granularity_ns \
+/proc/sys/kernel/perf_cpu_time_max_percent \
+/proc/sys/kernel/sched_autogroup_enabled \
+/proc/sys/kernel/sched_child_runs_first \
+/proc/sys/vm/stat_interval \
+/proc/sys/vm/compaction_proactiveness"
+	# shellcheck disable=SC2086
+	flux_boost_save perf_boost $perf_nodes
+	flux_boost_restore perf_boost
+	[ "$1" = boost ] && [ -z "$FLUX_PERF_BOOST_DISABLED" ] || return 0
+
+	# Reduce inter-core task migrations — keeps hot data in each core's L1/L2.
+	apply 32  /proc/sys/kernel/sched_nr_migrate
+
+	# Cost of migrating a task: higher = scheduler avoids migrations more.
+	raise_to 500000 /proc/sys/kernel/sched_migration_cost_ns
+
+	# CFS wakeup granularity: a task must run this long before being preempted.
+	raise_to 1000000 /proc/sys/kernel/sched_wakeup_granularity_ns
+	raise_to 500000  /proc/sys/kernel/sched_min_granularity_ns
+
+	# Cap perf-counter CPU overhead so the game does not share its CPU budget
+	# with hardware performance monitoring.
+	apply 3 /proc/sys/kernel/perf_cpu_time_max_percent
+
+	# Task autogroup places processes in separate CPU cgroups based on session;
+	# games fill multiple threads / processes that benefit from being grouped.
+	apply 0 /proc/sys/kernel/sched_autogroup_enabled
+
+	# Newly forked child runs before the parent — cuts one context switch in the
+	# typical "fork → exec → run" path that game engines use for worker threads.
+	apply 1 /proc/sys/kernel/sched_child_runs_first
+
+	# /proc/stat updated every 15 s instead of every tick (reduces jitter from
+	# stat file lock contention on high-core-count devices).
+	raise_to 15 /proc/sys/vm/stat_interval
+
+	# Proactive compaction steals cycles looking for contiguous pages; games
+	# benefit more from stable latency than from occasionally getting huge pages.
+	apply 0 /proc/sys/vm/compaction_proactiveness
+
+	# GKI 5.13+ tunables live in debugfs (same values as above).
+	if [ "$IS_GKI" -eq 1 ] && [ -d /sys/kernel/debug/sched ]; then
+		sched_dbg=/sys/kernel/debug/sched
+		apply 32     $sched_dbg/nr_migrate
+		raise_to 500000  $sched_dbg/migration_cost_ns
+		raise_to 1000000 $sched_dbg/wakeup_granularity_ns
+		raise_to 500000  $sched_dbg/min_granularity_ns
+	fi
+
+	# Qualcomm DCVS bus votes: cap_ceil for L3/DDR/LLCC so the game gets high
+	# memory bandwidth without waiting for the DCVS to ramp up.
+	for component in LLCC DDR L3; do
+		raise_to 40 /sys/devices/system/cpu/bus_dcvs/$component/ipm_ceil 2>/dev/null || true
+	done
+
+	# Xiaomi/MIUI kernel booster: keep it enabled for the game session.
+	apply 1 /sys/module/migt/parameters/migt_enable 2>/dev/null || true
+	apply 0 /sys/module/migt/parameters/glk_disable 2>/dev/null || true
+}
+
 # UFS (sd*), eMMC / SD (mmcblk*) and the dm devices on top of them (userdata is
 # dm-crypt / dm-default-key: file reads go through the dm device's read-ahead)
 flux_block_prefetch() {
@@ -994,6 +1188,8 @@ flux_boost() {
 	flux_vm "$1"
 	flux_io "$1"
 	flux_priority "$1"
+	flux_ram_optimizer "$1"
+	flux_perf_boost "$1"
 }
 
 ###################################
