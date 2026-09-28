@@ -125,6 +125,10 @@
     "gpu_governor": {
       "title": "Governor GPU",
       "description": "Pilih governor GPU untuk profil seimbang dan hemat daya"
+    },
+    "congestion_control": {
+      "title": "Kontrol Kemacetan Jaringan",
+      "description": "Pilih algoritma TCP yang dipakai game, atau biarkan pada bawaan yang direkomendasikan"
     }
   },
   "game_settings": {
@@ -485,6 +489,19 @@
       "slow_message": "Governor ini bisa menahan GPU di clock rendah, sehingga animasi dan scroll bisa patah-patah."
     }
   },
+  "congestion_control": {
+    "title": "Kontrol Kemacetan Jaringan",
+    "brief": "Kontrol kemacetan menentukan cara TCP bereaksi saat jaringan padat — ini yang menjaga ping tetap stabil saat mabar, bukannya melonjak. Auto memilih yang terbaik yang tersedia di kernel ini; pilih algoritma tertentu untuk menimpanya.",
+    "running_now": "Berjalan sekarang",
+    "recommended": "Direkomendasikan",
+    "auto": "Auto (direkomendasikan)",
+    "picker_title": "Algoritma",
+    "picker_description": "Diterapkan selama game berjalan, bersama tweak jaringan lainnya. Auto saat ini berarti {algo}.",
+    "unsupported": "Tidak ada algoritma kontrol kemacetan yang ditemukan",
+    "unsupported_hint": "Kernel ini tidak menyediakan /proc/sys/net/ipv4/tcp_available_congestion_control.",
+    "apply_note": "Auto mengikuti prioritas fluxd sendiri (BBR3 > BBR2 > BBRplus > BBR > Westwood > CUBIC), memilih yang tercepat yang benar-benar dimiliki kernel ini. Perubahan berlaku pada sesi game berikutnya.",
+    "saved": "Kontrol kemacetan: {algo}"
+  },
   "game_tweaks": {
     "title": "Tweak Game",
     "brief": "Tweak tambahan yang hanya diterapkan saat game berjalan. Semuanya dikembalikan saat kamu keluar dari game.",
@@ -498,7 +515,7 @@
     },
     "net_tweaks": {
       "title": "Latensi jaringan",
-      "description": "TCP latensi rendah dengan kontrol kemacetan terbaik yang dimiliki kernel ini (BBR, Westwood atau CUBIC), ECN dan Fast Open agar ping lebih stabil."
+      "description": "TCP latensi rendah dengan kontrol kemacetan yang dipilih di Kontrol Kemacetan Jaringan (auto secara bawaan), ECN dan Fast Open agar ping lebih stabil."
     },
     "touch_tweaks": {
       "title": "Respons sentuhan",

@@ -78,6 +78,8 @@ void set_profiler_env_vars() {
 
     // Game tweaks
     if (!prefs.net_tweaks) setenv("FLUX_NET_DISABLED", "1", 1);
+    // Empty means "let flux_net pick the best one this kernel offers" (its own priority list).
+    setenv("FLUX_CONGESTION_CONTROL", prefs.congestion_control.c_str(), 1);
     if (!prefs.touch_tweaks) setenv("FLUX_TOUCH_DISABLED", "1", 1);
     if (prefs.game_refresh_rate) setenv("FLUX_REFRESH_ENABLED", "1", 1);
     if (!prefs.drop_caches) setenv("FLUX_DROP_CACHES_DISABLED", "1", 1);

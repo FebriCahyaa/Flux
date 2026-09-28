@@ -125,6 +125,10 @@
     "gpu_governor": {
       "title": "GPU Governor",
       "description": "Choose the GPU governor for the balanced and powersave profiles"
+    },
+    "congestion_control": {
+      "title": "Network Congestion Control",
+      "description": "Pick the TCP algorithm games use, or leave it on the recommended default"
     }
   },
   "game_settings": {
@@ -482,6 +486,19 @@
       "slow_message": "This governor can keep the GPU at a low clock, so animations and scrolling may stutter."
     }
   },
+  "congestion_control": {
+    "title": "Network Congestion Control",
+    "brief": "Congestion control decides how TCP reacts to network jams — it's what keeps ping steady in a match instead of spiking. Auto picks the best one this kernel offers; pick a specific algorithm to override it.",
+    "running_now": "Running now",
+    "recommended": "Recommended",
+    "auto": "Auto (recommended)",
+    "picker_title": "Algorithm",
+    "picker_description": "Applied while a game runs, alongside the other network tweaks. Auto currently means {algo}.",
+    "unsupported": "No congestion control algorithms found",
+    "unsupported_hint": "This kernel does not expose /proc/sys/net/ipv4/tcp_available_congestion_control.",
+    "apply_note": "Auto follows fluxd's own priority (BBR3 > BBR2 > BBRplus > BBR > Westwood > CUBIC), picking the fastest one this kernel actually has. The change applies on the next game session.",
+    "saved": "Congestion control: {algo}"
+  },
   "game_tweaks": {
     "title": "Game Tweaks",
     "brief": "Extra tweaks applied only while a game runs. Everything is put back when you leave the game.",
@@ -495,7 +512,7 @@
     },
     "net_tweaks": {
       "title": "Network latency",
-      "description": "Low-latency TCP with the best congestion control this kernel has (BBR, Westwood or CUBIC), ECN and Fast Open for steadier ping."
+      "description": "Low-latency TCP with the congestion control chosen in Network Congestion Control (auto by default), ECN and Fast Open for steadier ping."
     },
     "touch_tweaks": {
       "title": "Touch response",

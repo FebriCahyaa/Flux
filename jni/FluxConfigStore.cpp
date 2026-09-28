@@ -94,6 +94,11 @@ bool FluxConfigStore::save_config(const std::string &config_path) {
     prefs_obj.AddMember("graphics_tweaks", config_.preferences.graphics_tweaks, allocator);
     prefs_obj.AddMember("adaptive_refresh", config_.preferences.adaptive_refresh, allocator);
     prefs_obj.AddMember("zram_tune", config_.preferences.zram_tune, allocator);
+    prefs_obj.AddMember(
+        "congestion_control",
+        rapidjson::Value(config_.preferences.congestion_control.c_str(), allocator).Move(),
+        allocator
+    );
     prefs_obj.AddMember("log_level", config_.preferences.log_level, allocator);
     doc.AddMember("preferences", prefs_obj, allocator);
 
@@ -212,6 +217,7 @@ bool FluxConfigStore::create_default_config() {
             .graphics_tweaks = false,
             .adaptive_refresh = false,
             .zram_tune = false,
+            .congestion_control = "",
             .log_level = 4
         },
         .cpu_governor = {
@@ -274,6 +280,10 @@ bool FluxConfigStore::parse_config(const rapidjson::Document &doc) {
             if (prefs.HasMember(key) && prefs[key].IsBool()) {
                 new_config.preferences.*field = prefs[key].GetBool();
             }
+        }
+
+        if (prefs.HasMember("congestion_control") && prefs["congestion_control"].IsString()) {
+            new_config.preferences.congestion_control = prefs["congestion_control"].GetString();
         }
 
         if (prefs.HasMember("log_level") && prefs["log_level"].IsInt()) {

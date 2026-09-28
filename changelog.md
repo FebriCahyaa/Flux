@@ -37,6 +37,11 @@
   which, and the bug report gains a Display / refresh rate section
 
 ### New
+- **Network Congestion Control picker** (Settings → Network Congestion Control): the TCP algorithm
+  used while gaming is no longer fixed — pick a specific one (whatever this kernel's
+  `tcp_available_congestion_control` offers) or leave it on Auto, which keeps fluxd's own priority
+  (BBR3 > BBR2 > BBRplus > BBR > Westwood > CUBIC) and is shown as the recommended default. A
+  choice this kernel doesn't actually have falls back to Auto rather than failing to apply
 - **Render threads on fast cores** (Game tweaks, on): fluxd finds the game's render threads
   (Unity UnityMain / UnityGfxDevice, Unreal GameThread / RenderThread / RHIThread, GLThread, or
   the main thread of NativeActivity games) and pins them to the fastest cores with nice -15; on

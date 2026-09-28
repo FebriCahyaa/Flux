@@ -21,6 +21,7 @@ import CpuGovernor from '@/views/CpuGovernor.vue'
 import DeviceMitigation from '@/views/DeviceMitigation.vue'
 import GpuGovernor from '@/views/GpuGovernor.vue'
 import GameTweaks from '@/views/GameTweaks.vue'
+import NetworkTweaks from '@/views/NetworkTweaks.vue'
 
 window.wx = new WXEventHandler()
 
@@ -106,6 +107,11 @@ const routes = [
     path: '/settings/game_tweaks',
     name: 'GameTweaks',
     component: GameTweaks,
+  },
+  {
+    path: '/settings/congestion_control',
+    name: 'NetworkTweaks',
+    component: NetworkTweaks,
   },
   {
     path: '/settings/log_level',

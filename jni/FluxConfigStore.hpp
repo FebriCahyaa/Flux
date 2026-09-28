@@ -55,6 +55,10 @@ public:
         bool graphics_tweaks = false;   ///< RenderEngine / HWUI pipeline and composition prediction props
         bool adaptive_refresh = false;  ///< let the panel drop to its lowest rate outside games (vendor min pin removed)
         bool zram_tune = false;         ///< zram sized to the device RAM with a fast compressor
+        // Empty = auto (flux_profiler picks the best one this kernel offers: bbr3 > bbr2 >
+        // bbrplus > bbr > westwood > cubic); otherwise a specific tcp_available_congestion_control
+        // entry, only applied when the kernel actually offers it (silently falls back to auto).
+        std::string congestion_control;
         int log_level = 4;
     };
 

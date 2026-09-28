@@ -138,6 +138,7 @@ import PauseIcon from '@/components/icons/Pause.vue'
 import GamesIcon from '@/components/icons/Games.vue'
 import GpuIcon from '@/components/icons/Gpu.vue'
 import ShieldIcon from '@/components/icons/Shield.vue'
+import WifiIcon from '@/components/icons/Wifi.vue'
 
 import * as KernelSU from '@/helpers/KernelSU'
 import { exec } from 'kernelsu'
@@ -255,6 +256,14 @@ const allSections = () => [
         shape: 'shape-sunny',
         tone: tone.secondary,
         run: go('gpu_governor'),
+      },
+      {
+        key: 'congestion_control',
+        cap: 'net',
+        icon: WifiIcon,
+        shape: 'shape-cookie9',
+        tone: tone.primary,
+        run: go('congestion_control'),
       },
       {
         key: 'device_mitigation',

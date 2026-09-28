@@ -1015,12 +1015,22 @@ flux_net() {
 		flux_boost_restore net
 		return 0
 	fi
-	for algo in bbr3 bbr2 bbrplus bbr westwood cubic; do
-		if grep -q "$algo" /proc/sys/net/ipv4/tcp_available_congestion_control; then
-			apply "$algo" /proc/sys/net/ipv4/tcp_congestion_control
-			break
-		fi
-	done
+	# FLUX_CONGESTION_CONTROL: a specific algorithm chosen in the WebUI, applied only when
+	# this kernel actually offers it (grep -w: tcp_available_congestion_control is a plain
+	# space-separated list, not the bracketed current-value format some sysfs nodes use).
+	# Unset/empty, or a choice this kernel doesn't have, falls back to the recommended
+	# priority order below.
+	if [ -n "$FLUX_CONGESTION_CONTROL" ] &&
+		grep -qw -- "$FLUX_CONGESTION_CONTROL" /proc/sys/net/ipv4/tcp_available_congestion_control; then
+		apply "$FLUX_CONGESTION_CONTROL" /proc/sys/net/ipv4/tcp_congestion_control
+	else
+		for algo in bbr3 bbr2 bbrplus bbr westwood cubic; do
+			if grep -qw -- "$algo" /proc/sys/net/ipv4/tcp_available_congestion_control; then
+				apply "$algo" /proc/sys/net/ipv4/tcp_congestion_control
+				break
+			fi
+		done
+	fi
 	apply 1 /proc/sys/net/ipv4/tcp_low_latency
 	apply 1 /proc/sys/net/ipv4/tcp_ecn
 	apply 3 /proc/sys/net/ipv4/tcp_fastopen
