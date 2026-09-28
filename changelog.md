@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### Fixed
+- **`flux_utility logcat`/`save_logs` were not portable to every `/system/bin/sh`**: the log
+  viewer used `echo -e`/`echo -ne` for its colors and screen-clear sequences, which only some
+  shells interpret as backslash escapes — on shells that don't, it printed the raw `-e`/`-ne` and
+  literal `\e[...]` text instead of color. Switched to `printf '%b'`, which every POSIX shell
+  handles the same way. `save_logs` also now bails out of its `cd` into the temp report directory
+  instead of silently continuing (and archiving the wrong directory) if that `cd` ever fails
 - **Zram now sized by RAM tier, not a flat 6 GB cap**: a 12 GB and a 16 GB phone used to get
   identical zram (both hit the cap); the size now follows an explicit tier table (3/4/6/8/12/16 GB,
   ~133% down to ~62% of RAM) so it keeps scaling on higher-RAM devices instead of flattening out

@@ -312,7 +312,7 @@ save_logs() {
 	cp -r /sys/fs/pstore/. "$report_dir/pstore/" 2>/dev/null
 
 	(
-		cd "$report_dir"
+		cd "$report_dir" || exit 1
 		[ -f "$log_file" ] && rm -f "$log_file"
 		tar -czf "$log_file" .
 	)
@@ -333,10 +333,10 @@ save_logs() {
 
 logcat() {
 	# Clear screen
-	echo -ne "\e[H\e[2J\e[3J"
+	printf '%b' "\e[H\e[2J\e[3J"
 
 	# Trap CTRL+C and exit gracefully
-	trap 'echo -ne "\e[H\e[2J\e[3J"; exit 0' INT
+	trap 'printf "%b" "\e[H\e[2J\e[3J"; exit 0' INT
 
 	# Detect SoC
 	SOC="Unknown"
@@ -352,12 +352,12 @@ logcat() {
 	esac
 
 	# Header
-	echo -e "\e[1;36m┌────────────────────────────────────────────┐"
-	echo -e "│          \e[1;37mFlux Tweaks Log Viewer\e[1;36m          │"
-	echo -e "└────────────────────────────────────────────┘\e[0m"
+	printf '%b\n' "\e[1;36m┌────────────────────────────────────────────┐"
+	printf '%b\n' "│          \e[1;37mFlux Tweaks Log Viewer\e[1;36m          │"
+	printf '%b\n' "└────────────────────────────────────────────┘\e[0m"
 
 	# Info block
-	echo -e "
+	printf '%b\n' "
 \e[1;32mModule Version:\e[0m $(awk -F'=' '/version=/ {print $2}' /data/adb/modules/flux/module.prop)
 \e[1;32mChipset:\e[0m        $SOC $(getprop ro.board.platform)
 \e[1;32mFingerprint:\e[0m    $(getprop ro.build.fingerprint)
@@ -381,7 +381,7 @@ logcat() {
 		*) level_color="\e[0m" ;;    # Default
 		esac
 
-		echo -e "\e[1;32m$timestamp\e[0m ${level_color}${msg}\e[0m"
+		printf '%b\n' "\e[1;32m$timestamp\e[0m ${level_color}${msg}\e[0m"
 	done
 }
 
