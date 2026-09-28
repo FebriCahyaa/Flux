@@ -589,7 +589,7 @@
     },
     "adaptive_refresh": {
       "title": "Refresh rate adaptif",
-      "description": "Layar boleh turun ke rate terendah (60 Hz atau lebih) saat konten diam, puncak tetap tertinggi; frame rate override aktif, turun saat diam setelah 3 detik, sentuhan langsung kembali ke puncak. Game tetap memakai pengaturan refresh-nya sendiri."
+      "description": "Layar boleh turun ke rate lebih rendah (60 Hz atau lebih) saat konten diam di dalam aplikasi, puncak tetap tertinggi. Hanya rate yang bisa dicapai layar tanpa ganti mode yang dipakai, jadi tidak patah-patah; jika layar tidak punya, tidak ada yang diubah. Homescreen, recents dan panel notifikasi tetap di rate puncak agar geser tetap mulus. Frame rate override aktif, turun saat diam setelah 3 detik. Game tetap memakai pengaturan refresh-nya sendiri."
     },
     "zram_tune": {
       "title": "Zram sesuai RAM",

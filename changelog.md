@@ -11,6 +11,14 @@
 - Render threads on fast cores no longer moves the game's other threads off the little cores on
   two-cluster phones (4+4, 2+6): all of MLBB on the four big cores of a Redmi Note 13 Pro 5G ran
   at 96 °C. Phones with little / big / prime clusters keep it
+- **Adaptive refresh made the home screen laggy**: on panels without LTPO every drop to the low
+  rate and back is a display mode switch that costs a frame or two, and on the launcher that
+  happened at the start of almost every swipe. fluxd now keeps the peak rate while the launcher
+  (home, recents, app drawer) or the notification shade has focus and puts the adaptive minimum
+  back 2 s after an app opens, at once for a game or screen off. The low rate is now one the panel
+  reaches seamlessly from its peak (`alternativeRefreshRates`, at the resolution in use); when there
+  is none the range is left untouched instead of adding stutter. `refresh_adaptive_status` says
+  which, and the bug report gains a Display / refresh rate section
 
 ### New
 - **Render threads on fast cores** (Game tweaks, on): fluxd finds the game's render threads

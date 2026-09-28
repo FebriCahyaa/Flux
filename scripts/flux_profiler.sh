@@ -1743,15 +1743,84 @@ flux_graphics_props() {
 }
 
 FLUX_ADAPTIVE_ORIG="$MODULE_CONFIG/refresh_adaptive_orig"
+FLUX_ADAPTIVE_STATUS="$MODULE_CONFIG/refresh_adaptive_status"
+
+# Display modes of the built-in panel, one per line: "<width>x<height> <fps> <alt,alt,...>"
+# (alternativeRefreshRates = rates reachable with a seamless switch, Android 12+;
+# "none" when the list is empty, nothing when the ROM does not report it)
+flux_refresh_modes() {
+	dumpsys display 2>/dev/null | awk '
+		!done && /[sS]upportedModes/ {
+			n = split($0, part, "[{]id=")
+			for (i = 2; i <= n; i++) {
+				m = part[i]; sub(/}.*/, "", m)
+				w = m; sub(/.*width=/, "", w); sub(/[^0-9].*/, "", w)
+				h = m; sub(/.*height=/, "", h); sub(/[^0-9].*/, "", h)
+				f = m; sub(/.*fps=/, "", f); sub(/[^0-9.].*/, "", f)
+				a = ""
+				if (m ~ /alternativeRefreshRates=\[/) {
+					a = m; sub(/.*alternativeRefreshRates=\[/, "", a); sub(/\].*/, "", a); gsub(/ /, "", a)
+					if (a == "") a = "none"
+				}
+				if (w != "" && h != "" && f != "") printf "%sx%s %d %s\n", w, h, f + 0.5, a
+			}
+			done = 1
+		}'
+}
 
 # Refresh rates the display supports, ascending, one per line
 flux_refresh_rates() {
 	dumpsys display 2>/dev/null | grep -oE 'fps=[0-9]+(\.[0-9]+)?' | cut -d= -f2 | cut -d. -f1 | sort -un
 }
 
-# Adaptive refresh: the panel may drop to its lowest rate (>= 60 Hz) when the
+# Lowest rate >= 60 the panel can reach from its peak without a mode-set
+# ("low peak seamless"), or the plain lowest rate when the ROM does not
+# report alternatives ("low peak unknown"). Empty when there is no range.
+flux_adaptive_range() {
+	modes=$(flux_refresh_modes)
+	if [ -z "$modes" ]; then
+		rates=$(flux_refresh_rates)
+		low=""
+		for rate in $rates; do
+			[ "$rate" -ge 60 ] && low=$rate && break
+		done
+		high=$(echo "$rates" | tail -n 1)
+		echo "${low:--} ${high:--} unknown"
+		return 0
+	fi
+	# Peak mode: highest rate at the largest resolution (the one the user runs)
+	peak_line=$(echo "$modes" | awk '{ split($1, r, "x"); print r[1] * r[2], $2, $0 }' |
+		sort -n -k1,1 -k2,2 | tail -n 1 | cut -d' ' -f3-)
+	res=${peak_line%% *}
+	rest=${peak_line#* }
+	high=${rest%% *}
+	alts=${rest#"$high"}
+	alts=${alts# }
+	low=""
+	if [ "$alts" = none ]; then
+		echo "- $high none"
+		return 0
+	fi
+	if [ -n "$alts" ]; then
+		for rate in $(echo "$alts" | tr ',' '\n' | cut -d. -f1 | sort -un); do
+			[ "$rate" -ge 60 ] && [ "$rate" -lt "$high" ] && low=$rate && break
+		done
+		echo "${low:--} $high seamless"
+		return 0
+	fi
+	for rate in $(echo "$modes" | awk -v r="$res" '$1 == r { print $2 }' | sort -un); do
+		[ "$rate" -ge 60 ] && low=$rate && break
+	done
+	echo "${low:--} ${high:--} unknown"
+}
+
+# Adaptive refresh: the panel may drop to a lower rate (>= 60 Hz) when the
 # content allows it; the peak stays at the highest. Vendors that pin
 # min_refresh_rate to the peak keep the panel at 120/144 Hz all the time.
+# Only a rate the panel reaches seamlessly is used: a full mode-set on every
+# idle/touch transition stutters. fluxd keeps the peak while the launcher or
+# the notification shade has focus (RefreshHold), where those transitions
+# happen at the start of every swipe.
 flux_adaptive_refresh() {
 	if [ -n "$FLUX_ADAPTIVE_REFRESH" ]; then
 		# Frame rate override: apps and games get their own rate (60 fps game on a 120 Hz panel)
@@ -1764,26 +1833,37 @@ flux_adaptive_refresh() {
 
 		# During a game the game's refresh handling owns these settings.
 		[ -f "$FLUX_REFRESH_BACKUP" ] && return 0
-		rates=$(flux_refresh_rates)
-		low=""
-		for rate in $rates; do
-			if [ "$rate" -ge 60 ]; then
-				low=$rate
-				break
-			fi
-		done
-		high=$(echo "$rates" | tail -n 1)
-		case "$low$high" in '' | *[!0-9]*) return 0 ;; esac
-		[ "$high" -gt "$low" ] || return 0
+		read -r low high kind <<EOF_RANGE
+$(flux_adaptive_range)
+EOF_RANGE
+		case "$high" in '' | *[!0-9]*) high="" ;; esac
+		case "$low" in '' | *[!0-9]*) low="" ;; esac
+		if [ -z "$high" ]; then
+			echo "state=unavailable reason=no-display-modes" >"$FLUX_ADAPTIVE_STATUS"
+			return 0
+		fi
+		if [ -z "$low" ] || [ "$high" -le "$low" ]; then
+			# No lower rate reachable without a mode-set: widening the range would only add stutter.
+			flux_adaptive_restore
+			echo "state=skipped reason=no-seamless-lower-rate peak=$high switch=$kind" >"$FLUX_ADAPTIVE_STATUS"
+			return 0
+		fi
 		[ -f "$FLUX_ADAPTIVE_ORIG" ] ||
 			echo "$(settings get system peak_refresh_rate) $(settings get system min_refresh_rate)" >"$FLUX_ADAPTIVE_ORIG"
 		settings put system min_refresh_rate "$low"
 		settings put system peak_refresh_rate "$high"
+		echo "state=applied min=$low peak=$high switch=$kind" >"$FLUX_ADAPTIVE_STATUS"
 		return 0
 	fi
 
-	[ -f "$FLUX_ADAPTIVE_ORIG" ] || return 0
+	rm -f "$FLUX_ADAPTIVE_STATUS"
 	[ -f "$FLUX_REFRESH_BACKUP" ] && return 0
+	flux_adaptive_restore
+}
+
+# Put back the refresh settings saved before adaptive refresh widened them
+flux_adaptive_restore() {
+	[ -f "$FLUX_ADAPTIVE_ORIG" ] || return 0
 	read -r peak min <"$FLUX_ADAPTIVE_ORIG"
 	for pair in "peak_refresh_rate:$peak" "min_refresh_rate:$min"; do
 		key=${pair%%:*}

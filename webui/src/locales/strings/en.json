@@ -586,7 +586,7 @@
     },
     "adaptive_refresh": {
       "title": "Adaptive refresh rate",
-      "description": "Lets the panel drop to its lowest rate (60 Hz or more) on static content while the peak stays at the highest; frame rate override on, idle drop after 3 s, touch returns to the peak at once. Games keep their own refresh handling."
+      "description": "Lets the panel drop to a lower rate (60 Hz or more) on static content inside apps while the peak stays at the highest. Only a rate the panel reaches without a mode switch is used, so there is no stutter; if the panel has none, nothing is changed. The home screen, recents and the notification shade stay at the peak so swiping is smooth. Frame rate override on, idle drop after 3 s. Games keep their own refresh handling."
     },
     "zram_tune": {
       "title": "Zram sized to RAM",
