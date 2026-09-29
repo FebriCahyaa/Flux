@@ -52,7 +52,9 @@ defineOptions({
 
 @media (prefers-reduced-motion: reduce) {
   .shape {
-    animation: m3-loading-spin 2.4s linear infinite;
+    /* Static cookie9 shape, no motion: prior reduced-motion still spun
+       forever (just without the morph), which is not reduced motion. */
+    animation: none;
   }
 }
 </style>

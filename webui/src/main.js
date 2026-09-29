@@ -57,57 +57,68 @@ if (!compat.ok) {
   })
 }
 
-let enMessages = {}
-try {
-  const enModule = await import('@/locales/strings/en.json')
-  enMessages = enModule.default
-} catch (error) {
-  console.error('Failed to load English messages:', error)
-}
+// document.body.innerHTML above replaced the #app element the compatibility
+// warning now occupies; nothing past this point may run for an incompatible
+// WebView. Previously nothing stopped it here: Pinia/i18n/router still
+// initialized and initializeApp() (locale detection, KernelSU/WebUI X bridge
+// calls) still ran on a WebView too old for exactly that to be safe.
+// app.mount('#app') itself would silently no-op once '#app' is gone, which
+// masked the bug rather than fixing it.
+let i18n
 
-const i18n = createI18n({
-  legacy: false,
-  locale: 'en', // Will be overridden immediately
-  fallbackLocale: 'en',
-  messages: {
-    en: enMessages,
-  },
-})
-
-// Inject i18n instance
-setI18n(i18n)
-
-async function initializeApp() {
+if (compat.ok) {
+  let enMessages = {}
   try {
-    const { locale: preferredLocale, isUserPreference } = await getPreferredLanguage()
-
-    const messages = await loadLocaleMessages(preferredLocale)
-    i18n.global.setLocaleMessage(preferredLocale, messages)
-    i18n.global.locale.value = preferredLocale
-
-    const app = createApp(App)
-    const pinia = createPinia()
-
-    app.use(pinia)
-    app.use(i18n)
-    app.use(router)
-
-    const languageStore = useLanguageStore()
-    languageStore.currentLanguage = preferredLocale
-    languageStore.userPreference = isUserPreference ? preferredLocale : null
-
-    languageStore.updateHtmlAttributes()
-
-    router.isReady().then(() => {
-      app.mount('#app')
-      console.log(`i18n initialized with locale: ${preferredLocale}`)
-    })
+    const enModule = await import('@/locales/strings/en.json')
+    enMessages = enModule.default
   } catch (error) {
-    console.error('Failed to initialize app:', error)
+    console.error('Failed to load English messages:', error)
   }
+
+  i18n = createI18n({
+    legacy: false,
+    locale: 'en', // Will be overridden immediately
+    fallbackLocale: 'en',
+    messages: {
+      en: enMessages,
+    },
+  })
+
+  // Inject i18n instance
+  setI18n(i18n)
+
+  const initializeApp = async () => {
+    try {
+      const { locale: preferredLocale, isUserPreference } = await getPreferredLanguage()
+
+      const messages = await loadLocaleMessages(preferredLocale)
+      i18n.global.setLocaleMessage(preferredLocale, messages)
+      i18n.global.locale.value = preferredLocale
+
+      const app = createApp(App)
+      const pinia = createPinia()
+
+      app.use(pinia)
+      app.use(i18n)
+      app.use(router)
+
+      const languageStore = useLanguageStore()
+      languageStore.currentLanguage = preferredLocale
+      languageStore.userPreference = isUserPreference ? preferredLocale : null
+
+      languageStore.updateHtmlAttributes()
+
+      router.isReady().then(() => {
+        app.mount('#app')
+        console.log(`i18n initialized with locale: ${preferredLocale}`)
+      })
+    } catch (error) {
+      console.error('Failed to initialize app:', error)
+    }
+  }
+
+  initializeApp()
 }
 
-initializeApp()
-
-// Export i18n for use in other modules
+// Export i18n for use in other modules (undefined when the WebView was incompatible)
 export { i18n }

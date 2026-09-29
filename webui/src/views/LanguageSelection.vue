@@ -1,69 +1,66 @@
 <template>
-  <div class="page language-selection-page h-full flex flex-col overflow-hidden bg-surface">
-    <div class="max-w-3xl mx-auto h-full flex flex-col w-full">
-      <!-- Header -->
-      <div class="flex-none p-5 pb-3">
-        <div class="flex items-center gap-4 mb-2">
-          <button @click="goBack" class="text-on-surface transition-colors">
-            <ArrowLeftIcon class="w-6 h-6 cursor-pointer rtl:rotate-180" />
-          </button>
-          <h1 class="text-xl font-semibold text-on-surface">
-            {{ $t('language_selection.title') }}
-          </h1>
+  <SettingsDetailLayout :title="$t('language_selection.title')">
+    <!-- Native radio inputs (RadioButton) inside a labelled group. The whole
+         row is tappable; selectLanguage ignores the repeat call a tap on the
+         label also produces. -->
+    <div
+      role="radiogroup"
+      :aria-label="$t('language_selection.title')"
+      :aria-busy="switching || undefined"
+      class="mb-8"
+    >
+      <div class="md3-list">
+        <div
+          class="md3-list-item lang-row px-5 py-3.5 cursor-pointer"
+          @click="selectLanguage('system')"
+        >
+          <RadioButton
+            :model-value="selectedLanguage"
+            value="system"
+            :name="radioGroupName"
+            :label="$t('language_selection.follow_system')"
+            :disabled="switching"
+            @update:model-value="selectLanguage"
+          />
         </div>
       </div>
 
-      <!-- Language List -->
-      <div class="scrollbar-hidden pb-safe-nav flex-1 min-h-0 overflow-y-scroll px-5">
-        <div class="space-y-0">
-          <!-- Follow System Option -->
-          <div
-            @click="selectLanguage('system')"
-            class="px-4 py-3.5 cursor-pointer transition-colors bg-transparent"
-          >
-            <RadioButton
-              :model-value="selectedLanguage"
-              value="system"
-              :name="radioGroupName"
-              :label="$t('language_selection.follow_system')"
-              @update:model-value="selectLanguage"
-            />
-          </div>
-
-          <!-- Available Languages List -->
-          <div
-            v-for="language in filteredAndSortedLanguages"
-            :key="language.code"
-            @click="selectLanguage(language.code)"
-            class="px-4 py-3.5 cursor-pointer transition-colors bg-transparent"
-          >
-            <RadioButton
-              :model-value="selectedLanguage"
-              :value="language.code"
-              :name="radioGroupName"
-              :label="language.name"
-              @update:model-value="selectLanguage"
-            />
-          </div>
+      <div v-for="language in filteredAndSortedLanguages" :key="language.code" class="md3-list">
+        <div
+          class="md3-list-item lang-row px-5 py-3.5 cursor-pointer"
+          :lang="language.code.replace('_', '-')"
+          @click="selectLanguage(language.code)"
+        >
+          <RadioButton
+            :model-value="selectedLanguage"
+            :value="language.code"
+            :name="radioGroupName"
+            :label="language.name"
+            :disabled="switching"
+            @update:model-value="selectLanguage"
+          />
         </div>
       </div>
     </div>
-  </div>
+  </SettingsDetailLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useLanguageStore } from '@/stores/Language'
+import { useNotifyStore } from '@/stores/Notify'
 import { detectBrowserLocale, checkLanguageFile } from '@/helpers/Locales'
 
-import ArrowLeftIcon from '@/components/icons/ArrowLeft.vue'
+import SettingsDetailLayout from '@/components/ui/SettingsDetailLayout.vue'
 import RadioButton from '@/components/ui/RadioButton.vue'
 
-const router = useRouter()
+const { t } = useI18n()
 const languageStore = useLanguageStore()
+const notify = useNotifyStore()
 
 const selectedLanguage = ref('')
+const switching = ref(false)
 const radioGroupName = 'language-selection-group'
 
 const languagesWithMissingFiles = ref([])
@@ -120,29 +117,39 @@ watch(
   { immediate: true },
 )
 
+// A tap on a row's label reaches here up to three times (label click, the
+// radio's change, and the synthetic input click bubbling to the row); the
+// guards keep it to one locale load.
 async function selectLanguage(languageCode) {
+  if (switching.value || languageCode === selectedLanguage.value) return
+  if (languageCode !== 'system' && languagesWithMissingFiles.value.includes(languageCode)) {
+    console.warn(`Cannot set language ${languageCode}: translation file missing`)
+    return
+  }
+
+  const previous = selectedLanguage.value
   selectedLanguage.value = languageCode
-
-  if (languageCode === 'system') {
-    const systemLanguage = detectBrowserLocale()
-    const success = await languageStore.setLanguage(systemLanguage, false)
-    if (success) {
-      console.log(`Language set to system default: ${systemLanguage}`)
+  switching.value = true
+  try {
+    const success =
+      languageCode === 'system'
+        ? await languageStore.setLanguage(detectBrowserLocale(), false)
+        : await languageStore.setLanguage(languageCode, true)
+    if (!success) {
+      selectedLanguage.value = previous
+      notify.error(t('language_selection.load_failed'))
     }
-  } else {
-    if (languagesWithMissingFiles.value.includes(languageCode)) {
-      console.warn(`Cannot set language ${languageCode}: translation file missing`)
-      return
-    }
-
-    const success = await languageStore.setLanguage(languageCode, true)
-    if (success) {
-      console.log(`Language set to: ${languageCode}`)
-    }
+  } finally {
+    switching.value = false
   }
 }
-
-function goBack() {
-  router.back()
-}
 </script>
+
+<style scoped>
+/* RadioButton is inline-flex; let it take the row so the label text wraps
+   instead of overflowing on narrow screens. */
+.lang-row > div {
+  display: flex;
+  width: 100%;
+}
+</style>

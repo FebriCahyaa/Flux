@@ -2,22 +2,33 @@
   <!-- One profile's governor: a card with every available governor as a chip. -->
   <section class="picker m3-card">
     <div class="flex items-start gap-4">
-      <span class="badge" :class="[shape, tone]"><component :is="icon" :size="22" /></span>
+      <span class="badge" :class="[shape, tone]" aria-hidden="true"
+        ><component :is="icon" :size="22"
+      /></span>
       <div class="flex-1 min-w-0">
         <h3 class="text-base font-semibold text-on-surface">{{ title }}</h3>
         <p class="text-xs text-on-surface-variant mt-1 leading-relaxed">{{ description }}</p>
       </div>
     </div>
 
-    <div v-if="options.length" class="chips mt-4" role="radiogroup" :aria-label="title">
+    <div
+      v-if="options.length"
+      class="chips mt-4"
+      :class="{ busy }"
+      role="radiogroup"
+      :aria-label="title"
+      :aria-busy="busy || undefined"
+    >
       <button
         v-for="o in options"
         :key="o.value"
+        type="button"
         role="radio"
         :aria-checked="o.value === modelValue"
+        :disabled="busy"
         class="chip m3-press"
         :class="{ on: o.value === modelValue, risky: riskyValues.includes(o.value) }"
-        @click="o.value !== modelValue && $emit('select', o.value)"
+        @click="!busy && o.value !== modelValue && $emit('select', o.value)"
       >
         <svg v-if="o.value === modelValue" class="check" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M9.55 18L3.85 12.3L5.275 10.875L9.55 15.15L18.725 5.975L20.15 7.4L9.55 18Z" />
@@ -44,6 +55,8 @@ defineProps({
   modelValue: { type: String, default: '' },
   riskyValues: { type: Array, default: () => [] },
   emptyText: { type: String, default: '' },
+  // A governor is being written: picks are ignored until it settles.
+  busy: { type: Boolean, default: false },
 })
 defineEmits(['select'])
 </script>
@@ -88,6 +101,15 @@ defineEmits(['select'])
   border-radius: 999px;
   background: var(--color-primary);
   color: var(--color-on-primary);
+}
+
+.chips.busy .chip {
+  opacity: 0.7;
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .chip.risky:not(.on) .risk-icon {

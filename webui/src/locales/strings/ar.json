@@ -22,6 +22,12 @@
             "chipset": "المعالج",
             "androidSDK": "اندرويد SDK"
         },
+        "active_profile": {
+            "subtitle": "يتغيّر تلقائيًا حسب اللعبة وحالة الجهاز"
+        },
+        "device_section": {
+            "title": "الجهاز"
+        },
         "support_button": {
             "title": "ادعمني",
             "description": "Flux Tweaks لازال، و سيظل دائما مجاني لك و للجميع. رغم ذلك يمكنك إظهار بعض الدعم عن طريق التبرع."
@@ -32,19 +38,25 @@
         }
     },
     "games_page": {
-        "title": "ألعابي",
+        "title": "الألعاب",
+        "subtitle": "إدارة سلوك Flux الخاص بكل لعبة",
         "search_placeholder": "ابحث في التطبيقات",
         "no_apps_found": "لم يتم العثور على تطبيقات",
+        "no_apps_installed": "لم يتم العثور على تطبيقات مثبتة",
+        "load_error_title": "تعذّر تحميل تطبيقاتك",
         "badges": {
-            "tweak_enabled": "مُفعّل"
+            "tweak_enabled": "مُفعّل",
+            "lite": "خفيف"
         }
     },
     "settings_page": {
         "title": "الإعدادات",
         "section": {
-            "preferences": "التفضيلات",
+            "gaming": "الألعاب",
+            "performance": "الأداء",
             "system": "النظام",
-            "others": "أُخرى"
+            "diagnostics": "التشخيص",
+            "app": "التطبيق"
         },
         "lite_mode": {
             "title": "وضع الاداء الخفيف",
@@ -91,7 +103,8 @@
     },
     "language_selection": {
         "title": "اللغة",
-        "follow_system": "اتبع النظام"
+        "follow_system": "اتبع النظام",
+        "load_failed": "تعذّر تحميل هذه اللغة. لا تزال اللغة السابقة قيد الاستخدام."
     },
     "log_level_selection": {
         "title": "مستوى السجل"
@@ -104,7 +117,9 @@
     "device_mitigation": {
         "title": "معالجة الجهاز",
         "toggle_title": "تفعيل إجراءات الجهاز",
-        "brief": "معالج الجهاز يقوم بتعطيل بعض التعديلات التي قد تكون غير متوافقة مع بعض الأجهزة. أبقه معطلاً إلا إذا واجهتك مشاكل."
+        "brief": "معالج الجهاز يقوم بتعطيل بعض التعديلات التي قد تكون غير متوافقة مع بعض الأجهزة. أبقه معطلاً إلا إذا واجهتك مشاكل.",
+        "detected_as": "تم الاكتشاف: {model} · {soc}",
+        "rules_read_failed": "تعذّرت قراءة قواعد المعالج على هذا الجهاز، لذا لا يُعرف ما إذا كانت أي منها مطبّقة."
     },
     "cpu_governor": {
         "title": "وضع المعالج",
@@ -142,7 +157,8 @@
         "disabled": "مُعطَّل",
         "cancel": "إلغاء",
         "warning": "تحذير",
-        "ok": "تمام"
+        "ok": "تمام",
+        "back": "رجوع"
     },
     "monitor_page": {
         "title": "المراقبة المباشرة",
@@ -180,6 +196,38 @@
         "dnd_alarms": "المنبهات فقط",
         "battery_saver": "موفر البطارية",
         "battery_saver_on": "نشط — ملف توفير الطاقة",
-        "battery_saver_off": "غير نشط"
+        "battery_saver_off": "غير نشط",
+        "thermal_api_level": "يتطلب API 31 أو أعلى",
+        "stale": "متوقف",
+        "error_title": "تعذّرت قراءة البيانات المباشرة",
+        "context": {
+            "active": "جلسة لعب نشطة",
+            "standby": "Flux في وضع الاستعداد"
+        },
+        "metric": {
+            "fps": "FPS",
+            "cpu": "CPU"
+        },
+        "battery_section": {
+            "title": "البطارية",
+            "level": "مستوى البطارية",
+            "temperature": "درجة حرارة البطارية"
+        },
+        "system_section": {
+            "title": "النظام"
+        },
+        "runtime_section": {
+            "title": "وقت التشغيل",
+            "kernel": "نوع النواة",
+            "kernel_gki": "GKI",
+            "kernel_non_gki": "غير GKI",
+            "thermal_api": "واجهة الحرارة",
+            "available": "متاحة",
+            "unavailable": "غير متاحة",
+            "synthesis_version": "بروتوكول SynthesisCore"
+        }
+    },
+    "notify": {
+        "read_failed": "تعذّرت قراءة الإعدادات الحالية، لذا قد تكون القيم المعروضة افتراضية. تأكد من منح صلاحية الروت."
     }
 }

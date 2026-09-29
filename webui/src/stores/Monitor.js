@@ -40,8 +40,10 @@ export const useMonitorStore = defineStore('monitor', () => {
 
   // ── Internal ────────────────────────────────────────────────────────────────
   let pollInterval = null
+  let ticking = false // guards against overlap if a tick outlives the 1s interval
   const isInitialized = ref(false)
   const lastError = ref('')
+  const lastTickAt = ref(0) // Date.now() of the last completed tick, for staleness checks
 
   // ── Computed helpers ────────────────────────────────────────────────────────
 
@@ -109,8 +111,18 @@ export const useMonitorStore = defineStore('monitor', () => {
   }
 
   async function tick() {
-    await Promise.all([readSynthesisCore(), readCurrentProfile(), useSessionsStore().readLive()])
-    recordHistory()
+    // A slow read (KernelSU exec, a busy device) could still be in flight when
+    // the next 1s interval fires; skipping that tick instead of letting reads
+    // pile up keeps at most one in-flight round-trip at a time.
+    if (ticking) return
+    ticking = true
+    try {
+      await Promise.all([readSynthesisCore(), readCurrentProfile(), useSessionsStore().readLive()])
+      recordHistory()
+      lastTickAt.value = Date.now()
+    } finally {
+      ticking = false
+    }
   }
 
   async function readSynthesisCore() {
@@ -267,8 +279,10 @@ export const useMonitorStore = defineStore('monitor', () => {
     // meta
     isInitialized,
     lastError,
+    lastTickAt,
     // actions
     init,
+    startPolling,
     stopPolling,
   }
 })

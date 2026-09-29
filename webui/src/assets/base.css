@@ -135,6 +135,13 @@ body,
     .md3-list .md3-list-item {
       transition: none;
     }
+
+    /* Tailwind's animate-pulse (e.g. Monitor's live status dot) is an
+       unconditional infinite animation with no reduced-motion fallback
+       of its own. */
+    .animate-pulse {
+      animation: none;
+    }
   }
 }
 

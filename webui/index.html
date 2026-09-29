@@ -4,9 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Flux Tweaks</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Google Sans Flex (the primary UI font) is bundled locally in
+         src/assets/fonts/ and declared in fonts.css; 'Poppins' in the CSS
+         font-stack is only a name-based fallback for browsers that happen
+         to have it installed. It has no bundled file, so this external
+         stylesheet was the only way it could ever actually load — a
+         network dependency for a font that's never load-bearing, and one
+         the WebView may not have a route to at all. -->
   </head>
   <body>
     <div id="app"></div>

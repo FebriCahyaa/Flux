@@ -3,11 +3,12 @@
     <div class="max-w-3xl mx-auto h-full flex flex-col w-full">
       <div class="flex-none p-5 pb-3">
         <button
+          type="button"
           @click="router.back()"
-          class="m3-press w-10 h-10 -ms-2 rounded-full grid place-items-center text-on-surface hover:bg-surface-container-high"
-          :aria-label="$t('common.cancel')"
+          class="back m3-press w-10 h-10 -ms-2 rounded-full grid place-items-center text-on-surface hover:bg-surface-container-high"
+          :aria-label="$t('common.back')"
         >
-          <ArrowLeftIcon class="w-6 h-6 rtl:rotate-180" />
+          <ArrowLeftIcon class="w-6 h-6 rtl:rotate-180" aria-hidden="true" />
         </button>
       </div>
 
@@ -20,7 +21,7 @@
           <h1 class="m3-headline text-3xl text-on-surface mt-4 px-4 break-words">
             {{ currentApp.appName || currentApp.packageName }}
           </h1>
-          <p class="allow-copy text-xs text-on-surface-variant mt-1">
+          <p class="allow-copy text-xs text-on-surface-variant mt-1 px-4 break-all">
             {{ currentApp.packageName }}
           </p>
           <div class="flex gap-2 mt-4">
@@ -63,7 +64,7 @@
               }}
             </p>
           </div>
-          <ToggleSwitch :model-value="settings.isEnabled" @update:model-value="setEnabled" />
+          <ToggleSwitch :model-value="settings.isEnabled" :disabled="saving" @update:model-value="setEnabled" />
         </div>
 
         <!-- Preferences -->
@@ -93,7 +94,7 @@
               </div>
               <ToggleSwitch
                 :model-value="settings.isEnabled && (globalLite || settings.lite_mode)"
-                :disabled="!settings.isEnabled || globalLite"
+                :disabled="!settings.isEnabled || globalLite || saving"
                 @update:model-value="(v) => setOption('lite_mode', v)"
               />
             </div>
@@ -114,7 +115,7 @@
               </div>
               <ToggleSwitch
                 :model-value="settings.isEnabled && settings.enable_dnd"
-                :disabled="!settings.isEnabled"
+                :disabled="!settings.isEnabled || saving"
                 @update:model-value="(v) => setOption('enable_dnd', v)"
               />
             </div>
@@ -158,6 +159,7 @@
             <div v-for="s in stats.sessions.slice(0, 10)" :key="s.id" class="md3-list">
               <RippleComponent
                 class="md3-list-item"
+                role="link"
                 tabindex="0"
                 @click="router.push(`/monitor/session/${s.id}`)"
               >
@@ -193,6 +195,7 @@ import { useI18n } from 'vue-i18n'
 import { useGamesStore } from '@/stores/Games'
 import { useFluxConfigStore } from '@/stores/FluxConfig'
 import { useSessionsStore, formatDuration, fmt, relativeTime } from '@/stores/Sessions'
+import { useNotifyStore } from '@/stores/Notify'
 import * as KernelSU from '@/helpers/KernelSU'
 
 import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
@@ -207,13 +210,15 @@ import OpenInNew from '@/components/icons/OpenInNew.vue'
 
 const route = useRoute()
 const router = useRouter()
-const { locale } = useI18n()
+const { t, locale } = useI18n()
 const gamesStore = useGamesStore()
 const fluxConfigStore = useFluxConfigStore()
 const sessions = useSessionsStore()
+const notify = useNotifyStore()
 
 const currentApp = ref({})
 const globalLite = ref(false)
+const saving = ref(false)
 
 // Live view of this game's entry in gamelist.json (fluxd watches the file).
 const settings = computed(() => {
@@ -245,7 +250,7 @@ async function loadApp(pkg) {
     currentApp.value = fromStore
     return
   }
-  currentApp.value = { packageName: pkg, appName: pkg, icon: '/app_icon_fallback.avif' }
+  currentApp.value = { packageName: pkg, appName: pkg, icon: './app_icon_fallback.avif' }
   const [label, icon] = await Promise.allSettled([
     KernelSU.getAppLabel(pkg),
     KernelSU.getAppIcon(pkg, 128),
@@ -253,26 +258,35 @@ async function loadApp(pkg) {
   currentApp.value = {
     packageName: pkg,
     appName: label.status === 'fulfilled' ? label.value : pkg,
-    icon: icon.status === 'fulfilled' && icon.value ? icon.value : '/app_icon_fallback.avif',
+    icon: icon.status === 'fulfilled' && icon.value ? icon.value : './app_icon_fallback.avif',
   }
   if (!Object.keys(gamesStore.gamelistConfig).length) await gamesStore.loadGamelistConfig?.()
 }
 
 // Every change is written right away: closing the WebUI never loses it.
 async function setEnabled(enabled) {
+  if (saving.value) return // no double-submit while a save is in flight
+  saving.value = true
   try {
     await gamesStore.toggleAppEnabled(currentApp.value.packageName, enabled)
   } catch (error) {
     console.error('Failed to update game list:', error)
+    notify.error(t('notify.save_failed'))
+  } finally {
+    saving.value = false
   }
 }
 
 async function setOption(key, value) {
-  if (!settings.value.isEnabled) return
+  if (!settings.value.isEnabled || saving.value) return
+  saving.value = true
   try {
     await gamesStore.updateAppSetting(currentApp.value.packageName, key, value)
   } catch (error) {
     console.error(`Failed to set ${key}:`, error)
+    notify.error(t('notify.save_failed'))
+  } finally {
+    saving.value = false
   }
 }
 
@@ -280,7 +294,7 @@ const launch = () =>
   currentApp.value.packageName && KernelSU.launchApp(currentApp.value.packageName)
 const appInfo = () =>
   currentApp.value.packageName && KernelSU.openAppInfo(currentApp.value.packageName)
-const iconError = (e) => (e.target.src = '/app_icon_fallback.avif')
+const iconError = (e) => (e.target.src = './app_icon_fallback.avif')
 const formatDate = (ms) =>
   new Date(ms).toLocaleString([], {
     day: 'numeric',
@@ -291,6 +305,11 @@ const formatDate = (ms) =>
 </script>
 
 <style scoped>
+.back:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .hero-icon {
   width: 104px;
   height: 104px;

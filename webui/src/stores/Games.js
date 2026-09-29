@@ -7,6 +7,7 @@ export const useGamesStore = defineStore('games', () => {
   const searchQuery = ref('')
   const isLoading = ref(false)
   const gamelistConfig = ref({})
+  const loadError = ref('') // set only when loadUserApps could not list installed apps at all
 
   const isAppEnabled = (packageName) => packageName in gamelistConfig.value
 
@@ -69,27 +70,35 @@ export const useGamesStore = defineStore('games', () => {
       throw new Error('Package name is required')
     }
 
-    const currentConfig = { ...gamelistConfig.value }
+    // Applied optimistically so the toggle feels instant; rolled back below
+    // if the write fails, so a failed save never reads as if it succeeded.
+    const previousConfig = gamelistConfig.value
+    const previousEnabled = previousConfig[packageName] !== undefined
+    const nextConfig = { ...previousConfig }
 
     if (config) {
-      currentConfig[packageName] = {
+      nextConfig[packageName] = {
         lite_mode: !!config.lite_mode,
         enable_dnd: !!config.enable_dnd,
       }
     } else {
-      delete currentConfig[packageName]
+      delete nextConfig[packageName]
     }
 
-    gamelistConfig.value = currentConfig
+    gamelistConfig.value = nextConfig
 
     const appIndex = userApps.value.findIndex((a) => a.packageName === packageName)
-    if (appIndex !== -1) {
-      userApps.value[appIndex].isEnabled = !!config
+    if (appIndex !== -1) userApps.value[appIndex].isEnabled = !!config
+
+    try {
+      await saveGamelistConfig()
+    } catch (e) {
+      gamelistConfig.value = previousConfig
+      if (appIndex !== -1) userApps.value[appIndex].isEnabled = previousEnabled
+      throw e
     }
 
-    await saveGamelistConfig()
-
-    return currentConfig[packageName] || null
+    return nextConfig[packageName] || null
   }
 
   async function toggleAppEnabled(packageName, enabled) {
@@ -120,6 +129,7 @@ export const useGamesStore = defineStore('games', () => {
     }
 
     isLoading.value = true
+    loadError.value = ''
 
     try {
       const pkgs = await KernelSU.listApps()
@@ -148,7 +158,7 @@ export const useGamesStore = defineStore('games', () => {
           loaded.push(
             ...appInfos.map((info) => {
               const matchingIcon = appIcons.find((icon) => icon.packageName === info.packageName)
-              const iconUrl = matchingIcon?.icon || '/fallback_app_icon.avif'
+              const iconUrl = matchingIcon?.icon || './app_icon_fallback.avif'
 
               if (!matchingIcon?.icon) {
                 console.warn(`[loadUserApps] No icon for ${info.packageName}, using fallback`)
@@ -173,7 +183,7 @@ export const useGamesStore = defineStore('games', () => {
           const fallbackApps = slice.map((pkg) => ({
             packageName: pkg,
             appName: pkg,
-            icon: '/fallback_app_icon.avif',
+            icon: './app_icon_fallback.avif',
             isEnabled: isAppEnabled(pkg),
           }))
 
@@ -188,12 +198,13 @@ export const useGamesStore = defineStore('games', () => {
         userApps.value = pkgs.map((packageName) => ({
           packageName,
           appName: packageName,
-          icon: '/fallback_app_icon.avif',
+          icon: './app_icon_fallback.avif',
           isEnabled: isAppEnabled(packageName),
         }))
       } catch (finalError) {
         console.error('[loadUserApps] Failed completely:', finalError)
         userApps.value = []
+        loadError.value = finalError?.message || String(finalError)
       }
     } finally {
       isLoading.value = false
@@ -223,6 +234,7 @@ export const useGamesStore = defineStore('games', () => {
     filteredApps,
     searchQuery,
     isLoading,
+    loadError,
     gamelistConfig,
     isAppEnabled,
 

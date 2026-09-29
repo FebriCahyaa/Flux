@@ -19,10 +19,16 @@
 
           <div class="mb-4">
             <div v-for="item in section.items" :key="item.key" class="md3-list">
-              <RippleComponent @click="item.run" class="md3-list-item" tabindex="0">
+              <RippleComponent
+                @click="item.run"
+                class="md3-list-item"
+                tabindex="0"
+                role="button"
+                :aria-label="rowLabel(item)"
+              >
                 <div class="flex items-center justify-between px-5 py-4">
                   <div class="flex items-center gap-4 min-w-0 flex-1">
-                    <div class="entry-badge" :class="[item.shape, item.tone]">
+                    <div class="entry-badge" :class="[item.shape, item.tone]" aria-hidden="true">
                       <component :is="item.icon" :size="20" />
                     </div>
                     <div class="flex-1 min-w-0">
@@ -38,20 +44,21 @@
                       </p>
                     </div>
                   </div>
-                  <span
-                    v-if="item.status && item.status()"
-                    class="status ms-3"
-                    :class="item.status().tone"
-                    >{{ item.status().label }}</span
-                  >
-                  <div
-                    v-else
-                    class="w-7 h-7 rounded-full bg-surface-dim flex items-center justify-center shrink-0 ms-3"
-                  >
-                    <ChevronRightIcon
-                      class="text-on-surface-variant shrink-0 rtl:rotate-180"
-                      :size="22"
-                    />
+                  <div class="flex items-center gap-2 shrink-0 ms-3" aria-hidden="true">
+                    <span
+                      v-if="item.status && item.status()"
+                      class="status"
+                      :class="item.status().tone"
+                      >{{ item.status().label }}</span
+                    >
+                    <div
+                      class="w-7 h-7 rounded-full bg-surface-dim flex items-center justify-center shrink-0"
+                    >
+                      <ChevronRightIcon
+                        class="text-on-surface-variant shrink-0 rtl:rotate-180"
+                        :size="22"
+                      />
+                    </div>
                   </div>
                 </div>
               </RippleComponent>
@@ -69,15 +76,15 @@
       :closeOnOutsideClick="false"
     >
       <div class="px-4 pb-2">
-        <div v-if="exportStatus === 'loading'" class="flex flex-col items-center gap-4 py-6">
+        <div v-if="exportStatus === 'loading'" class="flex flex-col items-center gap-4 py-6" role="status">
           <LoadingSpinner :size="40" class="text-primary" />
           <p class="text-on-surface-variant text-sm">
             {{ $t('settings_page.save_log.exporting') }}
           </p>
         </div>
 
-        <div v-else-if="exportStatus === 'success'" class="flex flex-col items-center gap-3 py-4">
-          <CheckCircle :size="48" class="text-primary" />
+        <div v-else-if="exportStatus === 'success'" class="flex flex-col items-center gap-3 py-4" role="status">
+          <CheckCircle :size="48" class="text-primary" aria-hidden="true" />
           <p class="text-on-surface font-medium text-center">
             {{ $t('settings_page.save_log.success') }}
           </p>
@@ -88,8 +95,8 @@
           </p>
         </div>
 
-        <div v-else-if="exportStatus === 'error'" class="flex flex-col items-center gap-3 py-4">
-          <ErrorIcon :size="48" class="text-error" />
+        <div v-else-if="exportStatus === 'error'" class="flex flex-col items-center gap-3 py-4" role="alert">
+          <ErrorIcon :size="48" class="text-error" aria-hidden="true" />
           <p class="text-on-surface font-medium text-center">
             {{ $t('settings_page.save_log.failure') }}
           </p>
@@ -100,6 +107,7 @@
       <template #actions>
         <div v-if="exportStatus !== 'loading'" class="flex gap-2">
           <button
+            type="button"
             @click="closeExportModal"
             class="px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/10 rounded-full transition-colors"
           >
@@ -177,6 +185,16 @@ onMounted(() => {
 })
 
 const go = (path) => () => router.push(`/settings/${path}`)
+
+// The row's own visible title/status text, read as one accessible name
+// instead of relying on the browser to flatten a plain div's text content
+// (the badge icon and chevron are decorative and marked aria-hidden).
+const rowLabel = (item) => {
+  const title = t(`settings_page.${item.key}.title`)
+  const status = item.status && item.status()
+  return status ? `${title}, ${status.label}` : title
+}
+
 const tone = {
   primary: 'bg-primary-container text-on-primary-container',
   secondary: 'bg-secondary-container text-on-secondary-container',
@@ -193,19 +211,18 @@ const onPill = (value, danger = false) =>
       }
     : null
 
-// Each entry gets its own shape and colour so the list is easy to scan.
+// Current-level label for Log Level's row, reusing the same key
+// LogLevelSelection.vue already uses — no new mapping invented.
+const logLevelLabel = computed(() => t(`log_level_selection.level_${fluxConfigStore.logLevel}`))
+
+// Sections grouped by user mental model (gaming / performance tuning /
+// kernel-level system knobs / troubleshooting / app-level), not by where a
+// setting happens to live internally. Each entry gets its own shape and
+// colour so the list is easy to scan.
 const allSections = () => [
   {
-    key: 'preferences',
+    key: 'gaming',
     items: [
-      {
-        key: 'lite_mode',
-        icon: LeafIcon,
-        shape: 'shape-flower',
-        tone: tone.secondary,
-        run: go('lite_mode'),
-        status: () => onPill(fluxConfigStore.isLiteModeEnabled),
-      },
       {
         key: 'game_tweaks',
         icon: GamesIcon,
@@ -213,6 +230,11 @@ const allSections = () => [
         tone: tone.tertiary,
         run: go('game_tweaks'),
       },
+    ],
+  },
+  {
+    key: 'performance',
+    items: [
       {
         key: 'flux_boost',
         icon: BoltChargeIcon,
@@ -227,6 +249,15 @@ const allSections = () => [
         shape: 'shape-pentagon',
         tone: tone.secondary,
         run: go('flux_sched'),
+        status: () => onPill(fluxConfigStore.isFluxSchedEnabled),
+      },
+      {
+        key: 'lite_mode',
+        icon: LeafIcon,
+        shape: 'shape-flower',
+        tone: tone.secondary,
+        run: go('lite_mode'),
+        status: () => onPill(fluxConfigStore.isLiteModeEnabled),
       },
       {
         key: 'ram_optimizer',
@@ -243,22 +274,6 @@ const allSections = () => [
         tone: tone.tertiary,
         run: go('perf_boost'),
         status: () => onPill(fluxConfigStore.perfBoost),
-      },
-      {
-        key: 'disable_tweaks',
-        icon: PauseIcon,
-        shape: 'shape-cookie6',
-        tone: tone.error,
-        run: go('disable_tweaks'),
-        status: () => onPill(fluxConfigStore.isDisableTweaksEnabled, true),
-      },
-      {
-        key: 'language',
-        icon: LanguageIcon,
-        shape: 'shape-circle',
-        tone: tone.neutral,
-        run: go('language'),
-        subtitle: () => currentLanguage.value,
       },
     ],
   },
@@ -294,6 +309,20 @@ const allSections = () => [
         shape: 'shape-clover4',
         tone: tone.primary,
         run: go('device_mitigation'),
+        status: () => onPill(fluxConfigStore.isDeviceMitigationEnabled),
+      },
+    ],
+  },
+  {
+    key: 'diagnostics',
+    items: [
+      {
+        key: 'disable_tweaks',
+        icon: PauseIcon,
+        shape: 'shape-cookie6',
+        tone: tone.error,
+        run: go('disable_tweaks'),
+        status: () => onPill(fluxConfigStore.isDisableTweaksEnabled, true),
       },
       {
         key: 'log_level',
@@ -301,12 +330,8 @@ const allSections = () => [
         shape: 'shape-cookie4',
         tone: tone.neutral,
         run: go('log_level'),
+        subtitle: () => logLevelLabel.value,
       },
-    ],
-  },
-  {
-    key: 'others',
-    items: [
       {
         key: 'clean_cache',
         icon: BroomIcon,
@@ -322,6 +347,19 @@ const allSections = () => [
         shape: 'shape-cookie9',
         tone: tone.primary,
         run: openExportModal,
+      },
+    ],
+  },
+  {
+    key: 'app',
+    items: [
+      {
+        key: 'language',
+        icon: LanguageIcon,
+        shape: 'shape-circle',
+        tone: tone.neutral,
+        run: go('language'),
+        subtitle: () => currentLanguage.value,
       },
       {
         key: 'create_shortcut',

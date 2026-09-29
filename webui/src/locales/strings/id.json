@@ -16,6 +16,12 @@
       "chipset": "Chipset",
       "androidSDK": "Android SDK"
     },
+    "active_profile": {
+      "subtitle": "Berganti otomatis sesuai game dan kondisi perangkat"
+    },
+    "device_section": {
+      "title": "Perangkat"
+    },
     "support_button": {
       "title": "Dukung Proyek Ini",
       "description": "Flux Tweaks gratis selamanya — dibangun atas dasar semangat terhadap performa Android. Jika perangkat kamu terasa lebih cepat, pertimbangkan untuk mendukung pengembangannya."
@@ -36,12 +42,16 @@
     }
   },
   "games_page": {
-    "title": "Game Saya",
+    "title": "Game",
+    "subtitle": "Kelola perilaku Flux per game",
     "search_placeholder": "Cari aplikasi",
     "no_apps_found": "Tidak ada aplikasi yang ditemukan",
+    "no_apps_installed": "Tidak ada aplikasi terpasang yang ditemukan",
+    "load_error_title": "Gagal memuat aplikasi kamu",
     "badges": {
       "tweak_enabled": "Aktif",
-      "dnd": "DND"
+      "dnd": "DND",
+      "lite": "Lite"
     },
     "count": "tanpa game | {n} game | {n} game",
     "tabs": {
@@ -59,10 +69,11 @@
   "settings_page": {
     "title": "Pengaturan",
     "section": {
-      "preferences": "Preferensi",
+      "gaming": "Game",
+      "performance": "Performa",
       "system": "Sistem",
-      "others": "Lainnya",
-      "about": "Tentang"
+      "diagnostics": "Diagnostik",
+      "app": "Aplikasi"
     },
     "lite_mode": {
       "title": "Terapkan Mode Lite",
@@ -168,7 +179,8 @@
   },
   "language_selection": {
     "title": "Bahasa",
-    "follow_system": "Ikuti sistem"
+    "follow_system": "Ikuti sistem",
+    "load_failed": "Gagal memuat bahasa ini. Bahasa sebelumnya masih digunakan."
   },
   "log_level_selection": {
     "title": "Log Level",
@@ -271,7 +283,9 @@
     },
     "rules_title": "Aturan otomatis untuk chipset ini",
     "rules_none": "Tidak ada aturan chipset yang cocok dengan perangkat ini.",
-    "rules_note": "Aturan ini berlaku sendiri, dengan atau tanpa sakelar di atas."
+    "rules_note": "Aturan ini berlaku sendiri, dengan atau tanpa sakelar di atas.",
+    "detected_as": "Terdeteksi: {model} · {soc}",
+    "rules_read_failed": "Gagal membaca aturan chipset di perangkat ini, jadi tidak diketahui apakah ada yang diterapkan."
   },
   "cpu_governor": {
     "title": "Governor CPU",
@@ -333,7 +347,8 @@
     "close": "Tutup",
     "apply": "Terapkan",
     "enable": "Aktifkan",
-    "on": "Aktif"
+    "on": "Aktif",
+    "back": "Kembali"
   },
   "disable_tweaks": {
     "title": "Matikan Tweak",
@@ -404,8 +419,37 @@
     "battery_saver_on": "Aktif — profil hemat daya diaktifkan",
     "battery_saver_off": "Tidak aktif",
     "thermal_unsupported_title": "API Termal Tidak Tersedia",
+    "thermal_api_level": "Memerlukan API 31+",
     "thermal_gki_note": "Kernel GKI mungkin tidak mengekspos API thermal headroom",
     "profile_active": "Aktif",
+    "stale": "terhenti",
+    "error_title": "Gagal membaca data langsung",
+    "context": {
+      "active": "Sesi game aktif",
+      "standby": "Flux dalam mode siaga"
+    },
+    "metric": {
+      "fps": "FPS",
+      "cpu": "CPU"
+    },
+    "battery_section": {
+      "title": "Baterai",
+      "level": "Level Baterai",
+      "temperature": "Suhu Baterai"
+    },
+    "system_section": {
+      "title": "Sistem"
+    },
+    "runtime_section": {
+      "title": "Runtime",
+      "kernel": "Jenis Kernel",
+      "kernel_gki": "GKI",
+      "kernel_non_gki": "Non-GKI",
+      "thermal_api": "API Termal",
+      "available": "Tersedia",
+      "unavailable": "Tidak Tersedia",
+      "synthesis_version": "Protokol SynthesisCore"
+    },
     "thermal_status": {
       "2": "Sedang",
       "3": "Parah",
@@ -489,7 +533,8 @@
   },
   "notify": {
     "dont_ask_again": "Jangan tanya lagi",
-    "save_failed": "Gagal menyimpan pengaturan. Pastikan akses root sudah diberikan."
+    "save_failed": "Gagal menyimpan pengaturan. Pastikan akses root sudah diberikan.",
+    "read_failed": "Gagal membaca pengaturan saat ini, jadi nilai yang tampil mungkin nilai bawaan. Pastikan akses root sudah diberikan."
   },
   "gpu_governor": {
     "title": "Governor GPU",

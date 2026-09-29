@@ -1,84 +1,80 @@
 <template>
-  <div class="page h-full flex flex-col overflow-hidden bg-surface">
-    <div class="max-w-3xl mx-auto h-full flex flex-col w-full">
-      <div class="flex-none p-5 pb-3">
-        <div class="flex items-center gap-4 mb-2">
-          <button @click="goBack" class="text-on-surface transition-colors">
-            <ArrowLeftIcon class="w-6 h-6 cursor-pointer rtl:rotate-180" />
-          </button>
-        </div>
-      </div>
+  <SettingsDetailLayout
+    :title="$t('flux_sched.title')"
+    :description="$t('settings_page.flux_sched.description')"
+    :icon="TuneIcon"
+    shape="shape-pentagon"
+    tone="bg-secondary-container text-on-secondary-container"
+    :read-error="readError"
+  >
+    <SettingsSwitch
+      variant="main"
+      :title="$t('flux_sched.toggle_title')"
+      :description="supportText"
+      :model-value="isFluxSchedEnabled"
+      :busy="saving"
+      :disabled="!ready"
+      @update:model-value="toggleFluxSched"
+    />
 
-      <div class="scrollbar-hidden pb-safe-nav flex-1 min-h-0 overflow-y-scroll px-5">
-        <div class="space-y-6">
-          <h1 class="text-4xl text-on-surface mt-12 mb-6">
-            {{ $t('flux_sched.title') }}
-          </h1>
+    <!-- Kernel support (uclamp needs /dev/cpuctl/top-app/cpu.uclamp.min).
+         Only shown as a warning when the probe actually says no. -->
+    <SettingsNote v-if="isSupported === false" tone="warning">
+      {{ $t('flux_sched.unsupported') }}
+    </SettingsNote>
 
-          <div class="bg-primary-container rounded-3xl p-5 -mx-1.5">
-            <div class="flex items-center justify-between">
-              <h2 class="text-base font-medium text-on-primary-container">
-                {{ $t('flux_sched.toggle_title') }}
-              </h2>
-              <ToggleSwitch v-model="isFluxSchedEnabled" @update:modelValue="toggleFluxSched" />
-            </div>
-          </div>
-
-          <!-- Kernel support: uclamp needs /dev/cpuctl/top-app/cpu.uclamp.min -->
-          <div
-            v-if="isSupported !== null"
-            class="rounded-2xl px-4 py-3 text-xs -mx-1.5"
-            :class="isSupported
-              ? 'bg-secondary-container text-on-secondary-container'
-              : 'bg-error-container text-on-error-container'"
-          >
-            {{ isSupported ? $t('flux_sched.supported') : $t('flux_sched.unsupported') }}
-          </div>
-
-          <InformationOutlineIcon class="text-on-surface-variant my-6" :size="22" />
-          <p class="text-sm text-on-surface-variant leading-relaxed">
-            {{ $t('flux_sched.brief') }}
-          </p>
-          <p class="text-sm text-on-surface-variant leading-relaxed">
-            {{ $t('flux_sched.apply_note') }}
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
+    <!-- Technical detail: secondary to the switch above. -->
+    <SettingsNote>
+      {{ $t('flux_sched.brief') }}
+      <span class="block mt-2">{{ $t('flux_sched.apply_note') }}</span>
+    </SettingsNote>
+  </SettingsDetailLayout>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
 import { useFluxConfigStore } from '@/stores/FluxConfig'
 import { useNotifyStore } from '@/stores/Notify'
 import { useI18n } from 'vue-i18n'
 import { exec } from 'kernelsu'
 
-import ArrowLeftIcon from '@/components/icons/ArrowLeft.vue'
-import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
-import InformationOutlineIcon from '@/components/icons/InformationOutline.vue'
+import SettingsDetailLayout from '@/components/ui/SettingsDetailLayout.vue'
+import SettingsSwitch from '@/components/ui/SettingsSwitch.vue'
+import SettingsNote from '@/components/ui/SettingsNote.vue'
+import TuneIcon from '@/components/icons/Tune.vue'
 
 const UCLAMP_NODE = '/dev/cpuctl/top-app/cpu.uclamp.min'
 
-const router = useRouter()
 const fluxConfigStore = useFluxConfigStore()
 const notify = useNotifyStore()
 const { t } = useI18n()
 
-const isFluxSchedEnabled = ref(true)
-const isSupported = ref(null) // null = not checked yet
+const isFluxSchedEnabled = ref(fluxConfigStore.isFluxSchedEnabled)
+const isSupported = ref(null) // null = unknown
+const probed = ref(false) // the check has finished (it may still be unknown if it failed)
+const ready = ref(false)
+const readError = ref(false)
+const saving = ref(false)
+
+// Under the switch: whether this kernel can use it. Nothing is claimed until
+// the probe has answered; "not supported" is shown as the warning below.
+const supportText = computed(() => {
+  if (isSupported.value === true) return t('flux_sched.supported')
+  if (isSupported.value === false || probed.value) return ''
+  return t('common.loading')
+})
 
 onMounted(async () => {
   try {
     if (!fluxConfigStore.isLoaded) {
       await fluxConfigStore.loadConfig()
     }
-    isFluxSchedEnabled.value = fluxConfigStore.isFluxSchedEnabled
   } catch (error) {
     console.error('Failed to load Flux Sched setting:', error)
+    readError.value = true
   }
+  isFluxSchedEnabled.value = fluxConfigStore.isFluxSchedEnabled
+  ready.value = true
 
   try {
     const { errno } = await exec(`test -f ${UCLAMP_NODE}`)
@@ -86,28 +82,27 @@ onMounted(async () => {
   } catch (error) {
     console.error('Failed to check uclamp support:', error)
   }
+  probed.value = true
 })
 
 async function toggleFluxSched(enabled) {
+  if (saving.value) return
+  saving.value = true
   isFluxSchedEnabled.value = enabled
-
   try {
-    if (!fluxConfigStore.isLoaded) {
-      await fluxConfigStore.loadConfig()
-    }
-    fluxConfigStore.setFluxSched(enabled)
-    await fluxConfigStore.saveConfig()
+    await fluxConfigStore.commit(() => fluxConfigStore.setFluxSched(enabled))
+    readError.value = false
     notify.success(
-      t(enabled ? 'game_tweaks.saved_on' : 'game_tweaks.saved_off', { name: 'Flux Sched' }),
+      t(enabled ? 'game_tweaks.saved_on' : 'game_tweaks.saved_off', {
+        name: t('flux_sched.title'),
+      }),
     )
   } catch (error) {
     console.error('Failed to set Flux Sched:', error)
-    isFluxSchedEnabled.value = fluxConfigStore.isFluxSchedEnabled
     notify.error(t('notify.save_failed'))
+  } finally {
+    isFluxSchedEnabled.value = fluxConfigStore.isFluxSchedEnabled
+    saving.value = false
   }
-}
-
-function goBack() {
-  router.back()
 }
 </script>

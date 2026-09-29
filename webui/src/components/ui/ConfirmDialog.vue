@@ -11,7 +11,10 @@
         :class="`tone-${d.tone}`"
         role="alertdialog"
         aria-modal="true"
-        :aria-labelledby="'confirm-title'"
+        aria-labelledby="confirm-title"
+        tabindex="-1"
+        ref="dialogEl"
+        @keydown.esc.stop="notify.answer(false)"
         @click.stop
       >
         <span class="hero" :class="tone.shape">
@@ -60,7 +63,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useNotifyStore } from '@/stores/Notify'
 import Checkbox from '@/components/ui/Checkbox.vue'
 import InformationOutlineIcon from '@/components/icons/InformationOutline.vue'
@@ -70,7 +73,22 @@ import ErrorIcon from '@/components/icons/Error.vue'
 const notify = useNotifyStore()
 const d = computed(() => notify.dialog)
 const dontAsk = ref(false)
-watch(d, () => (dontAsk.value = false))
+const dialogEl = ref(null)
+let opener = null
+
+// Keyboard users must land inside the dialog and get back where they were:
+// the dialog is modal, so nothing behind it should keep the focus.
+watch(d, async (now) => {
+  dontAsk.value = false
+  if (now) {
+    opener = document.activeElement
+    await nextTick()
+    dialogEl.value?.focus()
+  } else {
+    opener?.focus?.()
+    opener = null
+  }
+})
 
 const tones = {
   info: { icon: InformationOutlineIcon, shape: 'shape-cookie9' },
@@ -81,6 +99,10 @@ const tone = computed(() => tones[d.value?.tone] || tones.info)
 </script>
 
 <style scoped>
+.dialog:focus {
+  outline: none;
+}
+
 .scrim {
   background: rgb(0 0 0 / 0.5);
 }

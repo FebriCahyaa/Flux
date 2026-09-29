@@ -19,7 +19,7 @@
       <span class="relative inline-block" :class="sizeClasses.container">
         <!-- Outer circle -->
         <span
-          class="absolute rounded-full border transition-all duration-150 ease-in-out top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+          class="absolute rounded-full border transition-all motion-reduce:transition-none duration-150 ease-in-out top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
           :class="[
             modelValue === value ? borderActiveClasses : borderInactiveClasses,
             sizeClasses.border,
@@ -28,7 +28,7 @@
 
         <!-- Inner circle (dot) -->
         <span
-          class="absolute rounded-full transform transition-transform duration-150 ease-in-out top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+          class="absolute rounded-full transform transition-transform motion-reduce:transition-none duration-150 ease-in-out top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
           :class="[modelValue === value ? 'scale-100' : 'scale-0', sizeClasses.dot, dotColor]"
         ></span>
       </span>

@@ -24,6 +24,12 @@
             "chipset": "Chipset",
             "androidSDK": "SDK de Android"
         },
+        "active_profile": {
+            "subtitle": "Cambia automáticamente según el juego y el estado del dispositivo"
+        },
+        "device_section": {
+            "title": "Dispositivo"
+        },
         "support_button": {
             "title": "Apóyame",
             "description": "Flux Tweaks es, y siempre será, gratuito para ti y para todos. Sin embargo, puedes demostrar que te importa haciendo una donación."
@@ -34,19 +40,25 @@
         }
     },
     "games_page": {
-        "title": "Mis juegos",
+        "title": "Juegos",
+        "subtitle": "Administra el comportamiento de Flux por juego",
         "search_placeholder": "Buscar aplicaciones",
         "no_apps_found": "No se encontraron aplicaciones",
+        "no_apps_installed": "No se encontraron aplicaciones instaladas",
+        "load_error_title": "No se pudieron cargar tus aplicaciones",
         "badges": {
-            "tweak_enabled": "Habilitado"
+            "tweak_enabled": "Habilitado",
+            "lite": "Lite"
         }
     },
     "settings_page": {
         "title": "Configuraciones",
         "section": {
-            "preferences": "Preferencias",
+            "gaming": "Juegos",
+            "performance": "Rendimiento",
             "system": "Sistema",
-            "others": "Otros"
+            "diagnostics": "Diagnóstico",
+            "app": "Aplicación"
         },
         "lite_mode": {
             "title": "Forzar Modo Lite",
@@ -97,7 +109,8 @@
     },
     "language_selection": {
         "title": "Idioma",
-        "follow_system": "Idioma del sistema"
+        "follow_system": "Idioma del sistema",
+        "load_failed": "No se pudo cargar este idioma. Se sigue usando el idioma anterior."
     },
     "log_level_selection": {
         "title": "Nivel de Registro"
@@ -110,7 +123,9 @@
     "device_mitigation": {
         "title": "Mitigación de Dispositivo",
         "toggle_title": "Habilitar Mitigación de Dispositivo",
-        "brief": "La mitigación de dispositivo desactiva ajustes potencialmente incompatibles para dispositivos específicos. Mantén esta opción desactivada a menos que tengas problemas."
+        "brief": "La mitigación de dispositivo desactiva ajustes potencialmente incompatibles para dispositivos específicos. Mantén esta opción desactivada a menos que tengas problemas.",
+        "detected_as": "Detectado: {model} · {soc}",
+        "rules_read_failed": "No se pudieron leer las reglas del chipset en este dispositivo, así que no se sabe si se aplica alguna."
     },
     "cpu_governor": {
         "title": "Gobernador de CPU",
@@ -148,7 +163,8 @@
         "disabled": "Desactivado",
         "cancel": "Cancelar",
         "warning": "Advertencia",
-        "ok": "OK"
+        "ok": "OK",
+        "back": "Atrás"
     },
     "disable_tweaks": {
         "title": "Desactivar Tweaks",
@@ -197,6 +213,38 @@
         "dnd_alarms": "Solo Alarmas",
         "battery_saver": "Ahorro de Batería",
         "battery_saver_on": "Activo — perfil de ahorro",
-        "battery_saver_off": "Inactivo"
+        "battery_saver_off": "Inactivo",
+        "thermal_api_level": "Requiere API 31+",
+        "stale": "detenido",
+        "error_title": "No se pudieron leer los datos en vivo",
+        "context": {
+            "active": "Sesión de juego activa",
+            "standby": "Flux está en espera"
+        },
+        "metric": {
+            "fps": "FPS",
+            "cpu": "CPU"
+        },
+        "battery_section": {
+            "title": "Batería",
+            "level": "Nivel de batería",
+            "temperature": "Temperatura de la batería"
+        },
+        "system_section": {
+            "title": "Sistema"
+        },
+        "runtime_section": {
+            "title": "Tiempo de ejecución",
+            "kernel": "Tipo de kernel",
+            "kernel_gki": "GKI",
+            "kernel_non_gki": "No GKI",
+            "thermal_api": "API térmica",
+            "available": "Disponible",
+            "unavailable": "No disponible",
+            "synthesis_version": "Protocolo SynthesisCore"
+        }
+    },
+    "notify": {
+        "read_failed": "No se pudo leer la configuración actual, así que los valores mostrados pueden ser los predeterminados. Comprueba que se haya concedido acceso root."
     }
 }

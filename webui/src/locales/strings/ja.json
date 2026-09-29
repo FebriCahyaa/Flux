@@ -22,6 +22,12 @@
             "kernel": "カーネル",
             "androidSDK": "Android SDK"
         },
+        "active_profile": {
+            "subtitle": "ゲームとデバイスの状態に応じて自動的に切り替わります"
+        },
+        "device_section": {
+            "title": "デバイス"
+        },
         "support_button": {
             "title": "開発者を支援",
             "description": "Flux Tweaksは、現在も、そしてこれからもずっと、あなたとすべての人にとって無料です。もしよろしければ、寄付を通じて開発を応援していただけると幸いです。"
@@ -35,8 +41,10 @@
         "title": "設定",
         "section": {
             "system": "システム",
-            "preferences": "環境設定",
-            "others": "その他"
+            "gaming": "ゲーム",
+            "performance": "パフォーマンス",
+            "diagnostics": "診断",
+            "app": "アプリ"
         },
         "language": {
             "title": "言語"
@@ -83,15 +91,20 @@
     },
     "language_selection": {
         "title": "言語",
-        "follow_system": "システム言語を使用"
+        "follow_system": "システム言語を使用",
+        "load_failed": "この言語を読み込めませんでした。以前の言語のままです。"
     },
     "games_page": {
         "badges": {
-            "tweak_enabled": "有効化済み"
+            "tweak_enabled": "有効化済み",
+            "lite": "Lite"
         },
         "search_placeholder": "アプリ検索",
         "no_apps_found": "アプリが見つかりませんでした",
-        "title": "マイゲーム"
+        "no_apps_installed": "インストール済みのアプリが見つかりません",
+        "load_error_title": "アプリを読み込めませんでした",
+        "title": "ゲーム",
+        "subtitle": "ゲームごとのFluxの動作を管理"
     },
     "log_level_selection": {
         "title": "ログレベル"
@@ -104,7 +117,9 @@
     "device_mitigation": {
         "title": "デバイスの緩和",
         "toggle_title": "デバイスの軽減を有効にする",
-        "brief": "デバイス緩和機能は、特定のデバイスで互換性がない可能性のある調整を無効にします。問題が発生しない限り、無効にしておいてください。"
+        "brief": "デバイス緩和機能は、特定のデバイスで互換性がない可能性のある調整を無効にします。問題が発生しない限り、無効にしておいてください。",
+        "detected_as": "検出: {model} · {soc}",
+        "rules_read_failed": "この端末のチップセットルールを読み込めなかったため、適用されているかは不明です。"
     },
     "cpu_governor": {
         "title": "CPUガバナー",
@@ -142,7 +157,8 @@
         "disabled": "無効",
         "cancel": "キャンセル",
         "warning": "警告",
-        "ok": "OK"
+        "ok": "OK",
+        "back": "戻る"
     },
     "monitor_page": {
         "title": "ライブモニター",
@@ -180,6 +196,38 @@
         "dnd_alarms": "アラームのみ",
         "battery_saver": "バッテリー節約",
         "battery_saver_on": "有効 — 省電力プロファイル",
-        "battery_saver_off": "無効"
+        "battery_saver_off": "無効",
+        "thermal_api_level": "API 31以上が必要",
+        "stale": "停止中",
+        "error_title": "ライブデータを読み取れませんでした",
+        "context": {
+            "active": "ゲームセッション実行中",
+            "standby": "Fluxは待機中です"
+        },
+        "metric": {
+            "fps": "FPS",
+            "cpu": "CPU"
+        },
+        "battery_section": {
+            "title": "バッテリー",
+            "level": "バッテリー残量",
+            "temperature": "バッテリー温度"
+        },
+        "system_section": {
+            "title": "システム"
+        },
+        "runtime_section": {
+            "title": "ランタイム",
+            "kernel": "カーネルタイプ",
+            "kernel_gki": "GKI",
+            "kernel_non_gki": "非GKI",
+            "thermal_api": "サーマルAPI",
+            "available": "利用可能",
+            "unavailable": "利用不可",
+            "synthesis_version": "SynthesisCoreプロトコル"
+        }
+    },
+    "notify": {
+        "read_failed": "現在の設定を読み込めなかったため、表示されている値は既定値の可能性があります。root権限が許可されているか確認してください。"
     }
 }

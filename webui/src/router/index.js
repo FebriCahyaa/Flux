@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import { WXEventHandler } from 'webuix'
 
 // Pages
@@ -139,7 +139,12 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  // The WebUI is served as static files from the module's webroot directory
+  // by KernelSU/APatch/WebUI X, never at a URL a server can rewrite. History
+  // mode needs the host to answer every deep path with index.html; a static
+  // file host can't, so a direct/refresh navigation to e.g. "/monitor/session/1"
+  // 404s. Hash mode keeps all routing client-side and needs no server support.
+  history: createWebHashHistory(),
   routes,
 })
 

@@ -92,6 +92,21 @@ export const useFluxConfigStore = defineStore('fluxConfig', () => {
     }
   }
 
+  // Applies `mutate` and writes config.json. The setters change the in-memory
+  // config before the write, so on failure it is restored from a snapshot:
+  // otherwise every view reading this store keeps showing the unsaved value.
+  async function commit(mutate) {
+    if (!config.value) await loadConfig()
+    const snapshot = JSON.parse(JSON.stringify(config.value))
+    try {
+      mutate()
+      await saveConfig()
+    } catch (error) {
+      config.value = snapshot
+      throw error
+    }
+  }
+
   function ensureConfigStructure() {
     if (!config.value) {
       throw new Error('Config not loaded')
@@ -227,8 +242,9 @@ export const useFluxConfigStore = defineStore('fluxConfig', () => {
     config.value.cpu_governor.balance = governor
 
     if (
-      currentProfile.value === 'balanced' ||
-      (currentProfile.value === 'performance' && isLiteModeEnabled.value)
+      (currentProfile.value === 'balanced' ||
+        (currentProfile.value === 'performance' && isLiteModeEnabled.value)) &&
+      /^[\w-]+$/.test(governor)
     ) {
       exec(`/data/adb/modules/flux/system/bin/flux_utility change_cpu_gov ${governor}`).then(({ errno, stderr }) => {
         if (errno !== 0) {
@@ -242,7 +258,7 @@ export const useFluxConfigStore = defineStore('fluxConfig', () => {
     ensureConfigStructure()
     config.value.cpu_governor.powersave = governor
 
-    if (currentProfile.value === 'powersave') {
+    if (currentProfile.value === 'powersave' && /^[\w-]+$/.test(governor)) {
       exec(`/data/adb/modules/flux/system/bin/flux_utility change_cpu_gov ${governor}`).then(({ errno, stderr }) => {
         if (errno !== 0) {
           console.error('[setPowersaveGovernor] Failed to change CPU governor:', stderr)
@@ -312,6 +328,7 @@ export const useFluxConfigStore = defineStore('fluxConfig', () => {
 
     loadConfig,
     saveConfig,
+    commit,
     setLiteMode,
     setLogLevel,
     setDeviceMitigation,

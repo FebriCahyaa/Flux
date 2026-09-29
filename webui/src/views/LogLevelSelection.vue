@@ -1,26 +1,17 @@
 <template>
-  <div class="page log-level-selection-page h-full flex flex-col overflow-hidden bg-surface">
-    <div class="max-w-3xl mx-auto h-full flex flex-col w-full">
-      <div class="flex-none p-5 pb-3">
-        <button
-          @click="goBack"
-          class="m3-press w-10 h-10 -ms-2 rounded-full grid place-items-center text-on-surface hover:bg-surface-container-high"
-          :aria-label="$t('common.cancel')"
-        >
-          <ArrowLeftIcon class="w-6 h-6 rtl:rotate-180" />
-        </button>
-      </div>
-
-      <div class="scrollbar-hidden pb-safe-nav flex-1 min-h-0 overflow-y-scroll px-4">
-        <h1 class="m3-headline text-4xl text-on-surface mt-8 mb-2 px-1">
-          {{ $t('log_level_selection.title') }}
-        </h1>
-        <p class="text-sm text-on-surface-variant px-1 mb-5">
-          {{ $t('log_level_selection.brief') }}
-        </p>
-
+  <SettingsDetailLayout
+    :title="$t('log_level_selection.title')"
+    :description="$t('log_level_selection.brief')"
+    :read-error="readError"
+  >
         <!-- Levels -->
-        <div role="radiogroup" :aria-label="$t('log_level_selection.title')" class="mb-6">
+        <div
+          role="radiogroup"
+          :aria-label="$t('log_level_selection.title')"
+          :aria-busy="saving || undefined"
+          class="mb-6"
+          :class="{ 'is-saving': saving }"
+        >
           <div v-for="level in logLevels" :key="level.value" class="md3-list">
             <RippleComponent
               class="md3-list-item level-item"
@@ -31,7 +22,7 @@
               @click="selectLogLevel(level.value)"
             >
               <div class="flex items-center gap-4 px-5 py-3.5">
-                <span class="level-badge shape-cookie9" :class="level.tone">{{
+                <span class="level-badge shape-cookie9" :class="level.tone" aria-hidden="true">{{
                   level.letter
                 }}</span>
                 <div class="flex-1 min-w-0">
@@ -133,20 +124,17 @@
             <p class="text-sm font-semibold">{{ $t('settings_page.save_log.failure') }}</p>
           </div>
         </section>
-      </div>
-    </div>
-  </div>
+  </SettingsDetailLayout>
 </template>
 
 <script setup>
 import { ref, computed, nextTick, onMounted, onUnmounted, onActivated, onDeactivated } from 'vue'
-import { useRouter } from 'vue-router'
 import { exec } from 'kernelsu'
 import { useFluxConfigStore } from '@/stores/FluxConfig'
 import { useNotifyStore } from '@/stores/Notify'
 import { useI18n } from 'vue-i18n'
 
-import ArrowLeftIcon from '@/components/icons/ArrowLeft.vue'
+import SettingsDetailLayout from '@/components/ui/SettingsDetailLayout.vue'
 import ContentSaveIcon from '@/components/icons/ContentSave.vue'
 import RippleComponent from '@/components/ui/Ripple.vue'
 
@@ -154,7 +142,6 @@ const LOG_FILE = '/data/adb/.config/flux/flux.log'
 const UTILITY = '/data/adb/modules/flux/system/bin/flux_utility'
 const LINES = 200
 
-const router = useRouter()
 const fluxConfigStore = useFluxConfigStore()
 const notify = useNotifyStore()
 const { t } = useI18n()
@@ -180,6 +167,8 @@ const logLevels = [
 ]
 
 const selectedLevel = ref(3)
+const readError = ref(false)
+const saving = ref(false)
 
 onMounted(async () => {
   try {
@@ -187,12 +176,13 @@ onMounted(async () => {
     selectedLevel.value = fluxConfigStore.logLevel
   } catch (error) {
     console.error('Failed to load log level:', error)
+    readError.value = true
   }
 })
 
 // fluxd watches config.json and applies the level immediately.
 async function selectLogLevel(level) {
-  if (level === selectedLevel.value) return
+  if (saving.value || level === selectedLevel.value) return
   // Trace logs every decision: the file grows fast and costs a little CPU.
   if (level === 5) {
     const ok = await notify.confirm({
@@ -204,17 +194,19 @@ async function selectLogLevel(level) {
     if (!ok) return
   }
   const previous = selectedLevel.value
+  saving.value = true
   selectedLevel.value = level
   try {
-    if (!fluxConfigStore.isLoaded) await fluxConfigStore.loadConfig()
-    fluxConfigStore.setLogLevel(level)
-    await fluxConfigStore.saveConfig()
+    await fluxConfigStore.commit(() => fluxConfigStore.setLogLevel(level))
+    readError.value = false
     notify.success(t('log_level_selection.saved'))
     setTimeout(loadLog, 600)
   } catch (error) {
     console.error('Failed to save log level:', error)
     selectedLevel.value = previous
     notify.error(t('notify.save_failed'))
+  } finally {
+    saving.value = false
   }
 }
 
@@ -288,10 +280,6 @@ async function saveLog() {
     saveStatus.value = 'error'
   }
 }
-
-function goBack() {
-  router.back()
-}
 </script>
 
 <style scoped>
@@ -308,6 +296,12 @@ function goBack() {
 .level-item.is-selected {
   background: var(--color-surface-container-highest) !important;
   box-shadow: inset 0 0 0 2px var(--color-primary);
+}
+
+/* A level is being written: block further picks until it settles. */
+.is-saving .level-item {
+  pointer-events: none;
+  opacity: 0.75;
 }
 
 .tag {

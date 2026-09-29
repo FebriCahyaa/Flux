@@ -16,6 +16,12 @@
             "chipset": "芯片组",
             "androidSDK": "Android SDK"
         },
+        "active_profile": {
+            "subtitle": "根据游戏和设备状态自动切换"
+        },
+        "device_section": {
+            "title": "设备"
+        },
         "support_button": {
             "title": "支持开发",
             "description": "Flux Tweaks 对所有人永远免费。如果你觉得好用，可以通过捐赠来表达你的支持。"
@@ -34,19 +40,25 @@
         "success_save_log": "日志成功保存到 {path}"
     },
     "games_page": {
-        "title": "我的游戏",
+        "title": "游戏",
+        "subtitle": "管理各游戏的 Flux 行为",
         "search_placeholder": "搜索应用",
         "no_apps_found": "未找到应用",
+        "no_apps_installed": "未找到已安装的应用",
+        "load_error_title": "无法加载您的应用",
         "badges": {
-            "tweak_enabled": "已启用"
+            "tweak_enabled": "已启用",
+            "lite": "Lite"
         }
     },
     "settings_page": {
         "title": "设置",
         "section": {
-            "preferences": "偏好",
+            "gaming": "游戏",
+            "performance": "性能",
             "system": "系统",
-            "others": "其他"
+            "diagnostics": "诊断",
+            "app": "应用"
         },
         "lite_mode": {
             "title": "强制轻量模式",
@@ -97,7 +109,8 @@
     },
     "language_selection": {
         "title": "语言",
-        "follow_system": "跟随系统"
+        "follow_system": "跟随系统",
+        "load_failed": "无法加载此语言，仍在使用之前的语言。"
     },
     "log_level_selection": {
         "title": "日志级别"
@@ -110,7 +123,9 @@
     "device_mitigation": {
         "title": "设备兼容模式",
         "toggle_title": "开启设备兼容模式",
-        "brief": "设备兼容模式会针对特定设备禁用可能导致冲突的优化项。除非遇到运行异常，否则建议保持关闭。"
+        "brief": "设备兼容模式会针对特定设备禁用可能导致冲突的优化项。除非遇到运行异常，否则建议保持关闭。",
+        "detected_as": "检测到：{model} · {soc}",
+        "rules_read_failed": "无法读取此设备的芯片组规则，因此无法确定是否有规则生效。"
     },
     "cpu_governor": {
         "title": "CPU 调速器",
@@ -148,7 +163,8 @@
         "disabled": "已禁用",
         "cancel": "取消",
         "warning": "警告",
-        "ok": "好"
+        "ok": "好",
+        "back": "返回"
     },
     "disable_tweaks": {
         "title": "禁用 Tweaks",
@@ -197,6 +213,38 @@
         "dnd_alarms": "仅闹钟",
         "battery_saver": "省电模式",
         "battery_saver_on": "已启用 — 省电配置文件",
-        "battery_saver_off": "未启用"
+        "battery_saver_off": "未启用",
+        "thermal_api_level": "需要 API 31 及以上",
+        "stale": "已停止",
+        "error_title": "无法读取实时数据",
+        "context": {
+            "active": "游戏会话进行中",
+            "standby": "Flux 处于待机状态"
+        },
+        "metric": {
+            "fps": "FPS",
+            "cpu": "CPU"
+        },
+        "battery_section": {
+            "title": "电池",
+            "level": "电池电量",
+            "temperature": "电池温度"
+        },
+        "system_section": {
+            "title": "系统"
+        },
+        "runtime_section": {
+            "title": "运行时",
+            "kernel": "内核类型",
+            "kernel_gki": "GKI",
+            "kernel_non_gki": "非 GKI",
+            "thermal_api": "温控 API",
+            "available": "可用",
+            "unavailable": "不可用",
+            "synthesis_version": "SynthesisCore 协议"
+        }
+    },
+    "notify": {
+        "read_failed": "无法读取当前设置，显示的可能是默认值。请确认已授予 root 权限。"
     }
 }

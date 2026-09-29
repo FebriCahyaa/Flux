@@ -1,31 +1,15 @@
 <template>
-  <div class="page h-full flex flex-col overflow-hidden bg-surface">
-    <div class="max-w-3xl mx-auto h-full flex flex-col w-full">
-      <div class="flex-none p-5 pb-3">
-        <button
-          @click="goBack"
-          class="m3-press w-10 h-10 -ms-2 rounded-full grid place-items-center text-on-surface hover:bg-surface-container-high"
-          :aria-label="$t('common.cancel')"
-        >
-          <ArrowLeftIcon class="w-6 h-6 rtl:rotate-180" />
-        </button>
-      </div>
-
-      <div class="scrollbar-hidden pb-safe-nav flex-1 min-h-0 overflow-y-scroll px-4">
-        <div class="flex items-center gap-4 mt-8 mb-4 px-1">
-          <span class="hero-badge shape-cookie12 bg-tertiary-container text-on-tertiary-container">
-            <GamesIcon :size="28" />
-          </span>
-          <h1 class="m3-headline text-4xl text-on-surface">{{ $t('game_tweaks.title') }}</h1>
-        </div>
-
-        <p class="text-sm text-on-surface-variant leading-relaxed px-1 mb-4">
-          {{ $t('game_tweaks.brief') }}
-        </p>
-
+  <SettingsDetailLayout
+    :title="$t('game_tweaks.title')"
+    :description="$t('game_tweaks.brief')"
+    :icon="GamesIcon"
+    shape="shape-cookie12"
+    tone="bg-tertiary-container text-on-tertiary-container"
+    :read-error="readError"
+  >
         <!-- Kernel the tweaks adapt to -->
         <div v-if="caps" class="kernel-card mb-5">
-          <span class="kernel-badge shape-cookie6" :class="kernelTone">
+          <span class="kernel-badge shape-cookie6" :class="kernelTone" aria-hidden="true">
             <ChipsetIcon :size="22" />
           </span>
           <div class="flex-1 min-w-0">
@@ -41,55 +25,45 @@
           </div>
         </div>
 
+        <!-- Grouped by when the tweak applies (while you play / render & GPU
+             while gaming / system, at boot), which is how fluxd applies them. -->
         <template v-for="group in GROUPS" :key="group">
           <h2 v-if="visibleIn(group).length" class="text-sm font-semibold text-primary px-4 pb-2">
             {{ $t(`game_tweaks.groups.${group}`) }}
           </h2>
           <div v-if="visibleIn(group).length" class="mb-6">
-            <div
-              v-for="(item, i) in visibleIn(group)"
+            <SettingsSwitch
+              v-for="item in visibleIn(group)"
               :key="item.key"
-              class="md3-list m3-enter"
-              :style="{ animationDelay: `${i * 50}ms` }"
+              :title="$t(`game_tweaks.${item.key}.title`)"
+              :description="$t(`game_tweaks.${item.key}.description`)"
+              :icon="item.icon"
+              :shape="item.shape"
+              :badge-tone="item.tone"
+              :model-value="values[item.key]"
+              :busy="saving"
+              :disabled="!ready"
+              @update:model-value="(v) => toggle(item, v)"
             >
-              <div class="md3-list-item flex items-center gap-4 px-5 py-4">
-                <span class="item-badge" :class="[item.shape, item.tone]">
-                  <component :is="item.icon" :size="22" />
-                </span>
-                <span class="flex-1 min-w-0">
-                  <span class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span class="text-sm font-semibold text-on-surface">{{
-                      $t(`game_tweaks.${item.key}.title`)
-                    }}</span>
-                    <span v-if="item.tag" class="tag" :class="item.tagTone">{{
-                      $t(`game_tweaks.tags.${item.tag}`)
-                    }}</span>
-                  </span>
-                  <span class="block text-xs text-on-surface-variant mt-1 leading-relaxed">{{
-                    $t(`game_tweaks.${item.key}.description`)
-                  }}</span>
-                  <span v-if="partsOf(item.key).length" class="flex flex-wrap gap-1 mt-2">
-                    <span
-                      v-for="part in partsOf(item.key)"
-                      :key="part"
-                      class="tag bg-surface-container-highest text-on-surface"
-                      >{{ $t(`game_tweaks.parts.${part}`) }}</span
-                    >
-                  </span>
-                </span>
-                <ToggleSwitch
-                  :id="`tweak-${item.key}`"
-                  :model-value="values[item.key]"
-                  @update:modelValue="(v) => toggle(item, v)"
-                />
-              </div>
-            </div>
+              <!-- Impact/requirement tag stays visible next to the title. -->
+              <template v-if="item.tag" #tag>
+                <span class="tag" :class="item.tagTone">{{ $t(`game_tweaks.tags.${item.tag}`) }}</span>
+              </template>
+              <span v-if="partsOf(item.key).length" class="flex flex-wrap gap-1 mt-2">
+                <span
+                  v-for="part in partsOf(item.key)"
+                  :key="part"
+                  class="tag bg-surface-container-highest text-on-surface"
+                  >{{ $t(`game_tweaks.parts.${part}`) }}</span
+                >
+              </span>
+            </SettingsSwitch>
           </div>
         </template>
 
         <!-- Tweaks this device cannot use are hidden -->
         <div v-if="hiddenItems.length" class="hidden-card mb-4">
-          <EyeOffIcon class="shrink-0 text-on-surface-variant" :size="20" />
+          <EyeOffIcon class="shrink-0 text-on-surface-variant" :size="20" aria-hidden="true" />
           <div class="flex-1 min-w-0">
             <p class="text-sm font-semibold text-on-surface">
               {{ $t('game_tweaks.hidden_title', { n: hiddenItems.length }) }}
@@ -100,26 +74,20 @@
           </div>
         </div>
 
-        <div class="flex gap-3 px-1 mb-8">
-          <InformationOutlineIcon class="text-on-surface-variant shrink-0" :size="20" />
-          <p class="text-xs text-on-surface-variant leading-relaxed">
-            {{ $t('game_tweaks.apply_note') }}
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
+        <SettingsNote>{{ $t('game_tweaks.apply_note') }}</SettingsNote>
+  </SettingsDetailLayout>
 </template>
 
 <script setup>
-import { reactive, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { reactive, ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useFluxConfigStore } from '@/stores/FluxConfig'
 import { useNotifyStore } from '@/stores/Notify'
 import { useCapabilitiesStore } from '@/stores/Capabilities'
 
-import ArrowLeftIcon from '@/components/icons/ArrowLeft.vue'
+import SettingsDetailLayout from '@/components/ui/SettingsDetailLayout.vue'
+import SettingsSwitch from '@/components/ui/SettingsSwitch.vue'
+import SettingsNote from '@/components/ui/SettingsNote.vue'
 import GamesIcon from '@/components/icons/Games.vue'
 import WifiIcon from '@/components/icons/Wifi.vue'
 import TouchTapIcon from '@/components/icons/TouchTap.vue'
@@ -131,10 +99,7 @@ import EyeOffIcon from '@/components/icons/EyeOff.vue'
 import GpuIcon from '@/components/icons/Gpu.vue'
 import MonitorIcon from '@/components/icons/Monitor.vue'
 import BoltChargeIcon from '@/components/icons/BoltCharge.vue'
-import InformationOutlineIcon from '@/components/icons/InformationOutline.vue'
-import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
 
-const router = useRouter()
 const { t } = useI18n()
 const fluxConfigStore = useFluxConfigStore()
 const notify = useNotifyStore()
@@ -272,6 +237,10 @@ const items = [
 const GROUPS = ['game', 'render', 'system']
 
 const values = reactive({ ...fluxConfigStore.gameTweaks })
+const ready = ref(false)
+const readError = ref(false)
+// One write at a time: overlapping commits could restore a stale snapshot.
+const saving = ref(false)
 
 const caps = computed(() => capabilities.caps)
 const visibleItems = computed(() => items.filter((i) => capabilities.supports(i.cap)))
@@ -297,14 +266,17 @@ const kernelTone = computed(
 onMounted(async () => {
   try {
     if (!fluxConfigStore.isLoaded) await fluxConfigStore.loadConfig()
-    Object.assign(values, fluxConfigStore.gameTweaks)
   } catch (error) {
     console.error('Failed to load game tweaks:', error)
+    readError.value = true
   }
+  Object.assign(values, fluxConfigStore.gameTweaks)
+  ready.value = true
   capabilities.load()
 })
 
 async function toggle(item, enabled) {
+  if (saving.value) return
   if (enabled && item.confirmOn) {
     const ok = await notify.confirm({
       tone: 'warning',
@@ -315,11 +287,11 @@ async function toggle(item, enabled) {
     if (!ok) return
   }
 
+  saving.value = true
   values[item.key] = enabled
   try {
-    if (!fluxConfigStore.isLoaded) await fluxConfigStore.loadConfig()
-    fluxConfigStore.setGameTweak(item.key, enabled)
-    await fluxConfigStore.saveConfig()
+    await fluxConfigStore.commit(() => fluxConfigStore.setGameTweak(item.key, enabled))
+    readError.value = false
     notify.success(
       t(enabled ? 'game_tweaks.saved_on' : 'game_tweaks.saved_off', {
         name: t(`game_tweaks.${item.key}.title`),
@@ -327,33 +299,15 @@ async function toggle(item, enabled) {
     )
   } catch (error) {
     console.error(`Failed to set ${item.key}:`, error)
-    values[item.key] = fluxConfigStore.gameTweaks[item.key]
     notify.error(t('notify.save_failed'))
+  } finally {
+    values[item.key] = fluxConfigStore.gameTweaks[item.key]
+    saving.value = false
   }
-}
-
-function goBack() {
-  router.back()
 }
 </script>
 
 <style scoped>
-.hero-badge {
-  width: 56px;
-  height: 56px;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-}
-
-.item-badge {
-  width: 40px;
-  height: 40px;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-}
-
 .kernel-card,
 .hidden-card {
   display: flex;

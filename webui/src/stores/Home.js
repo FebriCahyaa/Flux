@@ -16,7 +16,7 @@ export const useHomeStore = defineStore('home', () => {
   const androidSDK = ref('')
   const daemonStatusRaw = ref('loading') // 'loading', 'running', 'stopped', 'error'
   const daemonError = ref('')
-  const logoImage = ref('/flux_sleeping.avif')
+  const logoImage = ref('./flux_sleeping.avif')
   const isInitialized = ref(false)
 
   let profileInterval = null
@@ -83,7 +83,7 @@ export const useHomeStore = defineStore('home', () => {
         daemonPidRaw.value = pid
         daemonStatusRaw.value = 'running'
         daemonError.value = ''
-        logoImage.value = '/flux_happy.avif'
+        logoImage.value = './flux_happy.avif'
         return
       }
 
@@ -98,13 +98,13 @@ export const useHomeStore = defineStore('home', () => {
     daemonStatusRaw.value = 'stopped'
     daemonPidRaw.value = ''
     daemonError.value = ''
-    logoImage.value = '/flux_sleeping.avif'
+    logoImage.value = './flux_sleeping.avif'
   }
 
   function setDaemonError(message) {
     daemonStatusRaw.value = 'error'
     daemonError.value = message
-    logoImage.value = '/flux_sleeping.avif'
+    logoImage.value = './flux_sleeping.avif'
   }
 
   async function getAndroidSDK() {
@@ -232,7 +232,9 @@ export const useHomeStore = defineStore('home', () => {
 
     // Actions
     initializeData,
+    startProfileMonitoring,
     stopProfileMonitoring,
+    startDaemonMonitoring,
     stopDaemonMonitoring,
     getServiceState,
     getAndroidSDK,

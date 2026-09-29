@@ -9,7 +9,7 @@
         :class="`tone-${s.tone}`"
         role="status"
       >
-        <span class="snack-icon"><component :is="icons[s.tone] || icons.info" :size="20" /></span>
+        <span class="snack-icon" aria-hidden="true"><component :is="icons[s.tone] || icons.info" :size="20" /></span>
         <p class="flex-1 text-sm leading-snug">{{ s.message }}</p>
         <button
           v-if="s.action"
@@ -23,7 +23,7 @@
           :aria-label="$t('common.close')"
           @click="notify.dismiss(s.id)"
         >
-          <CloseIcon :size="18" />
+          <CloseIcon :size="18" aria-hidden="true" />
         </button>
       </div>
     </TransitionGroup>

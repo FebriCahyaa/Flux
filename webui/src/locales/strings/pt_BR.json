@@ -29,22 +29,34 @@
             "kernel": "Kernel",
             "chipset": "Chipset",
             "androidSDK": "Android SDK"
+        },
+        "active_profile": {
+            "subtitle": "Muda automaticamente de acordo com o jogo e o estado do dispositivo"
+        },
+        "device_section": {
+            "title": "Dispositivo"
         }
     },
     "games_page": {
-        "title": "Meus Jogos",
+        "title": "Jogos",
+        "subtitle": "Gerencie o comportamento do Flux por jogo",
         "search_placeholder": "Procurar aplicativos",
         "no_apps_found": "Nenhum aplicativo encontrado",
+        "no_apps_installed": "Nenhum aplicativo instalado encontrado",
+        "load_error_title": "Não foi possível carregar seus aplicativos",
         "badges": {
-            "tweak_enabled": "Habilitado"
+            "tweak_enabled": "Habilitado",
+            "lite": "Lite"
         }
     },
     "settings_page": {
         "title": "Configurações",
         "section": {
-            "preferences": "Preferências",
+            "gaming": "Jogos",
+            "performance": "Desempenho",
             "system": "Sistema",
-            "others": "Outros"
+            "diagnostics": "Diagnóstico",
+            "app": "Aplicativo"
         },
         "lite_mode": {
             "description": "Ative o Modo Lite por padrão para todos os jogos",
@@ -91,7 +103,8 @@
     },
     "language_selection": {
         "title": "Idioma",
-        "follow_system": "Usar padrão do sistema"
+        "follow_system": "Usar padrão do sistema",
+        "load_failed": "Não foi possível carregar este idioma. O idioma anterior continua em uso."
     },
     "log_level_selection": {
         "title": "Nível de registro"
@@ -104,7 +117,9 @@
     "device_mitigation": {
         "title": "Mitigação de Dispositivo",
         "toggle_title": "Ativar mitigação de dispositivo",
-        "brief": "A mitigação de dispositivo desativa ajustes potencialmente incompatíveis para dispositivos específicos. Mantenha-a desativada, a menos que você tenha problemas."
+        "brief": "A mitigação de dispositivo desativa ajustes potencialmente incompatíveis para dispositivos específicos. Mantenha-a desativada, a menos que você tenha problemas.",
+        "detected_as": "Detectado: {model} · {soc}",
+        "rules_read_failed": "Não foi possível ler as regras do chipset neste dispositivo, então não se sabe se alguma se aplica."
     },
     "cpu_governor": {
         "title": "Governador da CPU",
@@ -142,7 +157,8 @@
         "disabled": "Desativado",
         "cancel": "Cancelar",
         "warning": "Aviso",
-        "ok": "OK"
+        "ok": "OK",
+        "back": "Voltar"
     },
     "monitor_page": {
         "title": "Monitor ao Vivo",
@@ -180,6 +196,38 @@
         "dnd_alarms": "Apenas Alarmes",
         "battery_saver": "Economia de Bateria",
         "battery_saver_on": "Ativo — perfil de economia",
-        "battery_saver_off": "Inativo"
+        "battery_saver_off": "Inativo",
+        "thermal_api_level": "Requer API 31+",
+        "stale": "parado",
+        "error_title": "Não foi possível ler os dados ao vivo",
+        "context": {
+            "active": "Sessão de jogo ativa",
+            "standby": "Flux está em espera"
+        },
+        "metric": {
+            "fps": "FPS",
+            "cpu": "CPU"
+        },
+        "battery_section": {
+            "title": "Bateria",
+            "level": "Nível da bateria",
+            "temperature": "Temperatura da bateria"
+        },
+        "system_section": {
+            "title": "Sistema"
+        },
+        "runtime_section": {
+            "title": "Tempo de execução",
+            "kernel": "Tipo de kernel",
+            "kernel_gki": "GKI",
+            "kernel_non_gki": "Não GKI",
+            "thermal_api": "API térmica",
+            "available": "Disponível",
+            "unavailable": "Indisponível",
+            "synthesis_version": "Protocolo SynthesisCore"
+        }
+    },
+    "notify": {
+        "read_failed": "Não foi possível ler as configurações atuais, então os valores exibidos podem ser os padrões. Verifique se o acesso root foi concedido."
     }
 }

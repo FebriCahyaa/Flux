@@ -1,114 +1,91 @@
 <template>
-  <div class="page h-full flex flex-col overflow-hidden bg-surface">
-    <div class="max-w-3xl mx-auto h-full flex flex-col w-full">
-      <div class="flex-none p-5 pb-3">
-        <button
-          @click="goBack"
-          class="m3-press w-10 h-10 -ms-2 rounded-full grid place-items-center text-on-surface hover:bg-surface-container-high"
-          :aria-label="$t('common.cancel')"
-        >
-          <ArrowLeftIcon class="w-6 h-6 rtl:rotate-180" />
-        </button>
-      </div>
+  <SettingsDetailLayout
+    :title="$t('lite_mode.title')"
+    :description="$t('lite_mode.brief')"
+    :icon="LeafIcon"
+    shape="shape-flower"
+    tone="bg-secondary-container text-on-secondary-container"
+    :read-error="readError"
+  >
+    <!-- Decorative illustration: static poster when reduced motion is on. -->
+    <div class="illustration rounded-[28px] overflow-hidden mb-4" aria-hidden="true">
+      <video
+        ref="videoElement"
+        preload="auto"
+        poster="/illustration/lite_mode_poster.avif"
+        class="w-full h-full object-cover"
+        :autoplay="!reducedMotion"
+        :loop="!reducedMotion"
+        muted
+        playsinline
+        webkit-playsinline
+      >
+        <source src="/illustration/lite_mode.webm" type="video/webm" />
+      </video>
+    </div>
 
-      <div class="scrollbar-hidden pb-safe-nav flex-1 min-h-0 overflow-y-scroll px-4">
-        <div class="flex items-center gap-4 mt-8 mb-5 px-1">
-          <span class="hero-badge shape-flower bg-secondary-container text-on-secondary-container">
-            <LeafIcon :size="28" />
+    <SettingsSwitch
+      variant="main"
+      :title="$t('lite_mode.toggle_title')"
+      :description="isLiteModeEnabled ? $t('lite_mode.state_on') : $t('lite_mode.state_off')"
+      :model-value="isLiteModeEnabled"
+      :busy="saving"
+      :disabled="!ready"
+      @update:model-value="toggleLiteMode"
+    />
+
+    <h2 class="text-sm font-semibold text-primary px-4 pb-2">
+      {{ $t('lite_mode.effects_title') }}
+    </h2>
+    <div class="mb-6">
+      <div v-for="e in effects" :key="e.key" class="md3-list">
+        <div class="md3-list-item flex items-center gap-4 px-5 py-4 cursor-default">
+          <span class="item-badge" :class="[e.shape, e.tone]" aria-hidden="true"
+            ><component :is="e.icon" :size="20"
+          /></span>
+          <span class="flex-1 min-w-0">
+            <span class="block text-sm font-semibold text-on-surface">{{
+              $t(`lite_mode.effects.${e.key}.title`)
+            }}</span>
+            <span class="block text-xs text-on-surface-variant mt-1">{{
+              $t(`lite_mode.effects.${e.key}.description`)
+            }}</span>
           </span>
-          <h1 class="m3-headline text-4xl text-on-surface">{{ $t('lite_mode.title') }}</h1>
-        </div>
-
-        <div class="aspect-3/2 rounded-[28px] overflow-hidden mb-3">
-          <video
-            ref="videoElement"
-            preload="auto"
-            poster="/illustration/lite_mode_poster.avif"
-            class="w-full h-full object-cover"
-            autoplay
-            loop
-            muted
-            playsinline
-            webkit-playsinline
-          >
-            <source src="/illustration/lite_mode.webm" type="video/webm" />
-          </video>
-        </div>
-
-        <!-- Main switch -->
-        <div class="switch-card mb-6" :class="{ on: isLiteModeEnabled }">
-          <div class="flex-1 min-w-0">
-            <h2 class="text-base font-semibold">{{ $t('lite_mode.toggle_title') }}</h2>
-            <p class="text-xs mt-1 opacity-80">
-              {{ isLiteModeEnabled ? $t('lite_mode.state_on') : $t('lite_mode.state_off') }}
-            </p>
-          </div>
-          <ToggleSwitch
-            id="lite-mode"
-            :model-value="isLiteModeEnabled"
-            @update:modelValue="toggleLiteMode"
-          />
-        </div>
-
-        <h2 class="text-sm font-semibold text-primary px-3 mb-2">
-          {{ $t('lite_mode.effects_title') }}
-        </h2>
-        <div class="mb-6">
-          <div
-            v-for="(e, i) in effects"
-            :key="e.key"
-            class="md3-list m3-enter"
-            :style="{ animationDelay: `${i * 50}ms` }"
-          >
-            <div class="md3-list-item flex items-center gap-4 px-5 py-4">
-              <span class="item-badge" :class="[e.shape, e.tone]"
-                ><component :is="e.icon" :size="20"
-              /></span>
-              <span class="flex-1 min-w-0">
-                <span class="block text-sm font-semibold text-on-surface">{{
-                  $t(`lite_mode.effects.${e.key}.title`)
-                }}</span>
-                <span class="block text-xs text-on-surface-variant mt-1">{{
-                  $t(`lite_mode.effects.${e.key}.description`)
-                }}</span>
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div class="flex gap-3 px-1 mb-8">
-          <InformationOutlineIcon class="text-on-surface-variant shrink-0" :size="20" />
-          <p class="text-xs text-on-surface-variant leading-relaxed">{{ $t('lite_mode.brief') }}</p>
         </div>
       </div>
     </div>
-  </div>
+  </SettingsDetailLayout>
 </template>
 
 <script setup>
 import { ref, onMounted, onActivated, onDeactivated, onBeforeUnmount } from 'vue'
-import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useFluxConfigStore } from '@/stores/FluxConfig'
 import { useNotifyStore } from '@/stores/Notify'
 
-import ArrowLeftIcon from '@/components/icons/ArrowLeft.vue'
-import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
-import InformationOutlineIcon from '@/components/icons/InformationOutline.vue'
+import SettingsDetailLayout from '@/components/ui/SettingsDetailLayout.vue'
+import SettingsSwitch from '@/components/ui/SettingsSwitch.vue'
 import LeafIcon from '@/components/icons/Leaf.vue'
 import ThermostatIcon from '@/components/icons/Thermostat.vue'
 import BatterySaverIcon from '@/components/icons/BatterySaver.vue'
 import SpeedIcon from '@/components/icons/Speed.vue'
 import GamesIcon from '@/components/icons/Games.vue'
 
-const router = useRouter()
 const { t } = useI18n()
 const fluxConfigStore = useFluxConfigStore()
 const notify = useNotifyStore()
 
 const isLiteModeEnabled = ref(false)
+const ready = ref(false)
+const readError = ref(false)
+const saving = ref(false)
 const videoElement = ref(null)
 const wakeLock = ref(null)
+
+// The illustration loops forever; with reduced motion the poster stays still.
+const reducedMotion =
+  typeof window !== 'undefined' &&
+  window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
 const effects = [
   {
@@ -138,7 +115,7 @@ const effects = [
 ]
 
 const playVideo = async () => {
-  if (!videoElement.value) return
+  if (!videoElement.value || reducedMotion) return
 
   try {
     videoElement.value.muted = true
@@ -188,16 +165,17 @@ onMounted(async () => {
       await fluxConfigStore.loadConfig()
     }
     isLiteModeEnabled.value = fluxConfigStore.isLiteModeEnabled
-
-    if (videoElement.value) {
-      videoElement.value.addEventListener('canplay', playVideo, { once: true })
-    }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    await requestWakeLock()
   } catch (error) {
     console.error('Failed to load lite mode setting:', error)
+    readError.value = true
   }
+  ready.value = true
+
+  if (videoElement.value) {
+    videoElement.value.addEventListener('canplay', playVideo, { once: true })
+  }
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+  await requestWakeLock()
 })
 
 onActivated(async () => {
@@ -222,6 +200,7 @@ onBeforeUnmount(async () => {
 
 // Saved right away; fluxd applies it the next time a game starts.
 async function toggleLiteMode(enabled) {
+  if (saving.value) return
   if (enabled) {
     const ok = await notify.confirm({
       tone: 'info',
@@ -232,31 +211,28 @@ async function toggleLiteMode(enabled) {
     })
     if (!ok) return
   }
+  saving.value = true
   isLiteModeEnabled.value = enabled
   try {
-    if (!fluxConfigStore.isLoaded) await fluxConfigStore.loadConfig()
-    fluxConfigStore.setLiteMode(enabled)
-    await fluxConfigStore.saveConfig()
+    await fluxConfigStore.commit(() => fluxConfigStore.setLiteMode(enabled))
+    readError.value = false
     notify.success(enabled ? t('lite_mode.saved_on') : t('lite_mode.saved_off'))
   } catch (error) {
     console.error('Failed to set lite mode:', error)
-    isLiteModeEnabled.value = fluxConfigStore.isLiteModeEnabled
     notify.error(t('notify.save_failed'))
+  } finally {
+    isLiteModeEnabled.value = fluxConfigStore.isLiteModeEnabled
+    saving.value = false
   }
-}
-
-function goBack() {
-  router.back()
 }
 </script>
 
 <style scoped>
-.hero-badge {
-  width: 56px;
-  height: 56px;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
+/* 3:2 on a phone, but never a full-width poster on tablets/desktop. */
+.illustration {
+  aspect-ratio: 3 / 2;
+  max-height: 240px;
+  width: 100%;
 }
 
 .item-badge {
@@ -265,24 +241,5 @@ function goBack() {
   display: grid;
   place-items: center;
   flex-shrink: 0;
-}
-
-.switch-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px 20px 20px 24px;
-  border-radius: 28px;
-  background: var(--color-surface-container-high);
-  color: var(--color-on-surface);
-  transition:
-    background-color var(--m3-spring-default-effects-duration) var(--m3-spring-default-effects),
-    border-radius var(--m3-spring-default-spatial-duration) var(--m3-spring-default-spatial);
-}
-
-.switch-card.on {
-  border-radius: 36px;
-  background: var(--color-primary-container);
-  color: var(--color-on-primary-container);
 }
 </style>
