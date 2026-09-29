@@ -100,7 +100,7 @@ target_link_libraries(transaction_test PRIVATE flux_runtime)
 
 # -- performance planner (on top of the transaction engine) --------------------
 add_library(flux_perf STATIC jni/perf/PerformancePlanner.cpp jni/perf/ProfileModel.cpp
-  jni/perf/GamePerformanceRuntime.cpp)
+  jni/perf/GamePerformanceRuntime.cpp jni/perf/RuntimeHost.cpp)
 target_include_directories(flux_perf PUBLIC jni/perf)
 target_include_directories(flux_perf SYSTEM PRIVATE "${RAPIDJSON_INCLUDE}")
 target_link_libraries(flux_perf PUBLIC flux_runtime)
@@ -114,3 +114,10 @@ target_link_libraries(profile_model_test PRIVATE flux_perf)
 
 flux_add_test(game_runtime_test tests/game_runtime_test.cpp)
 target_link_libraries(game_runtime_test PRIVATE flux_perf)
+
+flux_add_test(runtime_host_test tests/runtime_host_test.cpp)
+target_link_libraries(runtime_host_test PRIVATE flux_perf)
+
+# Shell test of the game-time refresh writer (flux_refresh) against fake dumpsys/settings.
+add_test(NAME refresh_script_test COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/tests/refresh_script_test.sh
+         ${CMAKE_CURRENT_SOURCE_DIR}/scripts/flux_profiler.sh)

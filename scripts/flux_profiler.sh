@@ -1307,14 +1307,36 @@ flux_input_boost() {
 	raise_to 120 $cib/input_boost_duration
 }
 
-# Highest refresh rate while gaming (opt-in: FLUX_REFRESH_ENABLED). flux_refresh <boost|restore>
+# Refresh rate while gaming. flux_refresh <boost|restore>
+#
+# This is the single writer of peak/min_refresh_rate for the length of a game session, and
+# FLUX_REFRESH_BACKUP is its ownership marker: flux_adaptive_refresh yields while it exists and
+# fluxd's RefreshHold (launcher side) is released whenever a game is running. Two sources can
+# ask for a rate:
+#   FLUX_REFRESH_TARGET_HZ  the game's own choice (Game Runtime, per-game refresh); wins
+#   FLUX_REFRESH_ENABLED    the global "highest rate while gaming" option
+# A target the panel does not offer is ignored (the setting stays untouched), never forced.
 FLUX_REFRESH_BACKUP="/dev/.flux_refresh_orig"
+flux_panel_rates() { # whole-Hz rates the panel reports, one per line, highest first
+	dumpsys display 2>/dev/null | grep -oE 'fps=[0-9]+(\.[0-9]+)?' | cut -d= -f2 | while read -r v; do
+		r=${v%%.*}
+		case "$v" in *.[5-9]*) r=$((r + 1)) ;; esac # 119.99 is a 120 Hz mode
+		echo "$r"
+	done | sort -rn | uniq
+}
 flux_refresh() {
 	if [ "$1" = boost ] && [ -n "$FLUX_REFRESH_ENABLED" ]; then
-		max=$(dumpsys display 2>/dev/null | grep -oE 'fps=[0-9]+(\.[0-9]+)?' | cut -d= -f2 | sort -rn | head -n 1)
-		max=${max%%.*}
+		rates=$(flux_panel_rates)
+		if [ -n "$FLUX_REFRESH_TARGET_HZ" ]; then
+			case "$FLUX_REFRESH_TARGET_HZ" in '' | *[!0-9]*) return 0 ;; esac
+			echo "$rates" | grep -qx "$FLUX_REFRESH_TARGET_HZ" || return 0
+			max=$FLUX_REFRESH_TARGET_HZ
+		else
+			max=$(echo "$rates" | head -n 1)
+		fi
 		case "$max" in '' | *[!0-9]*) return 0 ;; esac
-		[ "$max" -ge 60 ] || return 0
+		# The global option keeps its old floor; a game's own choice may be any rate the panel offers.
+		[ -n "$FLUX_REFRESH_TARGET_HZ" ] || [ "$max" -ge 60 ] || return 0
 		[ -f "$FLUX_REFRESH_BACKUP" ] ||
 			echo "$(settings get system peak_refresh_rate) $(settings get system min_refresh_rate)" >"$FLUX_REFRESH_BACKUP"
 		settings put system peak_refresh_rate "$max"

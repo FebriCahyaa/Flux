@@ -42,6 +42,12 @@
 /// Canonical capability model (schema v4), written by `fluxd capabilities`.
 /// The schema is owned by SynthesisCore; see jni/gfx/capability_schema_v4.json.
 #define CAPABILITY_FILE CONFIG_DIR "/capabilities.json"
+/// Game Runtime performance lifecycle (docs/architecture/GAME_RUNTIME_PERFORMANCE_LIFECYCLE.md).
+#define GAME_PROFILES_FILE CONFIG_DIR "/game_profiles.json"   ///< per-game performance profiles
+#define PROFILE_LIBRARY_FILE CONFIG_DIR "/compat_library.json" ///< legacy presets; identities ignored
+#define PERF_JOURNAL_FILE CONFIG_DIR "/perf_journal"
+#define LAUNCH_JOURNAL_FILE CONFIG_DIR "/launch_journal"
+#define LEGACY_COMPAT_JOURNAL_FILE CONFIG_DIR "/compat_journal"  ///< recovered at boot, never written
 /// Minimum SynthesisCore synthesis_version (PROTOCOL_VERSION) this build expects.
 /// Keep in sync with SYNTHESIS_MIN_VERSION in module/service.sh and the WebUI monitor store.
 #define SYNTHESIS_CORE_MIN_VERSION 2

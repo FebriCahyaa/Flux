@@ -40,6 +40,7 @@
 #include <PIDTracker.hpp>
 #include "RenderBooster.hpp"
 #include "SessionRecorder.hpp"
+#include "GameRuntimeHost.hpp"
 #include <ShellUtility.hpp>
 #include <SignalHandler.hpp>
 #include <SynthesisCore.hpp>
@@ -319,10 +320,14 @@ static void clear_dnd_if_needed(DaemonState &state) {
     }
 }
 
-/// Ends the per-game workers: session statistics and the render booster (which restores the threads).
-static void stop_session_workers() {
+using flux::perf::EndReason;
+
+/// Ends the per-game workers: session statistics, the render booster (which restores the threads)
+/// and the Game Runtime performance context (restored through its transaction).
+static void stop_session_workers(EndReason reason = EndReason::Exit) {
     SessionRecorder::get_instance().stop();
     RenderBooster::get_instance().stop();
+    flux_runtime::host().on_game_end(reason);
 }
 
 /**
@@ -331,9 +336,9 @@ static void stop_session_workers() {
  * Clears session state and does an immediate system-status refresh so the
  * next profile decision is based on fresh data.
  */
-static void handle_game_exit(DaemonState &state) {
+static void handle_game_exit(DaemonState &state, EndReason reason = EndReason::Exit) {
     LOGI("Game {} exited", state.active_package);
-    stop_session_workers();
+    stop_session_workers(reason);
     clear_dnd_if_needed(state);
     state.active_package.clear();
     state.pid_tracker.invalidate();
@@ -407,7 +412,7 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
             "Game {} (PID: {}) exited while applying profile ({}), aborting session",
             state.active_package, tracked_pid, strerror(errno)
         );
-        stop_session_workers();
+        stop_session_workers(EndReason::ProcessDeath);
         state.active_package.clear();
         state.pid_tracker.invalidate();
         state.in_game_session = false;
@@ -422,6 +427,13 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
 
     // Session statistics (play time, FPS, temperatures) follow the tracked game.
     SessionRecorder::get_instance().start(state.active_package, {game_pid, tracked_pid});
+    // Game Runtime: per-game performance profile. Activated before the profile script runs so the
+    // script sees the game's refresh request; idempotent while the same process keeps focus.
+    {
+        auto &runtime = flux_runtime::host();
+        runtime.set_enabled(!config_store.get_preferences().disable_tweaks);
+        runtime.on_game_active(state.active_package, tracked_pid, flux_runtime::now_ms());
+    }
     // Render threads on the fastest cores (re-applied every 3 s, restored when the session ends).
     if (const auto prefs = config_store.get_preferences(); prefs.render_boost && !prefs.disable_tweaks) {
         RenderBooster::get_instance().start({game_pid, tracked_pid}, prefs.render_realtime);
@@ -453,6 +465,7 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
         LOGI("Applying performance_lite profile for {} (PID: {}) [config]",
              state.active_package, game_pid);
         apply_performance_lite_profile(state.active_package, game_pid);
+        flux_runtime::host().on_profile_applied();
 
     } else if (thermal_lite) {
         // Thermal pressure: debounce before downgrading to avoid oscillation.
@@ -472,6 +485,7 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
         LOGW("Thermal pressure (headroom {:.2f}, level {}, CPU {:.1f}C) — downgrading to performance_lite for {}",
              thermal, thermal_level, cpu_temp, state.active_package);
         apply_performance_lite_profile(state.active_package, game_pid);
+        flux_runtime::host().on_profile_applied();
 
     } else {
         // Healthy headroom or thermal API unsupported — recover to full performance.
@@ -496,6 +510,7 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
         state.cur_mode = PERFORMANCE_PROFILE;
         LOGI("Applying performance profile for {} (PID: {})", state.active_package, game_pid);
         apply_performance_profile(false, state.active_package, game_pid);
+        flux_runtime::host().on_profile_applied();
     }
 
     // DND handling
@@ -581,6 +596,9 @@ static void flux_main_daemon() {
     DaemonState state;
     pthread_setname_np(pthread_self(), "MainThread");
 
+    // Undo per-game values a previous fluxd left behind, before any profile script writes.
+    flux_runtime::host().on_daemon_start();
+
     run_perfcommon();
     apply_system_tweaks(true);
 
@@ -609,12 +627,15 @@ static void flux_main_daemon() {
     struct pollfd pfd = {synthesis_core_event_fd, POLLIN, 0};
 
     while (!daemon_stop_requested.load(std::memory_order_relaxed)) {
-        const int ret = poll(&pfd, 1, -1); // sleep until something happens
+        // Sleep until something happens; wake once a second only while a launch boost has a deadline.
+        const int ret = poll(&pfd, 1, flux_runtime::host().needs_tick() ? 1000 : -1);
         if (ret < 0) {
             if (errno == EINTR) continue;
             LOGE_TAG("MainThread", "poll() failed: {}", strerror(errno));
             break;
         }
+        flux_runtime::host().tick(flux_runtime::now_ms());
+        if (ret == 0) continue;
 
         if (daemon_stop_requested.load(std::memory_order_relaxed)) [[unlikely]]
             break;
@@ -628,7 +649,7 @@ static void flux_main_daemon() {
             if (system_tweaks_pending.exchange(false, std::memory_order_relaxed)) apply_system_tweaks();
 
             if (state.in_game_session && state.pid_tracker.get_current_pid() == 0) {
-                handle_game_exit(state);
+                handle_game_exit(state, EndReason::ProcessDeath);
                 // Fall through, select_profile below will apply balance/powersave.
             }
 
@@ -698,7 +719,7 @@ static void flux_main_daemon() {
     }
 
     // Keep the running session when the daemon stops.
-    stop_session_workers();
+    stop_session_workers(EndReason::DaemonStop);
     RefreshHold::get_instance().release_now();
 }
 
