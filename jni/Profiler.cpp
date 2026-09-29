@@ -23,6 +23,7 @@
 #include "Flux.hpp"
 #include "FluxLog.hpp"
 #include "Profiler.hpp"
+#include "GameRuntimeHost.hpp"
 #include "Write2File.hpp"
 
 #include "DeviceMitigationStore.hpp"
@@ -82,6 +83,13 @@ void set_profiler_env_vars() {
     setenv("FLUX_CONGESTION_CONTROL", prefs.congestion_control.c_str(), 1);
     if (!prefs.touch_tweaks) setenv("FLUX_TOUCH_DISABLED", "1", 1);
     if (prefs.game_refresh_rate) setenv("FLUX_REFRESH_ENABLED", "1", 1);
+    // A refresh rate the active game asked for (Game Runtime, game_profiles.json) replaces the
+    // "highest rate" choice for that session. flux_refresh checks it against the panel's real
+    // modes; a rate the panel does not offer is ignored there, never forced.
+    if (const int hz = flux_runtime::refresh_request(); hz >= 30 && hz <= 1000 && !prefs.disable_tweaks) {
+        setenv("FLUX_REFRESH_TARGET_HZ", std::to_string(hz).c_str(), 1);
+        setenv("FLUX_REFRESH_ENABLED", "1", 1);
+    }
     if (!prefs.drop_caches) setenv("FLUX_DROP_CACHES_DISABLED", "1", 1);
     if (!prefs.surface_boost) setenv("FLUX_SURFACE_DISABLED", "1", 1);
     if (!prefs.chipset_boost) setenv("FLUX_CHIPSET_DISABLED", "1", 1);

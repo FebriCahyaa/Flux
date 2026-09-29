@@ -115,3 +115,11 @@ target_link_libraries(compat_test PRIVATE flux_compat)
 # -- daemon lifecycle (SessionRuntime) -------------------------------------
 flux_add_test(session_test tests/session_test.cpp)
 target_link_libraries(session_test PRIVATE flux_compat)
+
+# -- profile script: game-time refresh writer (shell, fake dumpsys/settings) ---
+find_program(FLUX_SH sh)
+if(FLUX_SH)
+  add_test(NAME refresh_script_test
+    COMMAND ${FLUX_SH} ${CMAKE_CURRENT_SOURCE_DIR}/tests/refresh_script_test.sh
+            ${CMAKE_CURRENT_SOURCE_DIR}/scripts/flux_profiler.sh)
+endif()
