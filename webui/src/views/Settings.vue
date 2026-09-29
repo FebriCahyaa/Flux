@@ -19,10 +19,16 @@
 
           <div class="mb-4">
             <div v-for="item in section.items" :key="item.key" class="md3-list">
-              <RippleComponent @click="item.run" class="md3-list-item" tabindex="0">
+              <RippleComponent
+                @click="item.run"
+                class="md3-list-item"
+                tabindex="0"
+                role="button"
+                :aria-label="rowLabel(item)"
+              >
                 <div class="flex items-center justify-between px-5 py-4">
                   <div class="flex items-center gap-4 min-w-0 flex-1">
-                    <div class="entry-badge" :class="[item.shape, item.tone]">
+                    <div class="entry-badge" :class="[item.shape, item.tone]" aria-hidden="true">
                       <component :is="item.icon" :size="20" />
                     </div>
                     <div class="flex-1 min-w-0">
@@ -38,7 +44,7 @@
                       </p>
                     </div>
                   </div>
-                  <div class="flex items-center gap-2 shrink-0 ms-3">
+                  <div class="flex items-center gap-2 shrink-0 ms-3" aria-hidden="true">
                     <span
                       v-if="item.status && item.status()"
                       class="status"
@@ -170,6 +176,16 @@ onMounted(() => {
 })
 
 const go = (path) => () => router.push(`/settings/${path}`)
+
+// The row's own visible title/status text, read as one accessible name
+// instead of relying on the browser to flatten a plain div's text content
+// (the badge icon and chevron are decorative and marked aria-hidden).
+const rowLabel = (item) => {
+  const title = t(`settings_page.${item.key}.title`)
+  const status = item.status && item.status()
+  return status ? `${title}, ${status.label}` : title
+}
+
 const tone = {
   primary: 'bg-primary-container text-on-primary-container',
   secondary: 'bg-secondary-container text-on-secondary-container',
