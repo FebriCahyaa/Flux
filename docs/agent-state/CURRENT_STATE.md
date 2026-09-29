@@ -26,6 +26,15 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   CI run 36619381182 green (host, forbidden-symbol gate, ndk-build arm64+arm, WebUI, 3 zips).
   `FluxPerf` linked into `fluxd`, **no call path** (needs Session). Device: NOT_TESTED.
 - **Next:** owner review to close Step 2. Session migration not started.
+
+### Step 2 status (owner-confirmed, 2026-09-29)
+
+| IMPLEMENTED | NOT_IMPLEMENTED |
+|---|---|
+| PerformancePlanner | daemon lifecycle invocation |
+| RuntimePlan generation | device capability probe runtime |
+| LaunchBoost planning | refresh executor connection (`flux_refresh`) |
+| Transaction integration | real device validation |
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 
 ## Repositories and branches
