@@ -189,6 +189,7 @@
         "battery_saver_off": "無効",
         "thermal_api_level": "API 31以上が必要",
         "stale": "停止中",
+        "error_title": "ライブデータを読み取れませんでした",
         "context": {
             "active": "ゲームセッション実行中",
             "standby": "Fluxは待機中です"

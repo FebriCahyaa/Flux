@@ -395,6 +395,7 @@
     "thermal_gki_note": "Kernel GKI mungkin tidak mengekspos API thermal headroom",
     "profile_active": "Aktif",
     "stale": "terhenti",
+    "error_title": "Gagal membaca data langsung",
     "context": {
       "active": "Sesi game aktif",
       "standby": "Flux dalam mode siaga"

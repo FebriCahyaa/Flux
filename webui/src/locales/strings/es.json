@@ -206,6 +206,7 @@
         "battery_saver_off": "Inactivo",
         "thermal_api_level": "Requiere API 31+",
         "stale": "detenido",
+        "error_title": "No se pudieron leer los datos en vivo",
         "context": {
             "active": "Sesión de juego activa",
             "standby": "Flux está en espera"

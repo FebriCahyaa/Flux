@@ -189,6 +189,7 @@
         "battery_saver_off": "Devre dışı",
         "thermal_api_level": "API 31+ gerekli",
         "stale": "durdu",
+        "error_title": "Canlı veriler okunamadı",
         "context": {
             "active": "Oyun oturumu etkin",
             "standby": "Flux beklemede"

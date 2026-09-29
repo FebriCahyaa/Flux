@@ -206,6 +206,7 @@
         "battery_saver_off": "未启用",
         "thermal_api_level": "需要 API 31 及以上",
         "stale": "已停止",
+        "error_title": "无法读取实时数据",
         "context": {
             "active": "游戏会话进行中",
             "standby": "Flux 处于待机状态"

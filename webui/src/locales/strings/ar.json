@@ -189,6 +189,7 @@
         "battery_saver_off": "غير نشط",
         "thermal_api_level": "يتطلب API 31 أو أعلى",
         "stale": "متوقف",
+        "error_title": "تعذّرت قراءة البيانات المباشرة",
         "context": {
             "active": "جلسة لعب نشطة",
             "standby": "Flux في وضع الاستعداد"

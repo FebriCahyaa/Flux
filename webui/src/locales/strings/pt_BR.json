@@ -189,6 +189,7 @@
         "battery_saver_off": "Inativo",
         "thermal_api_level": "Requer API 31+",
         "stale": "parado",
+        "error_title": "Não foi possível ler os dados ao vivo",
         "context": {
             "active": "Sessão de jogo ativa",
             "standby": "Flux está em espera"

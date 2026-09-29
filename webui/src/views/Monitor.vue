@@ -22,15 +22,22 @@
     <div class="scrollbar-hidden pb-safe-nav flex-1 min-h-0 overflow-y-scroll">
       <div class="max-w-3xl mx-auto p-5 py-1 space-y-3">
 
-        <!-- Error banner -->
+        <!-- Error banner: the raw lastError is the exception message from
+             reading synthesis_core.json (usually the file/daemon isn't
+             there yet), which reads as noise on its own — a short label
+             frames what actually failed without inventing a new backend
+             status for it. -->
         <div
           v-if="monitorStore.lastError"
-          class="bg-error-container text-on-error-container rounded-2xl px-4 py-3 text-xs flex items-center gap-2"
+          class="bg-error-container text-on-error-container rounded-2xl px-4 py-3 text-xs flex items-start gap-2"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 -960 960 960" fill="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 -960 960 960" fill="currentColor" class="shrink-0 mt-0.5">
             <path d="M480-280q17 0 28.5-11.5T520-320q0-17-11.5-28.5T480-360q-17 0-28.5 11.5T440-320q0 17 11.5 28.5T480-280Zm-40-160h80v-240h-80v240Zm40 360q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Z"/>
           </svg>
-          {{ monitorStore.lastError }}
+          <div>
+            <p class="font-semibold">{{ $t('monitor_page.error_title') }}</p>
+            <p class="opacity-80 mt-0.5">{{ monitorStore.lastError }}</p>
+          </div>
         </div>
 
         <!-- Outdated SynthesisCore banner -->
@@ -161,7 +168,18 @@
             </p>
           </div>
 
-          <div v-if="monitorStore.thermalSupported">
+          <!-- Loading: thermalSupported reads false until the first tick
+               resolves, which would otherwise flash the "unsupported"
+               notice below even on devices that do support it. -->
+          <div v-if="!monitorStore.isInitialized" class="flex items-center gap-4">
+            <div class="w-20 h-20 rounded-full bg-surface-container-high shrink-0"></div>
+            <div class="flex-1 space-y-2">
+              <span class="skel" style="width: 72px;"></span>
+              <div class="skel" style="width: 140px; display: block;"></div>
+            </div>
+          </div>
+
+          <div v-else-if="monitorStore.thermalSupported">
             <!-- Big headroom number + ring -->
             <div class="flex items-center gap-4 mb-4">
               <!-- Ring gauge -->

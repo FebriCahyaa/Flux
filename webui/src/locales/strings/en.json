@@ -392,6 +392,7 @@
     "thermal_gki_note": "GKI kernels may not expose thermal headroom API",
     "profile_active": "Active",
     "stale": "stalled",
+    "error_title": "Couldn't read live data",
     "context": {
       "active": "Gaming session active",
       "standby": "Flux is standing by"

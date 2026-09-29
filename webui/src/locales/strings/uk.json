@@ -206,6 +206,7 @@
         "battery_saver_off": "Неактивна",
         "thermal_api_level": "Потрібен API 31+",
         "stale": "зупинено",
+        "error_title": "Не вдалося зчитати дані в реальному часі",
         "context": {
             "active": "Ігрова сесія активна",
             "standby": "Flux у режимі очікування"
