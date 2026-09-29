@@ -1,16 +1,20 @@
 <template>
   <div class="page monitor-page h-full flex flex-col">
 
-    <!-- Header -->
+    <!-- Header: answers "what is Flux monitoring right now" in one glance.
+         The live-card right below already carries the app name/profile
+         detail when a game is running, so this stays a short status line
+         rather than repeating it. -->
     <div class="sticky top-0 z-10 bg-background">
       <div class="max-w-3xl mx-auto px-5 pt-6 pb-3">
         <div class="flex justify-between items-center text-on-surface">
           <h1 class="m3-headline text-[32px]">{{ $t('monitor_page.title') }}</h1>
           <div class="flex items-center gap-2">
-            <span class="text-xs text-on-surface-variant font-medium">{{ $t('monitor_page.live') }}</span>
+            <span class="text-xs text-on-surface-variant font-medium">{{ liveDotLabel }}</span>
             <span class="live-dot w-2 h-2 rounded-full" :class="dotClass"></span>
           </div>
         </div>
+        <p class="text-xs text-on-surface-variant mt-1">{{ contextLine }}</p>
       </div>
     </div>
 
@@ -62,7 +66,7 @@
           <div class="relative flex items-end gap-3 mt-5">
             <span class="m3-headline fps-big tabular-nums">{{ fmt(live.now.fps) }}</span>
             <div class="pb-2">
-              <p class="text-sm font-semibold">FPS</p>
+              <p class="text-sm font-semibold">{{ $t('monitor_page.metric.fps') }}</p>
               <p class="text-[11px] opacity-70">{{ fpsSourceLabel(live.fps_source) }}</p>
             </div>
           </div>
@@ -90,7 +94,7 @@
             <div class="temp-tile">
               <ThermometerIcon :size="18" />
               <div>
-                <p class="text-[11px] opacity-75">CPU</p>
+                <p class="text-[11px] opacity-75">{{ $t('monitor_page.metric.cpu') }}</p>
                 <p class="text-xl font-bold tabular-nums leading-tight">{{ fmt(live.now.cpu, 1) }}°</p>
                 <p class="text-[11px] opacity-75 tabular-nums">{{ $t('sessions.max') }} {{ fmt(live.summary.cpu_max, 1) }}°</p>
               </div>
@@ -217,7 +221,7 @@
               </div>
               <div>
                 <p class="text-sm font-semibold text-on-surface">{{ $t('monitor_page.thermal_unsupported_title') }}</p>
-                <p class="text-xs text-on-surface-variant mt-0.5">API 31+ required</p>
+                <p class="text-xs text-on-surface-variant mt-0.5">{{ $t('monitor_page.thermal_api_level') }}</p>
               </div>
             </div>
             <p class="text-xs text-on-surface-variant leading-relaxed">
@@ -230,100 +234,131 @@
           </div>
         </div>
 
-        <!-- ── Status Grid ──────────────────────────────────────────────── -->
-        <div class="grid grid-cols-2 gap-3">
-
-          <!-- Charging -->
-          <div
-            class="status-chip rounded-2xl p-4 flex items-center gap-3 transition-all duration-300"
-            :class="monitorStore.charging ? 'bg-tertiary-container text-on-tertiary-container chip-active' : 'bg-surface-container text-on-surface'"
-          >
-            <div class="status-icon-wrap w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-              :class="monitorStore.charging ? 'bg-tertiary bg-opacity-20' : 'bg-surface-container-high'">
-              <BoltChargeIcon v-if="monitorStore.charging" :size="18" />
-              <BatteryFullIcon v-else :size="18" />
-            </div>
-            <div>
-              <p class="text-xs opacity-60 font-medium">{{ $t('monitor_page.charging') }}</p>
-              <p class="text-sm font-semibold mt-0.5">
+        <!-- ── Battery: one coherent section instead of four standalone cards
+             (charging, level, temperature, saver were previously split). ─── -->
+        <h2 class="m3-section-title px-1">{{ $t('monitor_page.battery_section.title') }}</h2>
+        <section class="m3-enter mb-1">
+          <div class="md3-list">
+            <div class="md3-list-item flex items-center gap-4 px-5 py-3.5">
+              <span class="badge-sm shape-cookie6" :class="monitorStore.charging ? 'bg-tertiary-container text-on-tertiary-container' : 'bg-surface-container-high text-on-surface-variant'">
+                <BoltChargeIcon v-if="monitorStore.charging" :size="18" />
+                <BatteryFullIcon v-else :size="18" />
+              </span>
+              <span class="text-sm text-on-surface-variant flex-1">{{ $t('monitor_page.charging') }}</span>
+              <span class="text-sm font-semibold text-on-surface">
                 {{ monitorStore.charging ? $t('common.enabled') : $t('common.disabled') }}
-              </p>
+              </span>
             </div>
           </div>
-
-          <!-- Audio -->
-          <div
-            class="status-chip rounded-2xl p-4 flex items-center gap-3 transition-all duration-300"
-            :class="monitorStore.audioActive ? 'bg-primary-container text-on-primary-container chip-active' : 'bg-surface-container text-on-surface'"
-          >
-            <div class="status-icon-wrap w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-              :class="monitorStore.audioActive ? 'bg-primary bg-opacity-20' : 'bg-surface-container-high'">
-              <VolumeUpIcon v-if="monitorStore.audioActive" :size="18" />
-              <VolumeOffIcon v-else :size="18" />
-            </div>
-            <div>
-              <p class="text-xs opacity-60 font-medium">{{ $t('monitor_page.audio') }}</p>
-              <p class="text-sm font-semibold mt-0.5">
-                {{ monitorStore.audioActive ? $t('monitor_page.audio_active') : $t('monitor_page.audio_silent') }}
-              </p>
+          <div class="md3-list">
+            <div class="md3-list-item flex items-center gap-4 px-5 py-3.5">
+              <span class="badge-sm shape-clover4 bg-secondary-container text-on-secondary-container"><BatteryFullIcon :size="18" /></span>
+              <span class="text-sm text-on-surface-variant flex-1">{{ $t('monitor_page.battery_section.level') }}</span>
+              <span v-if="!monitorStore.isInitialized" class="skel" aria-hidden="true"></span>
+              <span v-else class="text-sm font-semibold text-on-surface">{{ batteryLevelText }}</span>
             </div>
           </div>
-
-          <!-- Screen -->
-          <div
-            class="status-chip rounded-2xl p-4 flex items-center gap-3 transition-all duration-300"
-            :class="monitorStore.screenAwake ? 'bg-surface-container-high text-on-surface chip-active' : 'bg-surface-container text-on-surface'"
-          >
-            <div class="status-icon-wrap w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-              :class="monitorStore.screenAwake ? 'bg-primary bg-opacity-15' : 'bg-surface-container-high'">
-              <SmartphoneIcon v-if="monitorStore.screenAwake" :size="18" />
-              <SmartphoneOffIcon v-else :size="18" />
+          <div class="md3-list">
+            <div class="md3-list-item flex items-center gap-4 px-5 py-3.5">
+              <span class="badge-sm shape-pentagon bg-tertiary-container text-on-tertiary-container"><ThermometerIcon :size="18" /></span>
+              <span class="text-sm text-on-surface-variant flex-1">{{ $t('monitor_page.battery_section.temperature') }}</span>
+              <span v-if="!monitorStore.isInitialized" class="skel" aria-hidden="true"></span>
+              <span v-else class="text-sm font-semibold text-on-surface">{{ batteryTempText }}</span>
             </div>
-            <div>
-              <p class="text-xs opacity-60 font-medium">{{ $t('monitor_page.screen') }}</p>
-              <p class="text-sm font-semibold mt-0.5">
+          </div>
+          <div class="md3-list">
+            <div class="md3-list-item flex items-center gap-4 px-5 py-3.5">
+              <span class="badge-sm shape-sunny" :class="monitorStore.batterySaver ? 'bg-error-container text-on-error-container' : 'bg-surface-container-high text-on-surface-variant'">
+                <BatterySaverIcon :size="18" />
+              </span>
+              <span class="text-sm text-on-surface-variant flex-1">{{ $t('monitor_page.battery_saver') }}</span>
+              <span class="text-sm font-semibold text-on-surface">
+                {{ monitorStore.batterySaver ? $t('monitor_page.battery_saver_on') : $t('monitor_page.battery_saver_off') }}
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── System: screen, audio, DND ──────────────────────────────────── -->
+        <h2 class="m3-section-title px-1">{{ $t('monitor_page.system_section.title') }}</h2>
+        <section class="m3-enter mb-1">
+          <div class="md3-list">
+            <div class="md3-list-item flex items-center gap-4 px-5 py-3.5">
+              <span class="badge-sm shape-cookie9" :class="monitorStore.screenAwake ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high text-on-surface-variant'">
+                <SmartphoneIcon v-if="monitorStore.screenAwake" :size="18" />
+                <SmartphoneOffIcon v-else :size="18" />
+              </span>
+              <span class="text-sm text-on-surface-variant flex-1">{{ $t('monitor_page.screen') }}</span>
+              <span class="text-sm font-semibold text-on-surface">
                 {{ monitorStore.screenAwake ? $t('monitor_page.screen_on') : $t('monitor_page.screen_off') }}
-              </p>
+              </span>
             </div>
           </div>
-
-          <!-- DND -->
-          <div
-            class="status-chip rounded-2xl p-4 flex items-center gap-3 transition-all duration-300"
-            :class="monitorStore.zenMode > 0 ? 'bg-surface-container-high text-on-surface chip-active' : 'bg-surface-container text-on-surface'"
-          >
-            <div class="status-icon-wrap w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-              :class="monitorStore.zenMode > 0 ? 'bg-tertiary bg-opacity-15' : 'bg-surface-container-high'">
-              <NotificationsOffIcon v-if="monitorStore.zenMode > 0" :size="18" />
-              <NotificationsActiveIcon v-else :size="18" />
-            </div>
-            <div>
-              <p class="text-xs opacity-60 font-medium">{{ $t('monitor_page.dnd') }}</p>
-              <p class="text-sm font-semibold mt-0.5">{{ zenModeLabel }}</p>
+          <div class="md3-list">
+            <div class="md3-list-item flex items-center gap-4 px-5 py-3.5">
+              <span class="badge-sm shape-flower" :class="monitorStore.audioActive ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high text-on-surface-variant'">
+                <VolumeUpIcon v-if="monitorStore.audioActive" :size="18" />
+                <VolumeOffIcon v-else :size="18" />
+              </span>
+              <span class="text-sm text-on-surface-variant flex-1">{{ $t('monitor_page.audio') }}</span>
+              <span class="text-sm font-semibold text-on-surface">
+                {{ monitorStore.audioActive ? $t('monitor_page.audio_active') : $t('monitor_page.audio_silent') }}
+              </span>
             </div>
           </div>
-        </div>
+          <div class="md3-list">
+            <div class="md3-list-item flex items-center gap-4 px-5 py-3.5">
+              <span class="badge-sm shape-cookie4" :class="monitorStore.zenMode > 0 ? 'bg-tertiary-container text-on-tertiary-container' : 'bg-surface-container-high text-on-surface-variant'">
+                <NotificationsOffIcon v-if="monitorStore.zenMode > 0" :size="18" />
+                <NotificationsActiveIcon v-else :size="18" />
+              </span>
+              <span class="text-sm text-on-surface-variant flex-1">{{ $t('monitor_page.dnd') }}</span>
+              <span class="text-sm font-semibold text-on-surface">{{ zenModeLabel }}</span>
+            </div>
+          </div>
+        </section>
 
-        <!-- ── Battery Saver full-width ──────────────────────────────────── -->
-        <div
-          class="status-chip rounded-2xl p-4 flex items-center gap-3 transition-all duration-300"
-          :class="monitorStore.batterySaver ? 'bg-error-container text-on-error-container chip-active' : 'bg-surface-container text-on-surface'"
-        >
-          <div class="status-icon-wrap w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-            :class="monitorStore.batterySaver ? 'bg-error bg-opacity-20' : 'bg-surface-container-high'">
-            <BatterySaverIcon :size="18" />
+        <!-- ── Runtime: technical context (profile, kernel, thermal API,
+             SynthesisCore protocol). Existing store data that wasn't
+             surfaced before; kept less prominent than live telemetry
+             above, per the same compact-row pattern. ─────────────────── -->
+        <h2 class="m3-section-title px-1">{{ $t('monitor_page.runtime_section.title') }}</h2>
+        <section class="m3-enter mb-3">
+          <div class="md3-list">
+            <div class="md3-list-item flex items-center gap-4 px-5 py-3.5">
+              <span class="badge-sm shape-cookie6" :class="profileBgClass">
+                <component :is="profileIconComponent" :size="18" />
+              </span>
+              <span class="text-sm text-on-surface-variant flex-1">{{ $t('home_page.info_card.profile') }}</span>
+              <span class="text-sm font-semibold text-on-surface">{{ profileLabel }}</span>
+            </div>
           </div>
-          <div>
-            <p class="text-xs opacity-60 font-medium">{{ $t('monitor_page.battery_saver') }}</p>
-            <p class="text-sm font-semibold mt-0.5">
-              {{ monitorStore.batterySaver ? $t('monitor_page.battery_saver_on') : $t('monitor_page.battery_saver_off') }}
-            </p>
+          <div class="md3-list">
+            <div class="md3-list-item flex items-center gap-4 px-5 py-3.5">
+              <span class="badge-sm shape-pentagon bg-secondary-container text-on-secondary-container"><ConsoleIcon :size="18" /></span>
+              <span class="text-sm text-on-surface-variant flex-1">{{ $t('monitor_page.runtime_section.kernel') }}</span>
+              <span class="text-sm font-semibold text-on-surface">
+                {{ monitorStore.kernelIsGki ? $t('monitor_page.runtime_section.kernel_gki') : $t('monitor_page.runtime_section.kernel_non_gki') }}
+              </span>
+            </div>
           </div>
-          <div class="ml-auto">
-            <div class="w-2 h-2 rounded-full" :class="monitorStore.batterySaver ? 'bg-error animate-pulse' : 'bg-primary'"></div>
+          <div class="md3-list">
+            <div class="md3-list-item flex items-center gap-4 px-5 py-3.5">
+              <span class="badge-sm shape-clover4 bg-tertiary-container text-on-tertiary-container"><ThermometerIcon :size="18" /></span>
+              <span class="text-sm text-on-surface-variant flex-1">{{ $t('monitor_page.runtime_section.thermal_api') }}</span>
+              <span class="text-sm font-semibold text-on-surface">
+                {{ monitorStore.thermalApiAvailable ? $t('monitor_page.runtime_section.available') : $t('monitor_page.runtime_section.unavailable') }}
+              </span>
+            </div>
           </div>
-        </div>
-
+          <div class="md3-list">
+            <div class="md3-list-item flex items-center gap-4 px-5 py-3.5">
+              <span class="badge-sm shape-sunny bg-secondary-container text-on-secondary-container"><ShieldIcon :size="18" /></span>
+              <span class="text-sm text-on-surface-variant flex-1">{{ $t('monitor_page.runtime_section.synthesis_version') }}</span>
+              <span class="text-sm font-semibold text-on-surface">{{ synthesisVersionText }}</span>
+            </div>
+          </div>
+        </section>
 
         <!-- ── Game session history ──────────────────────────────────────── -->
         <div class="flex items-center justify-between px-4 pt-4 pb-1">
@@ -368,7 +403,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, onActivated, onDeactivated } from 'vue'
+import { computed, ref, onMounted, onUnmounted, onActivated, onDeactivated } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMonitorStore } from '@/stores/Monitor'
 import { useSessionsStore, formatDuration, fmt, tempTone } from '@/stores/Sessions'
@@ -389,6 +424,8 @@ import NotificationsActiveIcon from '@/components/icons/NotificationsActive.vue'
 import BatterySaverIcon from '@/components/icons/BatterySaver.vue'
 import ThermometerIcon from '@/components/icons/Thermostat.vue'
 import AppWindowIcon from '@/components/icons/AppWindow.vue'
+import ConsoleIcon from '@/components/icons/Console.vue'
+import ShieldIcon from '@/components/icons/Shield.vue'
 
 // Profile icons (reuse existing icon components)
 import RocketIcon from '@/components/icons/Star.vue'
@@ -404,6 +441,7 @@ const router = useRouter()
 onMounted(() => {
   monitorStore.init()
   sessions.loadHistory()
+  startClock()
 })
 
 // Same <keep-alive> issue as Home.vue: navigating away from Monitor never
@@ -411,12 +449,17 @@ onMounted(() => {
 // app's entire lifetime regardless of which page was actually visible.
 // onActivated also fires right after the initial mount; init()'s own
 // isInitialized guard already starts polling then, so this only resumes it
-// on a later return to Monitor.
+// on a later return to Monitor. The local clock follows the same pattern:
+// it only measures staleness while Monitor is actually the visible page.
 onActivated(() => {
   if (monitorStore.isInitialized) monitorStore.startPolling()
+  startClock()
 })
 
-onDeactivated(() => monitorStore.stopPolling())
+onDeactivated(() => {
+  monitorStore.stopPolling()
+  stopClock()
+})
 
 // ── Game sessions ────────────────────────────────────────────────────────────
 
@@ -445,15 +488,18 @@ const dropTone = (n) =>
   !n ? 'bg-secondary-container text-on-secondary-container'
     : n <= 5 ? 'bg-tertiary-container text-on-tertiary-container'
       : 'bg-error-container text-on-error-container'
-onUnmounted(() => monitorStore.stopPolling())
+onUnmounted(() => {
+  monitorStore.stopPolling()
+  stopClock()
+})
 
 // ── Live dot ─────────────────────────────────────────────────────────────────
+// Stale takes priority: a stalled poll loop must not still read as "live".
 
-const dotClass = computed(() =>
-  monitorStore.lastError
-    ? 'bg-error animate-pulse'
-    : 'bg-primary animate-pulse'
-)
+const dotClass = computed(() => {
+  if (isStale.value) return 'bg-outline'
+  return monitorStore.lastError ? 'bg-error animate-pulse' : 'bg-primary animate-pulse'
+})
 
 // ── Profile ──────────────────────────────────────────────────────────────────
 
@@ -559,6 +605,46 @@ const zenModeLabel = computed(() => {
     default: return t('common.disabled')
   }
 })
+
+// ── Battery / runtime text ──────────────────────────────────────────────────
+
+const batteryLevelText = computed(() =>
+  monitorStore.batteryLevel === null ? t('common.unknown') : `${monitorStore.batteryLevel}%`
+)
+const batteryTempText = computed(() =>
+  monitorStore.batteryTemp === null ? t('common.unknown') : `${fmt(monitorStore.batteryTemp, 1)}°`
+)
+const synthesisVersionText = computed(() =>
+  monitorStore.synthesisVersion > 0 ? `v${monitorStore.synthesisVersion}` : t('common.unknown')
+)
+
+// ── Live context header ──────────────────────────────────────────────────────
+
+const contextLine = computed(() =>
+  sessions.liveActive ? t('monitor_page.context.active') : t('monitor_page.context.standby')
+)
+
+// A local 1 Hz clock, independent of the store: it is what lets the "live"
+// dot notice the poll loop has stalled (lastTickAt stopped advancing) even
+// though nothing in the store changed to trigger a recompute on its own.
+const nowTick = ref(Date.now())
+let clockInterval = null
+function startClock() {
+  stopClock()
+  clockInterval = setInterval(() => { nowTick.value = Date.now() }, 1000)
+}
+function stopClock() {
+  if (clockInterval) {
+    clearInterval(clockInterval)
+    clockInterval = null
+  }
+}
+
+const isStale = computed(() =>
+  monitorStore.isInitialized && monitorStore.lastTickAt > 0 && (nowTick.value - monitorStore.lastTickAt) > 3000
+)
+
+const liveDotLabel = computed(() => (isStale.value ? t('monitor_page.stale') : t('monitor_page.live')))
 </script>
 
 <style scoped>
@@ -642,6 +728,14 @@ const zenModeLabel = computed(() => {
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 999px;
+}
+
+.skel {
+  display: inline-block;
+  width: 64px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--color-surface-container-highest);
 }
 
 @keyframes live-spin {

@@ -203,6 +203,34 @@
         "dnd_alarms": "Лише будильники",
         "battery_saver": "Економія заряду",
         "battery_saver_on": "Активна — профіль енергозбереження",
-        "battery_saver_off": "Неактивна"
+        "battery_saver_off": "Неактивна",
+        "thermal_api_level": "Потрібен API 31+",
+        "stale": "зупинено",
+        "context": {
+            "active": "Ігрова сесія активна",
+            "standby": "Flux у режимі очікування"
+        },
+        "metric": {
+            "fps": "FPS",
+            "cpu": "CPU"
+        },
+        "battery_section": {
+            "title": "Батарея",
+            "level": "Рівень заряду",
+            "temperature": "Температура батареї"
+        },
+        "system_section": {
+            "title": "Система"
+        },
+        "runtime_section": {
+            "title": "Середовище виконання",
+            "kernel": "Тип ядра",
+            "kernel_gki": "GKI",
+            "kernel_non_gki": "Не GKI",
+            "thermal_api": "Термальний API",
+            "available": "Доступний",
+            "unavailable": "Недоступний",
+            "synthesis_version": "Протокол SynthesisCore"
+        }
     }
 }

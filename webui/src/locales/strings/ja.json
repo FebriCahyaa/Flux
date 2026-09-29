@@ -186,6 +186,34 @@
         "dnd_alarms": "アラームのみ",
         "battery_saver": "バッテリー節約",
         "battery_saver_on": "有効 — 省電力プロファイル",
-        "battery_saver_off": "無効"
+        "battery_saver_off": "無効",
+        "thermal_api_level": "API 31以上が必要",
+        "stale": "停止中",
+        "context": {
+            "active": "ゲームセッション実行中",
+            "standby": "Fluxは待機中です"
+        },
+        "metric": {
+            "fps": "FPS",
+            "cpu": "CPU"
+        },
+        "battery_section": {
+            "title": "バッテリー",
+            "level": "バッテリー残量",
+            "temperature": "バッテリー温度"
+        },
+        "system_section": {
+            "title": "システム"
+        },
+        "runtime_section": {
+            "title": "ランタイム",
+            "kernel": "カーネルタイプ",
+            "kernel_gki": "GKI",
+            "kernel_non_gki": "非GKI",
+            "thermal_api": "サーマルAPI",
+            "available": "利用可能",
+            "unavailable": "利用不可",
+            "synthesis_version": "SynthesisCoreプロトコル"
+        }
     }
 }

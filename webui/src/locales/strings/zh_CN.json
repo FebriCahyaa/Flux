@@ -203,6 +203,34 @@
         "dnd_alarms": "仅闹钟",
         "battery_saver": "省电模式",
         "battery_saver_on": "已启用 — 省电配置文件",
-        "battery_saver_off": "未启用"
+        "battery_saver_off": "未启用",
+        "thermal_api_level": "需要 API 31 及以上",
+        "stale": "已停止",
+        "context": {
+            "active": "游戏会话进行中",
+            "standby": "Flux 处于待机状态"
+        },
+        "metric": {
+            "fps": "FPS",
+            "cpu": "CPU"
+        },
+        "battery_section": {
+            "title": "电池",
+            "level": "电池电量",
+            "temperature": "电池温度"
+        },
+        "system_section": {
+            "title": "系统"
+        },
+        "runtime_section": {
+            "title": "运行时",
+            "kernel": "内核类型",
+            "kernel_gki": "GKI",
+            "kernel_non_gki": "非 GKI",
+            "thermal_api": "温控 API",
+            "available": "可用",
+            "unavailable": "不可用",
+            "synthesis_version": "SynthesisCore 协议"
+        }
     }
 }

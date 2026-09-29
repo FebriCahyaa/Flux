@@ -186,6 +186,34 @@
         "dnd_alarms": "المنبهات فقط",
         "battery_saver": "موفر البطارية",
         "battery_saver_on": "نشط — ملف توفير الطاقة",
-        "battery_saver_off": "غير نشط"
+        "battery_saver_off": "غير نشط",
+        "thermal_api_level": "يتطلب API 31 أو أعلى",
+        "stale": "متوقف",
+        "context": {
+            "active": "جلسة لعب نشطة",
+            "standby": "Flux في وضع الاستعداد"
+        },
+        "metric": {
+            "fps": "FPS",
+            "cpu": "CPU"
+        },
+        "battery_section": {
+            "title": "البطارية",
+            "level": "مستوى البطارية",
+            "temperature": "درجة حرارة البطارية"
+        },
+        "system_section": {
+            "title": "النظام"
+        },
+        "runtime_section": {
+            "title": "وقت التشغيل",
+            "kernel": "نوع النواة",
+            "kernel_gki": "GKI",
+            "kernel_non_gki": "غير GKI",
+            "thermal_api": "واجهة الحرارة",
+            "available": "متاحة",
+            "unavailable": "غير متاحة",
+            "synthesis_version": "بروتوكول SynthesisCore"
+        }
     }
 }

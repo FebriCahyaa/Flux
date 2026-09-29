@@ -388,8 +388,36 @@
     "battery_saver_on": "Active — Powersave profile engaged",
     "battery_saver_off": "Inactive",
     "thermal_unsupported_title": "Thermal API Unavailable",
+    "thermal_api_level": "API 31+ required",
     "thermal_gki_note": "GKI kernels may not expose thermal headroom API",
-    "profile_active": "Active"
+    "profile_active": "Active",
+    "stale": "stalled",
+    "context": {
+      "active": "Gaming session active",
+      "standby": "Flux is standing by"
+    },
+    "metric": {
+      "fps": "FPS",
+      "cpu": "CPU"
+    },
+    "battery_section": {
+      "title": "Battery",
+      "level": "Battery Level",
+      "temperature": "Battery Temperature"
+    },
+    "system_section": {
+      "title": "System"
+    },
+    "runtime_section": {
+      "title": "Runtime",
+      "kernel": "Kernel Type",
+      "kernel_gki": "GKI",
+      "kernel_non_gki": "Non-GKI",
+      "thermal_api": "Thermal API",
+      "available": "Available",
+      "unavailable": "Unavailable",
+      "synthesis_version": "SynthesisCore Protocol"
+    }
   },
   "flux_sched": {
     "title": "Flux Sched",

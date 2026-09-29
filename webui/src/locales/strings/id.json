@@ -391,8 +391,36 @@
     "battery_saver_on": "Aktif — profil hemat daya diaktifkan",
     "battery_saver_off": "Tidak aktif",
     "thermal_unsupported_title": "API Termal Tidak Tersedia",
+    "thermal_api_level": "Memerlukan API 31+",
     "thermal_gki_note": "Kernel GKI mungkin tidak mengekspos API thermal headroom",
-    "profile_active": "Aktif"
+    "profile_active": "Aktif",
+    "stale": "terhenti",
+    "context": {
+      "active": "Sesi game aktif",
+      "standby": "Flux dalam mode siaga"
+    },
+    "metric": {
+      "fps": "FPS",
+      "cpu": "CPU"
+    },
+    "battery_section": {
+      "title": "Baterai",
+      "level": "Level Baterai",
+      "temperature": "Suhu Baterai"
+    },
+    "system_section": {
+      "title": "Sistem"
+    },
+    "runtime_section": {
+      "title": "Runtime",
+      "kernel": "Jenis Kernel",
+      "kernel_gki": "GKI",
+      "kernel_non_gki": "Non-GKI",
+      "thermal_api": "API Termal",
+      "available": "Tersedia",
+      "unavailable": "Tidak Tersedia",
+      "synthesis_version": "Protokol SynthesisCore"
+    }
   },
   "flux_sched": {
     "title": "Flux Sched",

@@ -186,6 +186,34 @@
         "dnd_alarms": "Apenas Alarmes",
         "battery_saver": "Economia de Bateria",
         "battery_saver_on": "Ativo — perfil de economia",
-        "battery_saver_off": "Inativo"
+        "battery_saver_off": "Inativo",
+        "thermal_api_level": "Requer API 31+",
+        "stale": "parado",
+        "context": {
+            "active": "Sessão de jogo ativa",
+            "standby": "Flux está em espera"
+        },
+        "metric": {
+            "fps": "FPS",
+            "cpu": "CPU"
+        },
+        "battery_section": {
+            "title": "Bateria",
+            "level": "Nível da bateria",
+            "temperature": "Temperatura da bateria"
+        },
+        "system_section": {
+            "title": "Sistema"
+        },
+        "runtime_section": {
+            "title": "Tempo de execução",
+            "kernel": "Tipo de kernel",
+            "kernel_gki": "GKI",
+            "kernel_non_gki": "Não GKI",
+            "thermal_api": "API térmica",
+            "available": "Disponível",
+            "unavailable": "Indisponível",
+            "synthesis_version": "Protocolo SynthesisCore"
+        }
     }
 }

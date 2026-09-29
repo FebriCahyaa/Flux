@@ -186,6 +186,34 @@
         "dnd_alarms": "Yalnızca Alarmlar",
         "battery_saver": "Pil Tasarrufu",
         "battery_saver_on": "Aktif — güç tasarrufu profili",
-        "battery_saver_off": "Devre dışı"
+        "battery_saver_off": "Devre dışı",
+        "thermal_api_level": "API 31+ gerekli",
+        "stale": "durdu",
+        "context": {
+            "active": "Oyun oturumu etkin",
+            "standby": "Flux beklemede"
+        },
+        "metric": {
+            "fps": "FPS",
+            "cpu": "CPU"
+        },
+        "battery_section": {
+            "title": "Pil",
+            "level": "Pil Seviyesi",
+            "temperature": "Pil Sıcaklığı"
+        },
+        "system_section": {
+            "title": "Sistem"
+        },
+        "runtime_section": {
+            "title": "Çalışma Zamanı",
+            "kernel": "Çekirdek Türü",
+            "kernel_gki": "GKI",
+            "kernel_non_gki": "GKI Değil",
+            "thermal_api": "Termal API",
+            "available": "Kullanılabilir",
+            "unavailable": "Kullanılamaz",
+            "synthesis_version": "SynthesisCore Protokolü"
+        }
     }
 }
