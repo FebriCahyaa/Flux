@@ -368,7 +368,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted, onActivated, onDeactivated } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMonitorStore } from '@/stores/Monitor'
 import { useSessionsStore, formatDuration, fmt, tempTone } from '@/stores/Sessions'
@@ -405,6 +405,18 @@ onMounted(() => {
   monitorStore.init()
   sessions.loadHistory()
 })
+
+// Same <keep-alive> issue as Home.vue: navigating away from Monitor never
+// unmounts it, so the 1 s poll (init() starts it once) kept running for the
+// app's entire lifetime regardless of which page was actually visible.
+// onActivated also fires right after the initial mount; init()'s own
+// isInitialized guard already starts polling then, so this only resumes it
+// on a later return to Monitor.
+onActivated(() => {
+  if (monitorStore.isInitialized) monitorStore.startPolling()
+})
+
+onDeactivated(() => monitorStore.stopPolling())
 
 // ── Game sessions ────────────────────────────────────────────────────────────
 

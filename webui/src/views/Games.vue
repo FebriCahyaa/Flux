@@ -249,7 +249,7 @@ async function toggle(app) {
 }
 
 const openApp = (app) => router.push(`/games/${app.packageName}`)
-const iconError = (e) => (e.target.src = '/app_icon_fallback.avif')
+const iconError = (e) => (e.target.src = './app_icon_fallback.avif')
 </script>
 
 <style scoped>

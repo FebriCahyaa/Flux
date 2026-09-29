@@ -245,7 +245,7 @@ async function loadApp(pkg) {
     currentApp.value = fromStore
     return
   }
-  currentApp.value = { packageName: pkg, appName: pkg, icon: '/app_icon_fallback.avif' }
+  currentApp.value = { packageName: pkg, appName: pkg, icon: './app_icon_fallback.avif' }
   const [label, icon] = await Promise.allSettled([
     KernelSU.getAppLabel(pkg),
     KernelSU.getAppIcon(pkg, 128),
@@ -253,7 +253,7 @@ async function loadApp(pkg) {
   currentApp.value = {
     packageName: pkg,
     appName: label.status === 'fulfilled' ? label.value : pkg,
-    icon: icon.status === 'fulfilled' && icon.value ? icon.value : '/app_icon_fallback.avif',
+    icon: icon.status === 'fulfilled' && icon.value ? icon.value : './app_icon_fallback.avif',
   }
   if (!Object.keys(gamesStore.gamelistConfig).length) await gamesStore.loadGamelistConfig?.()
 }
@@ -280,7 +280,7 @@ const launch = () =>
   currentApp.value.packageName && KernelSU.launchApp(currentApp.value.packageName)
 const appInfo = () =>
   currentApp.value.packageName && KernelSU.openAppInfo(currentApp.value.packageName)
-const iconError = (e) => (e.target.src = '/app_icon_fallback.avif')
+const iconError = (e) => (e.target.src = './app_icon_fallback.avif')
 const formatDate = (ms) =>
   new Date(ms).toLocaleString([], {
     day: 'numeric',

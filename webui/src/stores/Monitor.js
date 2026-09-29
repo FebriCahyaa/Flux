@@ -269,6 +269,7 @@ export const useMonitorStore = defineStore('monitor', () => {
     lastError,
     // actions
     init,
+    startPolling,
     stopPolling,
   }
 })

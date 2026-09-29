@@ -148,7 +148,7 @@ export const useGamesStore = defineStore('games', () => {
           loaded.push(
             ...appInfos.map((info) => {
               const matchingIcon = appIcons.find((icon) => icon.packageName === info.packageName)
-              const iconUrl = matchingIcon?.icon || '/fallback_app_icon.avif'
+              const iconUrl = matchingIcon?.icon || './app_icon_fallback.avif'
 
               if (!matchingIcon?.icon) {
                 console.warn(`[loadUserApps] No icon for ${info.packageName}, using fallback`)
@@ -173,7 +173,7 @@ export const useGamesStore = defineStore('games', () => {
           const fallbackApps = slice.map((pkg) => ({
             packageName: pkg,
             appName: pkg,
-            icon: '/fallback_app_icon.avif',
+            icon: './app_icon_fallback.avif',
             isEnabled: isAppEnabled(pkg),
           }))
 
@@ -188,7 +188,7 @@ export const useGamesStore = defineStore('games', () => {
         userApps.value = pkgs.map((packageName) => ({
           packageName,
           appName: packageName,
-          icon: '/fallback_app_icon.avif',
+          icon: './app_icon_fallback.avif',
           isEnabled: isAppEnabled(packageName),
         }))
       } catch (finalError) {

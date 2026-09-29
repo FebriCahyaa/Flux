@@ -172,7 +172,7 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, computed } from 'vue'
+import { onMounted, onUnmounted, onActivated, onDeactivated, computed } from 'vue'
 import { useHomeStore } from '@/stores/Home'
 import * as KernelSU from '@/helpers/KernelSU'
 import { useI18n } from 'vue-i18n'
@@ -264,6 +264,26 @@ const heroTone = computed(() => {
 
 onMounted(async () => {
   await homeStore.initializeData()
+})
+
+// App.vue wraps every routed view in a bare <keep-alive>: navigating away
+// never unmounts Home, so onUnmounted alone never fired and these two 1 s
+// intervals ran for the app's entire lifetime, on top of whatever the page
+// the user actually navigated to was polling. onActivated also fires right
+// after the initial mount; initializeData() (onMounted, above) starts the
+// monitoring itself the first time, so this only needs to resume it on a
+// later return to Home, guarded by isInitialized to avoid a redundant
+// restart on that first activation.
+onActivated(() => {
+  if (homeStore.isInitialized) {
+    homeStore.startProfileMonitoring()
+    homeStore.startDaemonMonitoring()
+  }
+})
+
+onDeactivated(() => {
+  homeStore.stopProfileMonitoring()
+  homeStore.stopDaemonMonitoring()
 })
 
 onUnmounted(() => {
