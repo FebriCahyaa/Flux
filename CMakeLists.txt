@@ -99,7 +99,8 @@ flux_add_test(transaction_test tests/transaction_test.cpp)
 target_link_libraries(transaction_test PRIVATE flux_runtime)
 
 # -- performance planner (on top of the transaction engine) --------------------
-add_library(flux_perf STATIC jni/perf/PerformancePlanner.cpp jni/perf/ProfileModel.cpp)
+add_library(flux_perf STATIC jni/perf/PerformancePlanner.cpp jni/perf/ProfileModel.cpp
+  jni/perf/GamePerformanceRuntime.cpp)
 target_include_directories(flux_perf PUBLIC jni/perf)
 target_include_directories(flux_perf SYSTEM PRIVATE "${RAPIDJSON_INCLUDE}")
 target_link_libraries(flux_perf PUBLIC flux_runtime)
@@ -110,3 +111,6 @@ target_link_libraries(performance_planner_test PRIVATE flux_perf)
 
 flux_add_test(profile_model_test tests/profile_model_test.cpp)
 target_link_libraries(profile_model_test PRIVATE flux_perf)
+
+flux_add_test(game_runtime_test tests/game_runtime_test.cpp)
+target_link_libraries(game_runtime_test PRIVATE flux_perf)

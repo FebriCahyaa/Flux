@@ -46,3 +46,32 @@ daemon start ──> recover perf_journal, launch_journal, legacy compat_journal
 `flux::perf::GamePerformanceRuntime` (`jni/perf/GamePerformanceRuntime.{hpp,cpp}`) owns one
 game's performance lifecycle. It does **not** detect games, track PIDs or model sessions; the
 caller (today's `Main.cpp` lifecycle, later Session) tells it when a game starts and ends.
+
+## Implementation
+
+| Event | `GamePerformanceRuntime` call | Behaviour |
+|---|---|---|
+| daemon start | `recover()` | replays `perf_journal`, `launch_journal`, legacy `compat_journal`; removes each only when clean |
+| game start | `on_game_start(pkg, pid, now)` | load → resolve → plan → transaction (+ launch boost); idempotent for same pkg+pid; another game or a new pid ends the previous context (`Switch`) first |
+| main loop | `tick(now)` | ends launch boost at its deadline; per-game values stay |
+| profile script re-ran | `after_profile_script()` | re-applies per-game values (originals kept) |
+| game exit / process death / daemon stop | `on_game_end(reason)` | cancels boost, restores + verifies; journal removed when clean, kept otherwise |
+
+States: `Idle` (nothing applied), `Active`, `Failed` (transaction rolled back; Flux profile
+unaffected), `ResolveFailed` (unreadable document, unknown profile/parent, cycle, or rejected plan —
+fail closed, nothing applied). Refresh target is exposed via `refresh_target_hz()` only while
+active.
+
+Compatibility fields in legacy documents are reported in `warnings()` and never resolved.
+
+## Status
+
+| IMPLEMENTED | NOT_IMPLEMENTED |
+|---|---|
+| performance lifecycle owner (`jni/perf/GamePerformanceRuntime.*`) | call from `fluxd` `Main.cpp` (game start/exit hooks, boot `recover()`) |
+| profile loading from injected paths, gamelist lite fallback | real-file `FileStore` / `Io` adapters on device, paths in `Flux.hpp` |
+| transaction apply/verify/restore, journals, crash recovery, legacy journal recovery | device capability probe filling `PerfCapabilities` |
+| launch boost start/deadline/cancel | refresh target passed to `flux_refresh` |
+| host tests (`tests/game_runtime_test.cpp`) | device validation |
+
+Session model, compatibility identity, Resolver and Zygisk are not part of this step.
