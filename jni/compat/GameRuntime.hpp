@@ -44,6 +44,17 @@ class GameRuntime {
 public:
     explicit GameRuntime(RuntimeDeps deps) : d_(std::move(deps)) {}
 
+    /// Compatibility first: resolve, pick the backend, apply and verify the compatibility
+    /// context, compute the refresh request. Touches no memory/touch/storage node.
+    Activation activate_compat(const EffectiveProfile &profile, const std::optional<GameRequirement> &known,
+                               const RealHardware &hw);
+    /// Per-game memory/touch/storage overrides. Called after Flux has applied its own
+    /// performance profile, so the game's explicit choice wins over the profile script.
+    void activate_perf(Activation &a);
+    /// Write the overrides again after the profile script ran again (e.g. a thermal
+    /// performance <-> performance_lite switch). Keeps the original snapshots.
+    bool reassert_perf();
+    /// activate_compat() followed by activate_perf(): the one-call form used by tests and tools.
     Activation activate(const EffectiveProfile &profile, const std::optional<GameRequirement> &known,
                         const RealHardware &hw);
     /// Restore everything. Returns true when both transactions restored cleanly.
@@ -59,6 +70,7 @@ private:
     std::string package_;
     std::unique_ptr<Transaction> compat_, perf_;
     std::unique_ptr<Resolution> plan_; // BackendAction borrows it
+    EffectiveProfile profile_;         // remembered for activate_perf()
     Backend *backend_ = nullptr;
 };
 

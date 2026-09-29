@@ -228,6 +228,13 @@ rm -f "$MODULE_CONFIG/binder_codes" "$MODULE_CONFIG/synthesis_core.json" \
 
 resolve_binder_codes
 
+# Capability model for the Game Runtime (compat resolver). Probed here, in a short-lived process,
+# never inside the daemon: a graphics driver that misbehaves while being probed can then only take
+# this one command with it. Dropped first so an OTA or driver update never leaves a stale model;
+# without the file the runtime treats the hardware as unknown and the resolver never claims a capability.
+rm -f "$MODULE_CONFIG/capabilities.json"
+timeout 20 fluxd capabilities "$MODULE_CONFIG/capabilities.json" >/dev/null 2>&1
+
 # fluxd daemonizes, then reports which monitor it uses in monitor_mode.
 fluxd daemon
 

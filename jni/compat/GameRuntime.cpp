@@ -19,11 +19,19 @@ double refresh_for(const std::string &r) {
 
 Activation GameRuntime::activate(const EffectiveProfile &p, const std::optional<GameRequirement> &known,
                                  const RealHardware &hw) {
+    Activation a = activate_compat(p, known, hw);
+    activate_perf(a);
+    return a;
+}
+
+Activation GameRuntime::activate_compat(const EffectiveProfile &p, const std::optional<GameRequirement> &known,
+                                        const RealHardware &hw) {
     // A second activation without a deactivate would strand the first snapshot.
     if (active()) deactivate();
 
     Activation a;
     package_ = p.package;
+    profile_ = p;
     const ProfileLibrary empty;
     const ProfileLibrary &lib = d_.library ? *d_.library : empty;
     a.resolution = resolve_compatibility(p, known, hw, lib);
@@ -88,7 +96,26 @@ Activation GameRuntime::activate(const EffectiveProfile &p, const std::optional<
         }
     }
 
-    // -- performance ------------------------------------------------------------
+    // -- the two identity views ---------------------------------------------------
+    a.effective_identity["device"] = hw.brand + " " + hw.model;
+    a.effective_identity["cpu"] = hw.soc;
+    a.effective_identity["gpu"] = hw.gpu_vendor + " " + hw.gpu_model;
+    if (a.context == ContextState::Active)
+        for (const auto &d : a.resolution.layers) {
+            if (!d.required || d.identity.empty() || d.layer == Layer::Display) continue;
+            auto it = lib.identities.find(d.identity);
+            if (it != lib.identities.end()) a.effective_identity[to_string(d.layer)] = d.identity;
+        }
+
+    a.log.push_back("[FCE] package=" + p.package);
+    a.log.push_back(std::string("[FCE] mode=") + to_string(p.mode));
+    return a;
+}
+
+
+void GameRuntime::activate_perf(Activation &a) {
+    if (package_.empty() || perf_) return; // no session, or already applied
+    const EffectiveProfile &p = profile_;
     PerfPlanInput in;
     in.memory = p.memory;
     in.touch = p.touch;
@@ -108,21 +135,9 @@ Activation GameRuntime::activate(const EffectiveProfile &p, const std::optional<
     for (const auto &c : a.perf)
         if (c.blocked_by_mitigation) a.log.push_back("[FCE] " + c.category + " skipped by device mitigation");
 
-    // -- the two identity views ---------------------------------------------------
-    a.effective_identity["device"] = hw.brand + " " + hw.model;
-    a.effective_identity["cpu"] = hw.soc;
-    a.effective_identity["gpu"] = hw.gpu_vendor + " " + hw.gpu_model;
-    if (a.context == ContextState::Active)
-        for (const auto &d : a.resolution.layers) {
-            if (!d.required || d.identity.empty() || d.layer == Layer::Display) continue;
-            auto it = lib.identities.find(d.identity);
-            if (it != lib.identities.end()) a.effective_identity[to_string(d.layer)] = d.identity;
-        }
-
-    a.log.push_back("[FCE] package=" + p.package);
-    a.log.push_back(std::string("[FCE] mode=") + to_string(p.mode));
-    return a;
 }
+
+bool GameRuntime::reassert_perf() { return !perf_ || perf_->reapply(); }
 
 bool GameRuntime::deactivate() {
     bool ok = true;

@@ -511,7 +511,15 @@ void test_zygisk_states() {
     FakeFs fs;
     ZygiskBackend::Config cfg;
     CHECK(ZygiskBackend(fs.io(), cfg, 34).available() == BackendState::Unavailable);   // no provider
+    // A Zygisk implementation alone never reads the spool: still unavailable, opted in or not.
     fs.files["/data/adb/modules/rezygisk"] = "";
+    fs.files["/data/adb/modules/zygisksu"] = "";
+    cfg.user_enabled = true;
+    CHECK(ZygiskBackend(fs.io(), cfg, 34).available() == BackendState::Unavailable);
+    cfg.user_enabled = false;
+    fs.files.erase("/data/adb/modules/rezygisk");
+    fs.files.erase("/data/adb/modules/zygisksu");
+    fs.files["/data/adb/modules/flux_compat_provider"] = "";
     CHECK(ZygiskBackend(fs.io(), cfg, 34).available() == BackendState::NotConfigured); // present, not opted in
     cfg.user_enabled = true;
     CHECK(ZygiskBackend(fs.io(), cfg, 34).available() == BackendState::Available);
@@ -520,7 +528,7 @@ void test_zygisk_states() {
 
 void test_zygisk_apply_verify_restore() {
     FakeFs fs;
-    fs.files["/data/adb/modules/rezygisk"] = "";
+    fs.files["/data/adb/modules/flux_compat_provider"] = "";
     ZygiskBackend::Config cfg;
     cfg.user_enabled = true;
     ZygiskBackend zb(fs.io(), cfg, 34);
@@ -545,7 +553,7 @@ void test_zygisk_apply_verify_restore() {
 
 void test_zygisk_only_scoped_to_target_package() {
     FakeFs fs;
-    fs.files["/data/adb/modules/rezygisk"] = "";
+    fs.files["/data/adb/modules/flux_compat_provider"] = "";
     ZygiskBackend::Config cfg;
     cfg.user_enabled = true;
     ZygiskBackend zb(fs.io(), cfg, 34);
@@ -564,7 +572,7 @@ void test_zygisk_only_scoped_to_target_package() {
 void test_backend_failure_keeps_performance() {
     FakeFs fs;
     seed_perf_nodes(fs);
-    fs.files["/data/adb/modules/rezygisk"] = "";
+    fs.files["/data/adb/modules/flux_compat_provider"] = "";
     fs.fail_writes.insert("/data/adb/flux/compat/zygisk/com.example.game.json");
     ZygiskBackend::Config cfg;
     cfg.user_enabled = true;

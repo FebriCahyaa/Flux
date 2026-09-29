@@ -24,6 +24,9 @@ struct Io {
     std::function<bool(const std::string &)> exists;
     std::function<std::optional<std::string>(const std::string &)> read;
     std::function<bool(const std::string &, const std::string &)> write;
+    /// Crash-safe replace (temp file + rename) for the journal and status files.
+    /// Falls back to `write` when unset.
+    std::function<bool(const std::string &, const std::string &)> write_atomic;
 };
 
 /// One reversible change. `category` groups them for diagnostics
@@ -85,6 +88,8 @@ public:
     virtual bool apply(const Resolution &plan) = 0;
     virtual bool verify(const Resolution &plan) = 0;
     virtual bool restore(const Resolution &plan) = 0;
+    /// Journal line that undoes this backend's state after a crash; empty when nothing is staged.
+    virtual std::string recovery_line(const Resolution &) const { return {}; }
 };
 
 /// Native backend: it can only satisfy the display layer (refresh compatibility
@@ -110,9 +115,11 @@ class ZygiskBackend final : public Backend {
 public:
     struct Config {
         std::string spool_dir = "/data/adb/flux/compat/zygisk";
-        /// Marker paths that indicate a Zygisk implementation is present.
-        std::vector<std::string> provider_markers = {"/data/adb/modules/zygisksu", "/data/adb/modules/rezygisk",
-                                                     "/data/adb/modules/zygisk_next"};
+        /// Marker paths of a *Flux compatibility provider*: a module that consumes the spool
+        /// file inside game processes. A Zygisk implementation on its own is not enough (it
+        /// would never read the spool), so it is deliberately not listed. No provider ships
+        /// with Flux yet, hence this backend reports Unavailable on every device today.
+        std::vector<std::string> provider_markers = {"/data/adb/modules/flux_compat_provider"};
         bool user_enabled = false; ///< explicit opt-in; never on by default
         int64_t min_sdk = 26;
     };
@@ -125,6 +132,7 @@ public:
     bool apply(const Resolution &plan) override;
     bool verify(const Resolution &plan) override;
     bool restore(const Resolution &plan) override;
+    std::string recovery_line(const Resolution &plan) const override;
 
 private:
     std::string spool_path(const std::string &package) const { return cfg_.spool_dir + "/" + package + ".json"; }
@@ -146,6 +154,7 @@ public:
     bool verify() override { return b_.verify(plan_); }
     bool restore() override { return b_.restore(plan_); }
     bool verify_restore() override { return true; }
+    std::string journal() const override { return b_.recovery_line(plan_); }
 
 private:
     Backend &b_;
@@ -165,6 +174,9 @@ public:
     bool start();
     /// restore in reverse order and verify each; returns true when nothing is left behind.
     bool finish();
+    /// Write the applied values again (a profile script may have overwritten them) and
+    /// verify. Never re-snapshots: the originals captured at start() stay the originals.
+    bool reapply();
 
     ContextState state() const { return state_; }
     const std::string &package() const { return package_; }
@@ -190,6 +202,15 @@ struct Watchdog {
     /// Restore one journal line; returns false when the line is malformed or the write fails.
     static bool recover_line(const Io &io, const std::string &line);
     static size_t recover(const Io &io, const std::vector<std::string> &lines);
+    static bool decode(const std::string &line, std::string &path, std::string &original);
+
+    struct Report {
+        size_t found = 0, restored = 0;
+        std::vector<std::string> failed; ///< lines that could not be restored or verified
+    };
+    /// Restore every line newest-first, then read each node back. A line only counts as
+    /// restored when the node really holds the journalled value.
+    static Report recover_verified(const Io &io, const std::vector<std::string> &lines);
     /// Decision helper: an Active transaction whose process is gone must be restored.
     static bool must_restore(ContextState s, bool process_alive) { return s == ContextState::Active && !process_alive; }
 };

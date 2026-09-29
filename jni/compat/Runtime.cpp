@@ -145,6 +145,11 @@ bool ZygiskBackend::restore(const Resolution &plan) {
     return io_.write(spool_path(plan.package), "{\"active\":false}");
 }
 
+std::string ZygiskBackend::recovery_line(const Resolution &plan) const {
+    if (staged_.empty()) return {};
+    return Watchdog::encode(spool_path(plan.package), "{\"active\":false}");
+}
+
 // -- Transaction --------------------------------------------------------------
 
 bool Transaction::start() {
@@ -187,6 +192,14 @@ bool Transaction::finish() {
     return clean;
 }
 
+bool Transaction::reapply() {
+    if (state_ != ContextState::Active) return false;
+    bool ok = true;
+    for (Action *a : applied_) ok = (a->apply() && a->verify()) && ok;
+    if (!ok) log_.push_back("reapply failed");
+    return ok;
+}
+
 std::vector<std::string> Transaction::journal() const {
     std::vector<std::string> out;
     for (Action *a : applied_) {
@@ -200,6 +213,32 @@ std::vector<std::string> Transaction::journal() const {
 
 std::string Watchdog::encode(const std::string &path, const std::string &original) {
     return escape(path) + "\t" + escape(original);
+}
+
+bool Watchdog::decode(const std::string &line, std::string &path, std::string &original) {
+    size_t tab = line.find('\t');
+    if (tab == std::string::npos || tab == 0) return false;
+    path = unescape(line.substr(0, tab));
+    original = unescape(line.substr(tab + 1));
+    return !path.empty() && path[0] == '/' && path.find("..") == std::string::npos;
+}
+
+Watchdog::Report Watchdog::recover_verified(const Io &io, const std::vector<std::string> &lines) {
+    Report r;
+    for (auto it = lines.rbegin(); it != lines.rend(); ++it) {
+        ++r.found;
+        std::string path, original;
+        bool ok = decode(*it, path, original) && recover_line(io, *it);
+        if (ok) {
+            auto now = io.read ? io.read(path) : std::nullopt;
+            ok = now && trim(*now) == original;
+        }
+        if (ok) ++r.restored;
+        else r.failed.push_back(*it);
+    }
+    // failed lines keep their original journal order
+    std::reverse(r.failed.begin(), r.failed.end());
+    return r;
 }
 
 bool Watchdog::recover_line(const Io &io, const std::string &line) {

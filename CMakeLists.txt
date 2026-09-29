@@ -61,6 +61,7 @@ add_library(flux_compat STATIC
   jni/compat/PerfPlanner.cpp
   jni/compat/GameRuntime.cpp
   jni/compat/Analyze.cpp
+  jni/compat/Session.cpp
 )
 target_include_directories(flux_compat PUBLIC jni/compat)
 target_link_libraries(flux_compat PUBLIC flux_gfx)
@@ -110,3 +111,7 @@ target_include_directories(synthesis_core_test PRIVATE jni/base/SynthesisCore)
 # -- compatibility engine ----------------------------------------------------
 flux_add_test(compat_test tests/compat_test.cpp)
 target_link_libraries(compat_test PRIVATE flux_compat)
+
+# -- daemon lifecycle (SessionRuntime) -------------------------------------
+flux_add_test(session_test tests/session_test.cpp)
+target_link_libraries(session_test PRIVATE flux_compat)

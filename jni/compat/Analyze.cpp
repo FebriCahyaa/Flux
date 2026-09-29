@@ -25,62 +25,90 @@ std::string fail(const std::string &why) {
 
 } // namespace
 
-std::string analyze_package(const std::string &package, std::optional<Mode> mode_override, const AnalyzeInputs &in) {
-    if (package.empty() || package.find('/') != std::string::npos || package.find("..") != std::string::npos)
-        return fail("invalid package name");
+bool build_inputs(const std::string &package, std::optional<Mode> mode_override, Mode unprofiled_mode,
+                  const AnalyzeInputs &in, ResolvedInputs &out, std::string &error) {
+    if (package.empty() || package.find('/') != std::string::npos || package.find("..") != std::string::npos) {
+        error = "invalid package name";
+        return false;
+    }
 
-    RealHardware hw; // all-unknown unless a model was supplied
+    ResolvedInputs r;
     if (!in.capabilities_json.empty()) {
         flux::gfx::CapabilityModel model;
         std::string err;
-        if (!flux::gfx::CapabilityModel::from_json(in.capabilities_json, model, err)) return fail("capabilities: " + err);
-        hw = hardware_from_model(model);
+        if (!flux::gfx::CapabilityModel::from_json(in.capabilities_json, model, err)) {
+            error = "capabilities: " + err;
+            return false;
+        }
+        r.hw = hardware_from_model(model);
     }
 
-    ProfileLibrary lib;
     if (!in.library_json.empty()) {
         std::string err;
-        if (!lib.load_json(in.library_json, err)) return fail("library: " + err);
+        if (!r.lib.load_json(in.library_json, err)) {
+            error = "library: " + err;
+            return false;
+        }
     }
 
-    std::optional<GameRequirement> known;
     if (!in.known_games_json.empty()) {
         KnownGameDb db;
         std::string err;
-        if (!db.load_json(in.known_games_json, err)) return fail("known games: " + err);
-        known = db.find(package);
+        if (!db.load_json(in.known_games_json, err)) {
+            error = "known games: " + err;
+            return false;
+        }
+        r.known = db.find(package);
     }
 
     std::optional<GameProfile> game;
     if (!in.profiles_json.empty()) {
         rapidjson::Document d;
         d.Parse(in.profiles_json.c_str());
-        if (d.HasParseError() || !d.IsObject()) return fail("profiles: invalid JSON");
+        if (d.HasParseError() || !d.IsObject()) {
+            error = "profiles: invalid JSON";
+            return false;
+        }
         if (d.HasMember(package.c_str())) {
             rapidjson::StringBuffer sb;
             rapidjson::Writer<rapidjson::StringBuffer> w(sb);
             d[package.c_str()].Accept(w);
             GameProfile p;
             std::string err;
-            if (!parse_profile(sb.GetString(), p, err)) return fail("profile for " + package + ": " + err);
+            if (!parse_profile(sb.GetString(), p, err)) {
+                error = "profile for " + package + ": " + err;
+                return false;
+            }
             game = std::move(p);
         }
     }
+    r.has_profile = game.has_value();
 
     GameProfile runtime;
     if (mode_override) runtime.compat.mode = std::string(to_string(*mode_override));
 
-    std::string err;
-    EffectiveProfile eff = lib.resolve(package, GameProfile{}, game, runtime, err);
-    if (!game && !mode_override) eff.mode = Mode::Auto; // an unprofiled game is analysed, not left blind
-    Resolution res = resolve_compatibility(eff, known, hw, lib);
+    r.profile = r.lib.resolve(package, GameProfile{}, game, runtime, r.warning);
+    if (!game && !mode_override) r.profile.mode = unprofiled_mode;
+    out = std::move(r);
+    return true;
+}
+
+std::string analyze_package(const std::string &package, std::optional<Mode> mode_override, const AnalyzeInputs &in) {
+    ResolvedInputs ri;
+    std::string berr;
+    if (!build_inputs(package, mode_override, Mode::Auto, in, ri, berr)) return fail(berr);
+
+    Resolution res = resolve_compatibility(ri.profile, ri.known, ri.hw, ri.lib);
+    const RealHardware &hw = ri.hw;
+    const std::string &err = ri.warning;
+    const bool has_profile = ri.has_profile;
 
     rapidjson::Document out;
     out.SetObject();
     auto &al = out.GetAllocator();
     out.AddMember("ok", true, al);
     out.AddMember("error", rapidjson::Value(err.c_str(), al), al);
-    out.AddMember("has_profile", game.has_value(), al);
+    out.AddMember("has_profile", has_profile, al);
     rapidjson::Document r;
     r.Parse(res.to_json().c_str());
     out.AddMember("resolution", r, al);

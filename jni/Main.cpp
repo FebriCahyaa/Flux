@@ -27,6 +27,7 @@
 #include "DeviceMitigationStore.hpp"
 #include "FluxCLI.hpp"
 #include "FluxConfigStore.hpp"
+#include "GameRuntimeHost.hpp"
 #include "InotifyHandler.hpp"
 #include "Profiler.hpp"
 #include "RefreshHold.hpp"
@@ -319,8 +320,15 @@ static void clear_dnd_if_needed(DaemonState &state) {
     }
 }
 
-/// Ends the per-game workers: session statistics and the render booster (which restores the threads).
-static void stop_session_workers() {
+/// Ends the per-game workers: session statistics, the render booster (which restores the threads)
+/// and the Game Runtime (per-game overrides and the compatibility context).
+///
+/// Every way a game session can end (exit, PID death, focus loss, removal from the game list,
+/// daemon stop) already funnels through here, so the runtime restore lives here too and runs
+/// before select_profile() applies the balance / powersave profile: the runtime puts back what it
+/// snapshotted, then Flux's own teardown restores its saved originals on top. end() is idempotent.
+static void stop_session_workers(flux::compat::EndReason reason = flux::compat::EndReason::Exit) {
+    flux_runtime::end(reason);
     SessionRecorder::get_instance().stop();
     RenderBooster::get_instance().stop();
 }
@@ -331,9 +339,9 @@ static void stop_session_workers() {
  * Clears session state and does an immediate system-status refresh so the
  * next profile decision is based on fresh data.
  */
-static void handle_game_exit(DaemonState &state) {
+static void handle_game_exit(DaemonState &state, flux::compat::EndReason reason) {
     LOGI("Game {} exited", state.active_package);
-    stop_session_workers();
+    stop_session_workers(reason);
     clear_dnd_if_needed(state);
     state.active_package.clear();
     state.pid_tracker.invalidate();
@@ -374,7 +382,7 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
     auto *active_game = game_registry.find_game_ptr(state.active_package);
     if (!active_game) {
         LOGI("Game {} is no longer listed in registry", state.active_package);
-        stop_session_workers();
+        stop_session_workers();  // the user removed it from the game list: an ordinary end
         state.active_package.clear();
         state.pid_tracker.invalidate();
         state.in_game_session = false;
@@ -384,7 +392,7 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
     const pid_t game_pid = pidof_game(state.active_package);
     if (game_pid == 0) {
         LOGE("Unable to fetch PID of {}", state.active_package);
-        stop_session_workers();
+        stop_session_workers(flux::compat::EndReason::Failure);
         state.active_package.clear();
         state.pid_tracker.invalidate();
         state.in_game_session = false;
@@ -407,7 +415,7 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
             "Game {} (PID: {}) exited while applying profile ({}), aborting session",
             state.active_package, tracked_pid, strerror(errno)
         );
-        stop_session_workers();
+        stop_session_workers(flux::compat::EndReason::ProcessDeath);
         state.active_package.clear();
         state.pid_tracker.invalidate();
         state.in_game_session = false;
@@ -428,6 +436,26 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
     } else {
         RenderBooster::get_instance().stop();
     }
+
+    // Game Runtime: compatibility context first, then Flux's performance profile below. Only the
+    // first call of a session does anything (begin() is idempotent), and a compatibility failure
+    // never prevents the profile from being applied: the profile code below runs regardless.
+    {
+        SynthesisCore rt_status;
+        uid_t rt_uid = 0;
+        if (synthesis_core_cache.get(rt_status) && rt_status.focused_app == state.active_package &&
+            rt_status.focused_uid > 0) {
+            rt_uid = rt_status.focused_uid;
+        } else {
+            rt_uid = get_uid_by_package_name(state.active_package);
+        }
+        flux_runtime::begin(state.active_package, tracked_pid, rt_uid);
+    }
+    // Every return below leaves the profile in place. When it was not re-run (already applied), the
+    // per-game overrides still have to start for a new session; this is a no-op otherwise.
+    struct EnsureOverrides {
+        ~EnsureOverrides() { flux_runtime::ensure_perf_started(); }
+    } ensure_overrides;
 
     // Save and clear the checkup flag.  The saved value is used in the
     // early-return guards so "force reapply" actually reapplies the profile.
@@ -453,6 +481,7 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
         LOGI("Applying performance_lite profile for {} (PID: {}) [config]",
              state.active_package, game_pid);
         apply_performance_lite_profile(state.active_package, game_pid);
+        flux_runtime::after_profile_applied();
 
     } else if (thermal_lite) {
         // Thermal pressure: debounce before downgrading to avoid oscillation.
@@ -472,6 +501,7 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
         LOGW("Thermal pressure (headroom {:.2f}, level {}, CPU {:.1f}C) — downgrading to performance_lite for {}",
              thermal, thermal_level, cpu_temp, state.active_package);
         apply_performance_lite_profile(state.active_package, game_pid);
+        flux_runtime::after_profile_applied();
 
     } else {
         // Healthy headroom or thermal API unsupported — recover to full performance.
@@ -496,6 +526,7 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
         state.cur_mode = PERFORMANCE_PROFILE;
         LOGI("Applying performance profile for {} (PID: {})", state.active_package, game_pid);
         apply_performance_profile(false, state.active_package, game_pid);
+        flux_runtime::after_profile_applied();
     }
 
     // DND handling
@@ -628,7 +659,7 @@ static void flux_main_daemon() {
             if (system_tweaks_pending.exchange(false, std::memory_order_relaxed)) apply_system_tweaks();
 
             if (state.in_game_session && state.pid_tracker.get_current_pid() == 0) {
-                handle_game_exit(state);
+                handle_game_exit(state, flux::compat::EndReason::ProcessDeath);
                 // Fall through, select_profile below will apply balance/powersave.
             }
 
@@ -640,7 +671,7 @@ static void flux_main_daemon() {
             // Focus-loss check (3-strike debounce against transient blips)
             if (state.in_game_session && !state.active_package.empty()) {
                 if (!is_game_still_active(state)) [[unlikely]] {
-                    handle_game_exit(state);
+                    handle_game_exit(state, flux::compat::EndReason::FocusLost);
                 }
             }
 
@@ -697,8 +728,9 @@ static void flux_main_daemon() {
         }
     }
 
-    // Keep the running session when the daemon stops.
-    stop_session_workers();
+    // The daemon is stopping: put back everything the Game Runtime changed. The running game keeps
+    // its Flux profile (Keep the running session), but nothing may outlive the process that owns it.
+    stop_session_workers(flux::compat::EndReason::DaemonStop);
     RefreshHold::get_instance().release_now();
 }
 
@@ -756,6 +788,12 @@ int run_daemon() {
         notify_fatal_error("Failed to acquire lock");
         return EXIT_FAILURE;
     }
+
+    // Undo whatever a previous daemon left applied (crash, kill, reboot mid-game). This is the
+    // earliest point that is safe: the daemon lock is held, so no second instance can race the
+    // journal, and no profile has been applied yet, so the profile scripts that run next
+    // overwrite any value recovery restored rather than the other way round.
+    flux_runtime::recover_at_boot();
 
     // eventfd for immediate daemon wake-up on synthesis_core changes and PID
     // tracker callbacks.
