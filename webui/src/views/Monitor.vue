@@ -163,9 +163,9 @@
         <div class="bg-surface-container rounded-2xl p-4 text-on-surface">
           <div class="flex items-center gap-2 mb-3">
             <ThermometerIcon :size="16" class="text-on-surface-variant" />
-            <p class="text-sm font-semibold text-primary">
+            <h2 class="text-sm font-semibold text-primary">
               {{ $t('monitor_page.section.thermal') }}
-            </p>
+            </h2>
           </div>
 
           <!-- Loading: thermalSupported reads false until the first tick
@@ -783,23 +783,11 @@ const liveDotLabel = computed(() => (isStale.value ? t('monitor_page.stale') : t
   transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.5s ease;
 }
 
-.status-chip {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.chip-active {
-  box-shadow: 0 2px 12px color-mix(in srgb, currentColor 8%, transparent);
-}
-
 .profile-icon-ring {
   box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 15%, transparent);
 }
 
 .session-card {
   background: linear-gradient(135deg, var(--color-secondary-container) 0%, var(--color-secondary-container) 100%);
-}
-
-.status-icon-wrap {
-  transition: all 0.3s ease;
 }
 </style>
