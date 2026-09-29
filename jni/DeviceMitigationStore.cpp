@@ -321,7 +321,12 @@ bool DeviceMitigationStore::check_condition(const Condition &condition, const st
         LOGT_TAG("DeviceMitigationStore", "      Contains check: '{}' in '{}' = {}", condition.value, value, result);
     } else if (condition.op == "regex") {
         try {
-            std::regex pattern(condition.value);
+            // Case-insensitive: SoC identifiers are written as "SDM660" in this
+            // config but reported as "sdm660" (or any other casing) by real
+            // devices, so a case-sensitive match silently missed legitimate
+            // matches — including the legacy-Snapdragon rule that disables a
+            // GPU tweak known to kernel-oops some vendor kgsl drivers.
+            std::regex pattern(condition.value, std::regex::icase);
             result = std::regex_search(value, pattern);
             LOGT_TAG("DeviceMitigationStore", "      Regex match: {}", result);
         } catch (const std::regex_error &e) {
