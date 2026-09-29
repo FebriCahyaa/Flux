@@ -282,6 +282,20 @@ save_logs() {
 		[ -f "$MODULE_CONFIG/$f" ] && cp "$MODULE_CONFIG/$f" "$report_dir/state/"
 	done
 	[ -f "$MODULE_CONFIG/gamelist.json" ] && echo "$(grep -c '"lite_mode"' "$MODULE_CONFIG/gamelist.json") games" >"$report_dir/state/gamelist_count.txt"
+	# Game Runtime: profiles, the recovery journal (non-empty = an unfinished transaction), the live
+	# process-context snapshot and, when the Zygisk provider is used, its plans, armed list and
+	# per-process status. Without these a report cannot show whether a session was applied or restored.
+	for f in game_profiles.json compat_library.json compat_games.json compat_journal compat_status.json \
+		capabilities.json fluxd.pid compat_zygisk_optin; do
+		[ -f "$MODULE_CONFIG/$f" ] && cp "$MODULE_CONFIG/$f" "$report_dir/state/"
+	done
+	[ -f /data/adb/modules/flux/armed.list ] && cp /data/adb/modules/flux/armed.list "$report_dir/state/"
+	[ -d "$MODULE_CONFIG/compat_provider" ] && cp -r "$MODULE_CONFIG/compat_provider" "$report_dir/state/"
+	ls -l /data/adb/modules/flux/zygisk 2>/dev/null >"$report_dir/state/zygisk_libs.txt"
+	# The newest device-validation reports, if any were run
+	latest_validation=$(ls -d "$MODULE_CONFIG"/validation/*/ 2>/dev/null | tail -n 1)
+	[ -n "$latest_validation" ] && [ -f "${latest_validation}report.txt" ] && cp "${latest_validation}report.txt" "$report_dir/state/validation_report.txt"
+	[ -f /dev/.flux_refresh_orig ] && cp /dev/.flux_refresh_orig "$report_dir/state/flux_refresh_orig.txt"
 	# Stock values saved by Flux Sched / Flux Boost, and the boosted game threads
 	for f in .flux_sched_orig .flux_boost_orig .flux_game_prio; do
 		[ -f "/dev/$f" ] && cp "/dev/$f" "$report_dir/state/${f#.}.txt"
