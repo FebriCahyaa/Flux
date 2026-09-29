@@ -169,6 +169,13 @@ void test_crash_journal_recovery() {
     CHECK(legacy.clean());
     CHECK_EQ(fs.nodes["/sys/a"], std::string("1"));
 
+    // Old Game Runtime compat_journal: "#flux-compat-journal v1" header, then entries. Clean.
+    fs.nodes["/sys/a"] = "10";
+    RecoveryReport old = recover(fs.io(), "#flux-compat-journal v1\n" + journal::encode_entry("/sys/a", "1") + "\n");
+    CHECK(old.clean());
+    CHECK(old.corrupted.empty());
+    CHECK_EQ(fs.nodes["/sys/a"], std::string("1"));
+
     // A restore that does not stick is reported as failed, so the journal is kept.
     fs.nodes["/sys/a"] = "10";
     fs.ignore_write.insert("/sys/a");

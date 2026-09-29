@@ -1,7 +1,7 @@
 # Game Runtime Performance Lifecycle
 
 Step 4 of `GAME_RUNTIME_MIGRATION_PLAN.md` (branch `integration/game-runtime-clean`).
-Status: **Step 4 IN PROGRESS.**
+Status: **Step 4 IMPLEMENTED** (incl. Step 4.5 activation bridge). Device validation: **NOT_TESTED**.
 
 ## Decision (recorded before implementation): where runtime profiles and journals live
 
@@ -79,6 +79,41 @@ Device adapters (`jni/perf/RuntimeHost.cpp`): node `Io` (no create, bounded read
 (temp + fsync + rename, refuses symlink/dir targets), read-only probe (readable nodes, internal
 block queues excluding loop/ram/zram/dm/md/sr/nbd/boot/rpmb/removable), `dumpsys display` rate
 parser (119.99 → 120). Glue: `jni/GameRuntimeHost.{hpp,cpp}`; paths in `Flux.hpp`.
+
+## Final review (Step 4 closure)
+
+| Area | Verified by | Result |
+|---|---|---|
+| Main.cpp lifecycle integration | diff review: recover before `run_perfcommon()`; activation before the profile script in `apply_game_profile`; `on_profile_applied()` after all three script calls; `stop_session_workers(reason)` on every exit path; poll timeout only while boosting | OK |
+| Journal recovery path | `transaction_test`, `game_runtime_test`, `runtime_host_test` | OK after fix below |
+| Game start activation | `game_runtime_test`, `runtime_host_test` (idempotent per pkg+pid) | OK |
+| Game exit restore | same; journal removed only when clean | OK |
+| Process death restore | `game_runtime_test` (incl. launch boost); Main.cpp passes `ProcessDeath` from PID-tracker and abort paths | OK |
+| Daemon restart recovery | `game_runtime_test`, `runtime_host_test`; unrecoverable journal kept | OK |
+| Refresh bridge | `runtime_host_test` + `refresh_script_test.sh` (supported applied, unsupported ignored, garbage ignored, restore) | OK |
+| Adapter safety | `runtime_host_test` on real temp files: no node creation, bounded reads, symlink/dir journal targets refused, virtual/removable block devices excluded | OK |
+| Rollback behaviour | transaction/planner/runtime/adapter tests incl. ENOSPC write | OK |
+| Forbidden symbols (Resolver, provider, Zygisk, identity) | CI gate | clean |
+
+**Fix made during review:** the old branch's `compat_journal` starts with a
+`#flux-compat-journal v1` header. It was treated as a corrupted line, so the legacy journal's node
+entries were restored but the file was never removed and recovery reported "not clean" on every
+boot. `journal::parse` now accepts that exact header as a legacy (version 0) journal; test added
+(`transaction_test`). No behaviour change for current journals.
+
+**Diagnostics available:** every recovery logs `restored/found, failed, corrupted, journal kept|removed`
+(tag `GameRuntime` in `flux.log`); lifecycle logs transaction id and state, launch-boost end reason,
+`ended (<reason>)`, `restore incomplete, journal kept`, resolve/plan errors, and ignored legacy
+compatibility warnings.
+
+## Known limitations
+
+- A daemon restart while a game is already running starts a (bounded, ≤ 8 s) launch boost for it,
+  because fluxd cannot tell a fresh launch from a re-detected process. Harmless but not a "launch".
+- Per-game values stay while the screen is off during a game (same as the existing profile tier).
+- The capability probe runs once per daemon start; hot-plugged block devices are not re-probed.
+- No WebUI for `game_profiles.json` yet; profiles are edited as files.
+- Device validation: NOT_TESTED.
 
 ## Status
 

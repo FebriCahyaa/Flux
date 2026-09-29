@@ -64,6 +64,8 @@ std::vector<std::string> split(const std::string &s, char sep) {
 }
 
 constexpr const char *kHeaderTag = "flux-journal ";
+/// Header written by the old Game Runtime branch (compat_journal); its entries use the same format.
+constexpr const char *kLegacyCompatHeader = "#flux-compat-journal v1";
 
 } // namespace
 
@@ -242,6 +244,10 @@ Parsed parse(const std::string &text) {
         std::string line = raw;
         if (!line.empty() && line.back() == '\r') line.pop_back();
         if (line.empty()) continue;
+        if (first && line == kLegacyCompatHeader) {
+            first = false; // legacy journal: version 0, entries follow
+            continue;
+        }
         if (first && line.rfind(kHeaderTag, 0) == 0) {
             first = false;
             auto f = split(line.substr(std::string(kHeaderTag).size()), '\t');
