@@ -76,15 +76,15 @@
       :closeOnOutsideClick="false"
     >
       <div class="px-4 pb-2">
-        <div v-if="exportStatus === 'loading'" class="flex flex-col items-center gap-4 py-6">
+        <div v-if="exportStatus === 'loading'" class="flex flex-col items-center gap-4 py-6" role="status">
           <LoadingSpinner :size="40" class="text-primary" />
           <p class="text-on-surface-variant text-sm">
             {{ $t('settings_page.save_log.exporting') }}
           </p>
         </div>
 
-        <div v-else-if="exportStatus === 'success'" class="flex flex-col items-center gap-3 py-4">
-          <CheckCircle :size="48" class="text-primary" />
+        <div v-else-if="exportStatus === 'success'" class="flex flex-col items-center gap-3 py-4" role="status">
+          <CheckCircle :size="48" class="text-primary" aria-hidden="true" />
           <p class="text-on-surface font-medium text-center">
             {{ $t('settings_page.save_log.success') }}
           </p>
@@ -95,8 +95,8 @@
           </p>
         </div>
 
-        <div v-else-if="exportStatus === 'error'" class="flex flex-col items-center gap-3 py-4">
-          <ErrorIcon :size="48" class="text-error" />
+        <div v-else-if="exportStatus === 'error'" class="flex flex-col items-center gap-3 py-4" role="alert">
+          <ErrorIcon :size="48" class="text-error" aria-hidden="true" />
           <p class="text-on-surface font-medium text-center">
             {{ $t('settings_page.save_log.failure') }}
           </p>
@@ -107,6 +107,7 @@
       <template #actions>
         <div v-if="exportStatus !== 'loading'" class="flex gap-2">
           <button
+            type="button"
             @click="closeExportModal"
             class="px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/10 rounded-full transition-colors"
           >

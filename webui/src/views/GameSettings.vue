@@ -3,11 +3,12 @@
     <div class="max-w-3xl mx-auto h-full flex flex-col w-full">
       <div class="flex-none p-5 pb-3">
         <button
+          type="button"
           @click="router.back()"
-          class="m3-press w-10 h-10 -ms-2 rounded-full grid place-items-center text-on-surface hover:bg-surface-container-high"
-          :aria-label="$t('common.cancel')"
+          class="back m3-press w-10 h-10 -ms-2 rounded-full grid place-items-center text-on-surface hover:bg-surface-container-high"
+          :aria-label="$t('common.back')"
         >
-          <ArrowLeftIcon class="w-6 h-6 rtl:rotate-180" />
+          <ArrowLeftIcon class="w-6 h-6 rtl:rotate-180" aria-hidden="true" />
         </button>
       </div>
 
@@ -158,6 +159,7 @@
             <div v-for="s in stats.sessions.slice(0, 10)" :key="s.id" class="md3-list">
               <RippleComponent
                 class="md3-list-item"
+                role="link"
                 tabindex="0"
                 @click="router.push(`/monitor/session/${s.id}`)"
               >
@@ -303,6 +305,11 @@ const formatDate = (ms) =>
 </script>
 
 <style scoped>
+.back:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .hero-icon {
   width: 104px;
   height: 104px;

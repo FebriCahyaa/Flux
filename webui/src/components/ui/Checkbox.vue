@@ -9,7 +9,7 @@
     />
     
     <div
-      class="absolute inset-0 rounded-full transition-colors duration-200"
+      class="absolute inset-0 rounded-full transition-colors motion-reduce:transition-none duration-200"
       :class="[
         modelValue 
           ? 'peer-hover:bg-primary/10 peer-active:bg-primary/20' 
@@ -18,7 +18,7 @@
     ></div>
 
     <div
-      class="relative w-4.5 h-4.5 rounded-xs border-2 transition-colors duration-200 flex items-center justify-center"
+      class="relative w-4.5 h-4.5 rounded-xs border-2 transition-colors motion-reduce:transition-none duration-200 flex items-center justify-center"
       :class="[
         modelValue
           ? 'border-primary bg-primary'
@@ -27,7 +27,7 @@
       ]"
     >
       <svg
-        class="w-3.5 h-3.5 text-on-primary transition-all pointer-events-none"
+        class="w-3.5 h-3.5 text-on-primary transition-all motion-reduce:transition-none pointer-events-none"
         :class="modelValue ? 'animate-android-check' : 'scale-50 opacity-0'"
         viewBox="0 0 24 24"
         fill="none"
@@ -74,6 +74,12 @@ defineEmits(['update:modelValue']);
   100% {
     transform: scale(1);
     opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-android-check {
+    animation: none;
   }
 }
 </style>
