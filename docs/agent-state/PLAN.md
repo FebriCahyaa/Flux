@@ -30,6 +30,11 @@ conflicts with frozen contracts (D-04), removal/disablement of the identity-subs
 (D-10), tests, and an integration report `docs/architecture/GAME_RUNTIME_INTEGRATION_REPORT.md`.
 **Status: AUDIT COMPLETE (Phase 1.5).** Report written; no merge until accepted. Migration order: report §8.
 
+## Phase 1.6 — Integration preparation: PREPARATION COMPLETE
+
+Branch `integration/game-runtime-clean` (= main). Plan: `GAME_RUNTIME_MIGRATION_PLAN.md` §3 steps
+1–10. Zygisk and all identity code excluded. **Awaiting owner approval (B-17).**
+
 ## Phase 0 findings carried forward
 
 | Finding | Fixed in |

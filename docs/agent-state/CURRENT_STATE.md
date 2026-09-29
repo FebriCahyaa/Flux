@@ -13,7 +13,10 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
 - **Phase 1.5 (Game Runtime integration audit): AUDIT COMPLETE — not integrated.**
   `docs/architecture/GAME_RUNTIME_INTEGRATION_REPORT.md`. Nothing merged or cherry-picked; branch
   `ccr-23925ebb-375wkg` preserved. Identity layers marked REMOVE OR REDESIGN (B-15).
-- **Next:** owner accepts/rejects the report; then the clean integration line (report §8) or Phase 2.
+- **Phase 1.6 (Game Runtime integration preparation): PREPARATION COMPLETE.**
+  `docs/architecture/GAME_RUNTIME_MIGRATION_PLAN.md`. Branch `integration/game-runtime-clean`
+  created from `main` @ `b75491c` and pushed, **no commits on it**. No production code changed.
+- **Next:** wait for owner approval, then migration steps 1–10 of the plan on the integration branch.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 
 ## Repositories and branches
