@@ -48,6 +48,8 @@
 #define COMPAT_GAMES_FILE CONFIG_DIR "/compat_games.json"
 #define COMPAT_PROFILES_FILE CONFIG_DIR "/game_profiles.json"
 /// Persisted rollback journal and process-context snapshot of the Game Runtime (jni/compat/Session.cpp).
+/// pid of the running daemon, so the CLI and the provider can tell fluxd from a short-lived `fluxd <command>`.
+#define DAEMON_PID_FILE CONFIG_DIR "/fluxd.pid"
 #define COMPAT_JOURNAL_FILE CONFIG_DIR "/compat_journal"
 #define COMPAT_STATUS_FILE CONFIG_DIR "/compat_status.json"
 /// Presence = the user opted in to the optional Zygisk compatibility backend.

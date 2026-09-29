@@ -10,7 +10,9 @@
 
 #include "flux_test.hpp"
 
+#include "Analyze.hpp"
 #include "GameRuntime.hpp"
+#include "Session.hpp"
 #include "ZygiskBackend.hpp"
 
 using namespace flux::compat;
@@ -469,9 +471,156 @@ void test_process_scope_reaches_the_plan() {
     CHECK(!parse_profile(R"({"compatibility":{"processes":[""]}})", gp, err));
 }
 
+// ---- arm_all: the daemon decides what is armed from the profiles --------------------------------------------------------
+
+AnalyzeInputs docs() {
+    AnalyzeInputs in;
+    in.library_json = R"({"identities":{
+      "dev":{"layer":"device","fields":{"MODEL":"FlagX"}},
+      "gpu":{"layer":"gpu","fields":{"gl_renderer":"Acme GPU 9"}}}})";
+    in.profiles_json = R"({
+      "com.example.game":  {"compatibility":{"mode":"advanced","device_profile":"dev"}},
+      "com.example.two":   {"compatibility":{"mode":"advanced","device_profile":"dev","gpu_profile":"gpu","process_scope":"all"}},
+      "com.example.plain": {"performance":{"memory":"gaming"},"compatibility":{"mode":"real"}},
+      "com.example.auto":  {"compatibility":{"mode":"auto"}},
+      "../bad":            {"compatibility":{"mode":"advanced","device_profile":"dev"}}
+    })";
+    return in;
+}
+
+void test_arm_all_arms_only_what_the_resolver_requires() {
+    Fixture f;
+    f.provider_loaded();
+    auto rep = arm_all(*f.arming, docs(), false);
+    CHECK(rep.armed.size() == 2);                               // game + two
+    auto list = armed_list_from_text(f.fs.files[kArmed]);
+    std::set<std::string> pk;
+    for (auto &e : list) pk.insert(e.package);
+    CHECK((pk == std::set<std::string>{"com.example.game", "com.example.two"}));
+    CHECK(f.fs.files.count("/data/adb/.config/flux/compat_provider/plans/com.example.plain.json") == 0);  // mode real: no plan
+    CHECK(f.fs.files.count("/data/adb/.config/flux/compat_provider/plans/com.example.auto.json") == 0);   // unknown game: no evidence, no plan
+    CHECK(f.fs.files.count("/data/adb/.config/flux/compat_provider/plans/bad.json") == 0);                // hostile name skipped
+
+    Plan two;
+    std::string err;
+    plan_from_json(f.fs.files["/data/adb/.config/flux/compat_provider/plans/com.example.two.json"], two, err);
+    CHECK((two.layers == std::vector<Layer>{Layer::Device, Layer::Gpu}));
+    CHECK(two.scope.kind == ProcessScope::Kind::All);           // the profile said so explicitly
+    Plan one;
+    plan_from_json(f.fs.files[kPlan], one, err);
+    CHECK((one.layers == std::vector<Layer>{Layer::Device}));
+    CHECK(one.scope.kind == ProcessScope::Kind::Main);          // the default is the package's main process only
+}
+
+void test_arm_all_follows_profile_edits_and_withdrawn_consent() {
+    Fixture f;
+    f.provider_loaded();
+    arm_all(*f.arming, docs(), false);
+    CHECK(armed_list_from_text(f.fs.files[kArmed]).size() == 2);
+
+    // The user switches one game back to the real device: it must be disarmed.
+    auto in = docs();
+    in.profiles_json = R"({"com.example.game":{"compatibility":{"mode":"real"}},
+                           "com.example.two":{"compatibility":{"mode":"advanced","device_profile":"dev"}}})";
+    arm_all(*f.arming, in, false);
+    auto list = armed_list_from_text(f.fs.files[kArmed]);
+    CHECK(list.size() == 1 && list[0].package == "com.example.two");
+    Plan p;
+    std::string err;
+    plan_from_json(f.fs.files[kPlan], p, err);
+    CHECK(!p.active);
+
+    // tweaks disabled: everything comes off
+    arm_all(*f.arming, docs(), true);
+    CHECK(armed_list_from_text(f.fs.files[kArmed]).empty());
+
+    // consent withdrawn: nothing stays armed
+    arm_all(*f.arming, docs(), false);
+    CHECK(!armed_list_from_text(f.fs.files[kArmed]).empty());
+    f.arming->set_user_enabled(false);
+    arm_all(*f.arming, docs(), false);
+    CHECK(armed_list_from_text(f.fs.files[kArmed]).empty());
+}
+
+void test_arm_all_reports_a_broken_profile_without_arming_it() {
+    Fixture f;
+    auto in = docs();
+    in.profiles_json = R"({"com.example.game":{"performance":{"memory":"turbo"}}})";
+    auto rep = arm_all(*f.arming, in, false);
+    CHECK(rep.armed.empty());
+    CHECK(rep.failed.size() == 1 && rep.failed[0].first == "com.example.game");
+    CHECK(f.fs.files.count(kPlan) == 0);
+}
+
+// ---- the daemon lifecycle with the real backend, provider simulated -----------------------------------------------
+
+struct LifecycleRig {
+    Fixture f;
+    ZygiskBackend zb;
+    std::unique_ptr<SessionRuntime> rt;
+    std::vector<std::string> info, warn;
+    LifecycleRig() : zb(*f.arming) {
+        SessionDeps d;
+        d.runtime.io = f.fs.io();
+        d.runtime.native = &f.native;
+        d.runtime.zygisk = &zb;
+        d.runtime.library = &f.lib;
+        d.journal_path = "/cfg/compat_journal";
+        d.status_path = "/cfg/compat_status.json";
+        d.inputs = [this](const SessionKey &k, ResolvedInputs &out, std::string &err) {
+            return build_inputs(k.package, std::nullopt, Mode::Real, docs(), out, err);
+        };
+        d.info = [this](const std::string &m) { info.push_back(m); };
+        d.warn = [this](const std::string &m) { warn.push_back(m); };
+        rt = std::make_unique<SessionRuntime>(d);
+    }
+    bool logged(const std::string &n) const {
+        for (auto &l : info) if (l.find(n) != std::string::npos) return true;
+        for (auto &l : warn) if (l.find(n) != std::string::npos) return true;
+        return false;
+    }
+};
+
+void test_session_with_a_verified_process() {
+    LifecycleRig r;
+    r.f.provider_loaded();
+    arm_all(*r.f.arming, docs(), false);                   // daemon boot
+    std::string tx = r.f.arming->transaction_of(kPkg);
+    r.f.report(kPid, tx, ProcState::Verified, {{Layer::Device, "verified", "Build fields read back"}});   // the game was launched
+
+    CHECK(r.rt->begin({kPkg, static_cast<int>(kPid), 10123}));
+    CHECK(r.rt->context() == ContextState::Active);
+    CHECK(r.logged("provider=verified"));
+    CHECK(r.logged("compatibility=ACTIVE backend=zygisk"));
+    std::string status = r.f.fs.files["/cfg/compat_status.json"];
+    CHECK(status.find("\"state\":\"verified\"") != std::string::npos);      // provider block
+    CHECK(status.find("\"device\":\"verified\"") != std::string::npos);
+
+    r.rt->end(EndReason::Exit);
+    CHECK(!r.f.arming->transaction_of(kPkg).empty());      // still armed for the next launch
+    CHECK(r.logged("restore=PASS"));
+}
+
+void test_session_when_the_game_was_already_running() {
+    LifecycleRig r;
+    r.f.provider_loaded();                                  // provider fine; the daemon just was not there yet
+    CHECK(r.rt->begin({kPkg, static_cast<int>(kPid), 10123}));
+    CHECK(r.rt->context() == ContextState::Failed);
+    CHECK(r.logged("compatibility=FAILED"));
+    CHECK(r.logged("performance_fallback=CONTINUE"));
+    CHECK(r.logged("relaunch the game"));
+    CHECK(!r.f.arming->transaction_of(kPkg).empty());      // armed now: the NEXT launch is covered
+    r.rt->end(EndReason::Exit);
+}
+
 } // namespace
 
 int main() {
+    test_arm_all_arms_only_what_the_resolver_requires();
+    test_arm_all_follows_profile_edits_and_withdrawn_consent();
+    test_arm_all_reports_a_broken_profile_without_arming_it();
+    test_session_with_a_verified_process();
+    test_session_when_the_game_was_already_running();
     test_states_installed_opted_in_and_loaded();
     test_arming_writes_a_valid_plan_and_the_prefilter_list();
     test_rearming_is_stable_and_a_changed_plan_gets_a_new_transaction();

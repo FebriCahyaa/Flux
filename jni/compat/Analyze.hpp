@@ -11,6 +11,7 @@
 #include "GameProfile.hpp"
 #include "Hardware.hpp"
 #include "Resolver.hpp"
+#include "Arming.hpp"
 
 namespace flux::compat {
 
@@ -19,7 +20,7 @@ struct AnalyzeInputs {
     std::string library_json;      ///< presets + identities; empty = built-in defaults only
     std::string known_games_json;  ///< curated requirements; empty = none
     std::string profiles_json;     ///< {"<package>": <profile>, ...}; empty = none
-    BackendState zygisk_state = BackendState::Unavailable; ///< reported, never acted on here
+    std::string provider_state = "unavailable"; ///< unavailable | not_configured | unsupported | installed | loaded; reported, never acted on here
 };
 
 /// Everything the resolver needs for one package, parsed from the documents above.
@@ -40,6 +41,19 @@ struct ResolvedInputs {
  */
 bool build_inputs(const std::string &package, std::optional<Mode> mode_override, Mode unprofiled_mode,
                   const AnalyzeInputs &in, ResolvedInputs &out, std::string &error);
+
+/// Package names that have an entry in game_profiles.json (invalid names are skipped).
+std::vector<std::string> profiled_packages(const std::string &profiles_json);
+
+struct ArmReport {
+    std::vector<std::string> armed, disarmed;
+    std::vector<std::pair<std::string, std::string>> failed; ///< package, reason
+};
+
+/// Resolve every profiled package and arm (or disarm) its plan. This is the one place that decides
+/// which packages the provider may touch: the resolver's output, nothing else. With tweaks
+/// disabled everything is disarmed, matching the rest of the Game Runtime.
+ArmReport arm_all(Arming &arming, const AnalyzeInputs &in, bool tweaks_disabled);
 
 /// Always returns a JSON object: {"ok":bool,"error":"","effective":{..},"resolution":{..}}.
 std::string analyze_package(const std::string &package, std::optional<Mode> mode_override,

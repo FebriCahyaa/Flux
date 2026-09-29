@@ -3,6 +3,13 @@
 ## Unreleased
 
 ### Added
+- **Optional Zygisk compatibility provider** (`zygisk/<abi>.so`, built with the public Zygisk API): applies
+  the resolver's Device/CPU/GPU identity plan inside a game's own process (Build fields, native property
+  reads, GL/EGL strings, Vulkan device properties), reports Loaded/Matched/Applied/Verified back to Flux,
+  and unloads itself from every other app. Plans are armed before launch (`fluxd compat_arm`; the WebUI Launch
+  button does it). Off unless the user opts in. Host tested; **not yet run on a device**, and no real-game
+  graphics unlock has been demonstrated. `tools/compat-testapp` + `scripts/flux_provider_validate.sh` are the
+  device checks
 - **Flux Compatibility Engine (`jni/compat/`)**: per-game profile inheritance, a capability-based
   resolver that computes the *minimum* compatibility override (or none) for known and unknown
   games, transactional apply/verify/restore with crash-recovery journal, optional Zygisk backend

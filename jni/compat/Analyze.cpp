@@ -93,6 +93,48 @@ bool build_inputs(const std::string &package, std::optional<Mode> mode_override,
     return true;
 }
 
+std::vector<std::string> profiled_packages(const std::string &profiles_json) {
+    std::vector<std::string> out;
+    rapidjson::Document d;
+    d.Parse(profiles_json.c_str());
+    if (d.HasParseError() || !d.IsObject()) return out;
+    for (auto it = d.MemberBegin(); it != d.MemberEnd(); ++it) {
+        const std::string name = it->name.GetString();
+        if (name.empty() || name.find('/') != std::string::npos || name.find("..") != std::string::npos) continue;
+        out.push_back(name);
+    }
+    return out;
+}
+
+ArmReport arm_all(Arming &arming, const AnalyzeInputs &in, bool tweaks_disabled) {
+    ArmReport rep;
+    // Tweaks disabled, or the provider cannot be used any more (opt-in withdrawn, module removed):
+    // nothing may stay armed.
+    if (tweaks_disabled || arming.backend_state() != BackendState::Available) {
+        arming.disarm_all();
+        return rep;
+    }
+    for (const std::string &pkg : profiled_packages(in.profiles_json)) {
+        ResolvedInputs ri;
+        std::string err;
+        if (!build_inputs(pkg, std::nullopt, Mode::Real, in, ri, err)) {
+            rep.failed.emplace_back(pkg, err);
+            arming.disarm(pkg);
+            continue;
+        }
+        Resolution res = resolve_compatibility(ri.profile, ri.known, ri.hw, ri.lib);
+        provider::ProcessScope scope;
+        if (ri.profile.process_scope == "all") scope.kind = provider::ProcessScope::Kind::All;
+        else if (ri.profile.process_scope == "listed") scope.kind = provider::ProcessScope::Kind::Listed;
+        scope.processes = ri.profile.processes;
+        std::string tx = arming.arm(res, ri.lib, scope, ri.profile.chain.empty() ? "game" : ri.profile.chain.back(), err);
+        if (!tx.empty()) rep.armed.push_back(pkg);
+        else if (!err.empty() && res.should_apply) rep.failed.emplace_back(pkg, err);
+        else rep.disarmed.push_back(pkg);
+    }
+    return rep;
+}
+
 std::string analyze_package(const std::string &package, std::optional<Mode> mode_override, const AnalyzeInputs &in) {
     ResolvedInputs ri;
     std::string berr;
@@ -121,7 +163,7 @@ std::string analyze_package(const std::string &package, std::optional<Mode> mode
     out.AddMember("real_hardware", real, al);
     rapidjson::Value backends(rapidjson::kObjectType);
     backends.AddMember("native", "available", al);
-    backends.AddMember("zygisk", rapidjson::Value(to_string(in.zygisk_state), al), al);
+    backends.AddMember("zygisk", rapidjson::Value(in.provider_state.c_str(), al), al);
     out.AddMember("backends", backends, al);
     rapidjson::StringBuffer sb;
     rapidjson::Writer<rapidjson::StringBuffer> w(sb);

@@ -731,6 +731,7 @@ static void flux_main_daemon() {
     // The daemon is stopping: put back everything the Game Runtime changed. The running game keeps
     // its Flux profile (Keep the running session), but nothing may outlive the process that owns it.
     stop_session_workers(flux::compat::EndReason::DaemonStop);
+    flux_runtime::shutdown(); // disarm every plan: nothing stays armed for a daemon that is gone
     RefreshHold::get_instance().release_now();
 }
 
@@ -794,6 +795,7 @@ int run_daemon() {
     // journal, and no profile has been applied yet, so the profile scripts that run next
     // overwrite any value recovery restored rather than the other way round.
     flux_runtime::recover_at_boot();
+    flux_runtime::arm_all_now(); // plans must exist before a game is launched: identity is set when the process is created
 
     // eventfd for immediate daemon wake-up on synthesis_core changes and PID
     // tracker callbacks.

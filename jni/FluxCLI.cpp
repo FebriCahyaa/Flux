@@ -27,7 +27,7 @@
 #include <GameRegistry.hpp>
 
 #include <Analyze.hpp>
-#include <Runtime.hpp>
+#include "GameRuntimeHost.hpp"
 #include <unistd.h>
 #include <CapabilityCollector.hpp>
 #include <PlatformProbe.hpp>
@@ -155,7 +155,7 @@ int capabilities_handler(const std::vector<std::string> &args) {
 }
 
 
-static int64_t sdk_from_capabilities(const std::string &json) {
+[[maybe_unused]] static int64_t sdk_from_capabilities(const std::string &json) {
     flux::gfx::CapabilityModel m;
     std::string err;
     if (!flux::gfx::CapabilityModel::from_json(json, m, err)) return 0;
@@ -194,12 +194,21 @@ int compat_analyze_handler(const std::vector<std::string> &args) {
 
     // Zygisk is opt-in: a provider being installed is not consent. The WebUI creates
     // the marker file; nothing here ever installs or enables a provider.
-    flux::compat::Io io;
-    io.exists = [](const std::string &p) { return access(p.c_str(), F_OK) == 0; };
-    flux::compat::ZygiskBackend::Config zcfg;
-    zcfg.user_enabled = access(COMPAT_ZYGISK_OPTIN_FILE, F_OK) == 0;
-    in.zygisk_state = flux::compat::ZygiskBackend(io, zcfg, sdk_from_capabilities(caps)).available();
+    in.provider_state = flux_runtime::provider_state();
     std::cout << flux::compat::analyze_package(args[0], mode, in) << std::endl;
+    return EXIT_SUCCESS;
+}
+
+/// Arm (or disarm) the Zygisk provider's plans from the current game profiles. The WebUI calls this
+/// after a profile edit so the change is in place before the game is next launched.
+int compat_arm_handler(const std::vector<std::string> &args) {
+    (void)args;
+    const int n = flux_runtime::arm_from_cli();
+    if (n < 0) {
+        std::cerr << "\033[33mERROR:\033[0m the Flux daemon is not running" << std::endl;
+        return EXIT_FAILURE;
+    }
+    std::cout << n << std::endl;
     return EXIT_SUCCESS;
 }
 
@@ -244,6 +253,14 @@ std::vector<CliCommand> commands = {
         1,
         2,
         compat_analyze_handler
+    },
+    {
+        "compat_arm",
+        "Arm the Zygisk provider's plans from the current game profiles",
+        "compat_arm",
+        0,
+        0,
+        compat_arm_handler
     },
     {
         "version",

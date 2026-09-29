@@ -8,6 +8,7 @@ const DIR = '/data/adb/.config/flux'
 const PROFILES = `${DIR}/game_profiles.json`
 const LIBRARY = `${DIR}/compat_library.json`
 const ZYGISK_OPTIN = `${DIR}/compat_zygisk_optin`
+const STATUS = `${DIR}/compat_status.json`
 
 // Package names are interpolated into a shell command: accept only what Android allows.
 const PACKAGE_RE = /^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z0-9_-]+)+$/
@@ -25,6 +26,8 @@ export const useGameRuntimeStore = defineStore('gameRuntime', () => {
   const analysis = ref(null)
   const analysisStatus = ref('idle') // idle | loading | ready | error
   const zygiskOptIn = ref(false)
+  // Process-context snapshot written by fluxd (compat_status.json): what is actually active right now.
+  const runtimeStatus = ref(null)
   const loaded = ref(false)
 
   async function readJson(path, fallback) {
@@ -80,6 +83,8 @@ export const useGameRuntimeStore = defineStore('gameRuntime', () => {
       profiles.value = previous
       throw e
     }
+    // Compatibility edits change what the provider must be armed with.
+    if (section === 'compatibility') await armNow()
   }
 
   /** Runs `fluxd compat_analyze`; changes nothing on the device. */
@@ -101,9 +106,29 @@ export const useGameRuntimeStore = defineStore('gameRuntime', () => {
     }
   }
 
+  /** Live state of the running game session, or null when none / unreadable. */
+  async function loadStatus() {
+    runtimeStatus.value = await readJson(STATUS, null)
+    return runtimeStatus.value
+  }
+
+  /**
+   * Ask the daemon to re-arm the provider's plans. Identity is set when a game process is created,
+   * so a profile edit only takes effect for the next launch, and only once the plan is armed.
+   * Best effort: an old daemon without the command, or no daemon, just means "not armed yet".
+   */
+  async function armNow() {
+    try {
+      await exec(`${FLUXD} compat_arm`)
+    } catch (e) {
+      console.error('compat_arm failed:', e)
+    }
+  }
+
   async function setZygiskOptIn(enabled) {
     await exec(enabled ? `touch "${ZYGISK_OPTIN}"` : `rm -f "${ZYGISK_OPTIN}"`)
     zygiskOptIn.value = enabled
+    await armNow() // consent withdrawn => the daemon disarms every plan
   }
 
   return {
@@ -112,12 +137,15 @@ export const useGameRuntimeStore = defineStore('gameRuntime', () => {
     analysis,
     analysisStatus,
     zygiskOptIn,
+    runtimeStatus,
     loaded,
     load,
     profileFor,
     identityNames,
     setField,
     analyze,
+    loadStatus,
+    armNow,
     setZygiskOptIn,
   }
 })

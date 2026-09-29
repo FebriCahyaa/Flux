@@ -47,6 +47,20 @@ void ensure_perf_started();
 /// The session ended (exit, process death, focus loss, ...). Idempotent.
 void end(flux::compat::EndReason reason);
 
+/// Resolve every profiled package and arm (or disarm) the Zygisk provider's plan for it. Cheap and
+/// idempotent; called at start-up, after every session and (through the CLI) after a profile edit.
+void arm_all_now();
+
+/// The daemon is stopping: nothing may stay armed.
+void shutdown();
+
+/// `fluxd compat_arm`: same as arm_all_now() from a short-lived process, using the running daemon's pid.
+/// Returns the number of packages armed, or -1 if no daemon is running.
+int arm_from_cli();
+
+/// Provider state for `compat_analyze` (unavailable | not_configured | unsupported | installed | loaded).
+std::string provider_state();
+
 /// Refresh rate (Hz) the active game asked for, or 0. Read by set_profiler_env_vars().
 int refresh_request();
 

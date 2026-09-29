@@ -85,6 +85,27 @@
       </div>
     </template>
 
+    <div v-if="showIdentities" class="md3-list">
+      <div class="md3-list-item flex items-center gap-4 px-5 py-3.5 cursor-default">
+        <label for="gr-scope" class="flex-1 min-w-0 text-sm font-semibold text-on-surface">
+          {{ $t('game_runtime.scope') }}
+          <span class="block text-xs font-normal text-on-surface-variant">{{
+            $t('game_runtime.scope_hint')
+          }}</span>
+        </label>
+        <select
+          id="gr-scope"
+          class="gr-select"
+          :value="compat.process_scope ?? 'main'"
+          :disabled="busy"
+          @change="(e) => set('compatibility', 'process_scope', e.target.value)"
+        >
+          <option value="main">{{ $t('game_runtime.scope_main') }}</option>
+          <option value="all">{{ $t('game_runtime.scope_all') }}</option>
+        </select>
+      </div>
+    </div>
+
     <!-- Backend -->
     <SettingsSwitch
       :model-value="store.zygiskOptIn"
@@ -107,7 +128,7 @@
         type="button"
         class="m3-press pill bg-secondary-container text-on-secondary-container"
         :disabled="store.analysisStatus === 'loading'"
-        @click="store.analyze(pkg, compat.mode)"
+        @click="analyze"
       >
         {{
           store.analysisStatus === 'loading'
@@ -156,6 +177,23 @@
             {{ $t(`game_runtime.gate_${b.kind}`) }}: {{ b.reason }}
           </li>
         </ul>
+
+        <!-- What the provider is doing, kept apart from what the resolver wants. -->
+        <div class="space-y-1" role="group" :aria-label="$t('game_runtime.provider_title')">
+          <p class="flex justify-between gap-3">
+            <span>{{ $t('game_runtime.provider_title') }}</span>
+            <span class="font-semibold">{{
+              $t(`game_runtime.provider_state_${providerState}`)
+            }}</span>
+          </p>
+          <p v-if="providerHint" class="text-xs text-on-surface-variant">{{ providerHint }}</p>
+          <ul class="space-y-1">
+            <li v-for="o in overrides" :key="o.layer" class="flex justify-between gap-3">
+              <span>{{ $t(`game_runtime.override_${o.layer}`) }}</span>
+              <span class="font-semibold">{{ $t(`game_runtime.override_state_${o.state}`) }}</span>
+            </li>
+          </ul>
+        </div>
 
         <div class="text-xs text-on-surface-variant">
           <p>
@@ -209,7 +247,49 @@ const showIdentities = computed(() =>
 
 onMounted(() => {
   if (!store.loaded) store.load()
+  store.loadStatus()
 })
+
+// Live process-context snapshot, only when it describes THIS game.
+const live = computed(() => {
+  const st = store.runtimeStatus
+  return st && st.active && st.package === props.pkg ? st : null
+})
+
+// One provider state, never "active" on its own: the live provider report wins over the static
+// installed/loaded state, and "active" only ever comes from the provider's own verification.
+const providerState = computed(() => {
+  const live_state = live.value?.provider?.state
+  if (live_state && live_state !== 'unavailable') return live_state
+  return store.analysis?.backends?.zygisk || 'unavailable'
+})
+
+const providerHint = computed(() => {
+  const st = live.value?.provider
+  if (st?.reason) return st.reason
+  if (providerState.value === 'installed') return t('game_runtime.provider_hint_installed')
+  if (providerState.value === 'not_configured')
+    return t('game_runtime.provider_hint_not_configured')
+  return ''
+})
+
+// Per identity layer: not required / waiting / applied / verified / unsupported / failed.
+const overrides = computed(() =>
+  ['device', 'cpu', 'gpu'].map((layer) => {
+    const wanted = res.value?.layers?.find((l) => l.layer === layer)?.required
+    const reported = live.value?.provider?.layers?.[layer]
+    let state = 'not_required'
+    if (wanted || reported) {
+      if (reported === 'verified' || reported === 'observed') state = 'verified'
+      else if (reported === 'installed' || reported === 'armed' || reported === 'applied')
+        state = 'applied'
+      else if (reported === 'unsupported') state = 'unsupported'
+      else if (reported === 'failed') state = 'failed'
+      else state = 'pending'
+    }
+    return { layer, state }
+  }),
+)
 
 async function set(section, key, value) {
   if (busy.value) return
@@ -225,6 +305,10 @@ async function set(section, key, value) {
 }
 
 const onMode = (m) => set('compatibility', 'mode', m)
+
+async function analyze() {
+  await Promise.all([store.analyze(props.pkg, compat.value.mode), store.loadStatus()])
+}
 
 async function setZygisk(enabled) {
   busy.value = true

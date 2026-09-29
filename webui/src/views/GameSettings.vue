@@ -203,6 +203,7 @@ import * as KernelSU from '@/helpers/KernelSU'
 
 import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
 import GameRuntimeSection from '@/components/GameRuntimeSection.vue'
+import { useGameRuntimeStore } from '@/stores/GameRuntime'
 import RippleComponent from '@/components/ui/Ripple.vue'
 import ArrowLeftIcon from '@/components/icons/ArrowLeft.vue'
 import ChevronRightIcon from '@/components/icons/ChevronRight.vue'
@@ -294,8 +295,13 @@ async function setOption(key, value) {
   }
 }
 
-const launch = () =>
-  currentApp.value.packageName && KernelSU.launchApp(currentApp.value.packageName)
+// Identity is set when the game process is created, so the provider's plan must be armed first.
+const launch = async () => {
+  const pkg = currentApp.value.packageName
+  if (!pkg) return
+  await useGameRuntimeStore().armNow()
+  KernelSU.launchApp(pkg)
+}
 const appInfo = () =>
   currentApp.value.packageName && KernelSU.openAppInfo(currentApp.value.packageName)
 const iconError = (e) => (e.target.src = './app_icon_fallback.avif')

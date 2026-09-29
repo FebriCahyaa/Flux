@@ -236,6 +236,10 @@ Source: https://github.com/Rem01Gaming/encore
 - **Material Symbols** icon paths (WebUI and `website/index.html`): Copyright Google LLC,
   licensed under the Apache License 2.0.
 
+- **Zygisk module API header** (`jni/zygisk/include/zygisk.hpp`): Copyright 2022-2023 John "topjohnwu" Wu,
+  from https://github.com/topjohnwu/zygisk-module-sample, used unmodified under its permissive
+  (ISC-style) license, which is reproduced at the top of that file.
+
 ---
 
 This file must be included with all distributions of Flux Tweaks.

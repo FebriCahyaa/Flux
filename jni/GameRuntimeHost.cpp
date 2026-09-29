@@ -23,13 +23,23 @@
 #include <fstream>
 #include <iterator>
 #include <mutex>
+#include <csignal>
+#include <ctime>
 #include <unistd.h>
+#ifdef __ANDROID__
+#include <android/api-level.h>
+#endif
 
 #include "DeviceMitigationStore.hpp"
 #include "FluxConfigStore.hpp"
 
 #include <Flux.hpp>
 #include <FluxLog.hpp>
+#include <FluxUtility.hpp>
+
+#include "Analyze.hpp"
+#include "Arming.hpp"
+#include "ZygiskBackend.hpp"
 
 namespace flux_runtime {
 
@@ -108,25 +118,69 @@ bool mitigation_allows(const std::string &category) {
     return items.find(item) == items.end();
 }
 
+int64_t device_sdk() {
+#ifdef __ANDROID__
+    return android_get_device_api_level();
+#else
+    return 34;
+#endif
+}
+
+std::string trim_nl(std::string s) {
+    while (!s.empty() && (s.back() == '\n' || s.back() == ' ')) s.pop_back();
+    return s;
+}
+
+int64_t read_daemon_pid() { return std::atoll(trim_nl(slurp(DAEMON_PID_FILE)).c_str()); }
+
+ArmingEnv real_env(bool from_cli) {
+    ArmingEnv env;
+    env.now_ms = [] {
+        timespec ts{};
+        clock_gettime(CLOCK_REALTIME, &ts);
+        return static_cast<int64_t>(ts.tv_sec) * 1000 + ts.tv_nsec / 1000000;
+    };
+    env.boot_id = [] { return trim_nl(slurp("/proc/sys/kernel/random/boot_id")); };
+    // The daemon arms with its own pid; the CLI arms on the daemon's behalf, so it must name the
+    // daemon, not itself (the CLI exits at once and its pid would make the plan look abandoned).
+    env.daemon_pid = [from_cli]() -> int64_t { return from_cli ? read_daemon_pid() : static_cast<int64_t>(getpid()); };
+    env.pid_alive = [](int64_t pid) { return pid > 1 && (kill(static_cast<pid_t>(pid), 0) == 0 || errno == EPERM); };
+    env.app_id_of = [](const std::string &pkg) { return static_cast<int>(get_uid_by_package_name(pkg) % 100000); };
+    return env;
+}
+
+AnalyzeInputs load_docs() {
+    AnalyzeInputs in;
+    in.capabilities_json = slurp(CAPABILITY_FILE);
+    in.library_json = slurp(COMPAT_LIBRARY_FILE);
+    in.known_games_json = slurp(COMPAT_GAMES_FILE);
+    in.profiles_json = slurp(COMPAT_PROFILES_FILE);
+    return in;
+}
+
+Arming &arming() {
+    static Arming a(real_io(), ArmingConfig{}, real_env(false), device_sdk());
+    return a;
+}
+
+void refresh_optin(Arming &a) { a.set_user_enabled(access(COMPAT_ZYGISK_OPTIN_FILE, F_OK) == 0); }
+
 SessionRuntime &runtime() {
     static NativeBackend native;
-    // No Zygisk backend is registered: no provider consuming the spool ships with Flux, so
-    // identity layers are reported Unavailable rather than staged for nobody.
+    static ZygiskBackend zygisk(arming());
+    // The Zygisk backend is always registered; it reports Unavailable until the provider library is
+    // installed and the user opted in, so identity layers are never staged for nobody.
     static SessionRuntime rt([] {
         SessionDeps d;
         d.runtime.io = real_io();
         d.runtime.native = &native;
-        d.runtime.zygisk = nullptr;
+        d.runtime.zygisk = &zygisk;
         d.runtime.block_queues = internal_block_queues(); // enumerated once, on first use
         d.runtime.mitigation_allows = mitigation_allows;
         d.journal_path = COMPAT_JOURNAL_FILE;
         d.status_path = COMPAT_STATUS_FILE;
         d.inputs = [](const SessionKey &key, ResolvedInputs &out, std::string &err) {
-            AnalyzeInputs in;
-            in.capabilities_json = slurp(CAPABILITY_FILE); // written at boot by `fluxd capabilities`; never probed here
-            in.library_json = slurp(COMPAT_LIBRARY_FILE);
-            in.known_games_json = slurp(COMPAT_GAMES_FILE);
-            in.profiles_json = slurp(COMPAT_PROFILES_FILE);
+            AnalyzeInputs in = load_docs(); // capabilities.json is written at boot by `fluxd capabilities`; never probed here
             // A game nobody profiled behaves exactly as before the Game Runtime existed.
             if (!build_inputs(key.package, std::nullopt, Mode::Real, in, out, err)) return false;
             return true;
@@ -145,6 +199,40 @@ SessionRuntime &runtime() {
 void recover_at_boot() {
     std::lock_guard lock(g_mutex);
     runtime().recover();
+    // The daemon pid the provider checks plans against.
+    if (FILE *f = std::fopen(DAEMON_PID_FILE, "w")) {
+        std::fprintf(f, "%d\n", static_cast<int>(getpid()));
+        std::fclose(f);
+    }
+}
+
+void arm_all_now() {
+    std::lock_guard lock(g_mutex);
+    Arming &a = arming();
+    refresh_optin(a);
+    const ArmReport r = arm_all(a, load_docs(), config_store.get_preferences().disable_tweaks);
+    for (const auto &[pkg, why] : r.failed) LOGW_TAG("GameRuntime", "provider arm package={} failed: {}", pkg, why);
+    if (!r.armed.empty()) LOGI_TAG("GameRuntime", "provider armed for {} package(s)", r.armed.size());
+}
+
+void shutdown() {
+    std::lock_guard lock(g_mutex);
+    arming().disarm_all();
+    std::remove(DAEMON_PID_FILE);
+}
+
+int arm_from_cli() {
+    const int64_t dpid = read_daemon_pid();
+    if (dpid <= 1 || kill(static_cast<pid_t>(dpid), 0) != 0) return -1;
+    Arming a(real_io(), ArmingConfig{}, real_env(true), device_sdk());
+    a.set_user_enabled(access(COMPAT_ZYGISK_OPTIN_FILE, F_OK) == 0);
+    return static_cast<int>(arm_all(a, load_docs(), false).armed.size());
+}
+
+std::string provider_state() {
+    Arming a(real_io(), ArmingConfig{}, real_env(true), device_sdk());
+    a.set_user_enabled(access(COMPAT_ZYGISK_OPTIN_FILE, F_OK) == 0);
+    return to_string(a.provider_state());
 }
 
 void begin(const std::string &package, pid_t pid, uid_t uid) {
@@ -170,6 +258,12 @@ void ensure_perf_started() {
 void end(EndReason reason) {
     std::lock_guard lock(g_mutex);
     runtime().end(reason);
+    // A session ending is a natural moment to renew the lease and pick up profile edits.
+    if (reason != EndReason::DaemonStop && !config_store.get_preferences().disable_tweaks) {
+        Arming &a = arming();
+        refresh_optin(a);
+        arm_all(a, load_docs(), false);
+    }
 }
 
 int refresh_request() { return g_refresh_request.load(std::memory_order_relaxed); }

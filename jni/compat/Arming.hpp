@@ -51,6 +51,8 @@ class Arming {
 public:
     Arming(Io io, ArmingConfig cfg, ArmingEnv env, int64_t sdk) : io_(std::move(io)), cfg_(std::move(cfg)), env_(std::move(env)), sdk_(sdk) {}
 
+    /// The user's opt-in can change while the daemon runs (WebUI toggle).
+    void set_user_enabled(bool v) { cfg_.user_enabled = v; }
     /// Installed + opted in + new enough. Says nothing about whether Zygisk itself is enabled:
     /// that is only known once the provider has actually loaded (loaded()).
     BackendState backend_state() const;

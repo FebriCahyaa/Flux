@@ -62,6 +62,9 @@ public:
     /// Restore everything. Returns true when both transactions restored cleanly.
     bool deactivate();
 
+    /// The identity library of the session being activated. Must outlive the activation.
+    void set_library(const ProfileLibrary *lib) { d_.library = lib; }
+
     bool active() const { return compat_ || perf_; }
     const std::string &package() const { return package_; }
     /// Journal of everything still applied, for crash recovery.

@@ -95,6 +95,7 @@ private:
     bool perf_started_ = false;
     SessionKey key_;
     Activation last_;
+    ResolvedInputs inputs_; ///< the session's documents; the runtime borrows the identity library from here
     ContextState status_ = ContextState::Inactive;
     std::vector<std::string> carry_; ///< journal lines a recovery could not restore; never dropped
 };

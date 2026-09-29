@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.22)
+project(fluxcompattest CXX)
+add_library(fluxcompattest SHARED probe.cpp)
+find_library(log-lib log)
+find_library(gles-lib GLESv2)
+find_library(egl-lib EGL)
+find_library(vulkan-lib vulkan)
+target_link_libraries(fluxcompattest ${log-lib} ${gles-lib} ${egl-lib} ${vulkan-lib})

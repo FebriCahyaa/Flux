@@ -107,7 +107,9 @@ bool SessionRuntime::begin(const SessionKey &key) {
                      " mode=" + to_string(in.profile.mode) + " memory=" + in.profile.memory +
                      " touch=" + in.profile.touch + " storage=" + in.profile.storage + " refresh=" + in.profile.refresh);
 
-    last_ = rt_.activate_compat(in.profile, in.known, in.hw, key.pid, key.uid);
+    inputs_ = std::move(in);
+    rt_.set_library(&inputs_.lib);
+    last_ = rt_.activate_compat(inputs_.profile, inputs_.known, inputs_.hw, key.pid, key.uid);
     key_ = key;
     active_ = true;
     perf_started_ = false;
