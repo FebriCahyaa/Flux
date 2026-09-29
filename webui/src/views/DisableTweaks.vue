@@ -1,91 +1,68 @@
 <template>
-  <div class="page h-full flex flex-col overflow-hidden bg-surface">
-    <div class="max-w-3xl mx-auto h-full flex flex-col w-full">
-      <div class="flex-none p-5 pb-3">
-        <button
-          @click="goBack"
-          class="m3-press w-10 h-10 -ms-2 rounded-full grid place-items-center text-on-surface hover:bg-surface-container-high"
-          :aria-label="$t('common.cancel')"
-        >
-          <ArrowLeftIcon class="w-6 h-6 rtl:rotate-180" />
-        </button>
-      </div>
+  <SettingsDetailLayout
+    :title="$t('disable_tweaks.title')"
+    :description="$t('disable_tweaks.brief')"
+    :icon="PauseIcon"
+    shape="shape-burst"
+    :tone="
+      enabled
+        ? 'bg-error-container text-on-error-container'
+        : 'bg-primary-container text-on-primary-container'
+    "
+    :read-error="readError"
+  >
+    <!-- Inverted switch: ON means Flux's tweaks are OFF, so "on" uses the
+         error tone and the state line spells out what that means. -->
+    <SettingsSwitch
+      variant="main"
+      tone="error"
+      :title="$t('disable_tweaks.toggle_title')"
+      :description="enabled ? $t('disable_tweaks.state_on') : $t('disable_tweaks.state_off')"
+      :model-value="enabled"
+      :busy="saving"
+      :disabled="!ready"
+      @update:model-value="toggle"
+    />
 
-      <div class="scrollbar-hidden pb-safe-nav flex-1 min-h-0 overflow-y-scroll px-4">
-        <div class="flex items-center gap-4 mt-8 mb-4 px-1">
-          <span
-            class="hero-badge shape-burst"
-            :class="
-              enabled
-                ? 'bg-error-container text-on-error-container'
-                : 'bg-primary-container text-on-primary-container'
-            "
-          >
-            <PauseIcon :size="28" />
-          </span>
-          <h1 class="m3-headline text-4xl text-on-surface">{{ $t('disable_tweaks.title') }}</h1>
-        </div>
-
-        <p class="text-sm text-on-surface-variant leading-relaxed px-1 mb-5">
-          {{ $t('disable_tweaks.brief') }}
-        </p>
-
-        <!-- Main switch -->
-        <div class="switch-card mb-6" :class="{ on: enabled }">
-          <div class="flex-1 min-w-0">
-            <h2 class="text-base font-semibold">{{ $t('disable_tweaks.toggle_title') }}</h2>
-            <p class="text-xs mt-1 opacity-80">
-              {{ enabled ? $t('disable_tweaks.state_on') : $t('disable_tweaks.state_off') }}
-            </p>
+    <template v-for="group in groups" :key="group.key">
+      <h2 class="text-sm font-semibold px-4 pb-2" :class="group.titleTone">
+        {{ $t(`disable_tweaks.${group.key}_title`) }}
+      </h2>
+      <ul class="mb-6">
+        <li v-for="item in group.items" :key="item.key" class="md3-list">
+          <div class="md3-list-item flex items-center gap-4 px-5 py-3.5 cursor-default">
+            <span class="item-badge" :class="[item.shape, group.badgeTone]" aria-hidden="true">
+              <component :is="item.icon" :size="20" />
+            </span>
+            <span class="flex-1 text-sm text-on-surface">{{
+              $t(`disable_tweaks.items.${item.key}`)
+            }}</span>
+            <!-- The group heading already says stop/keep; the mark is visual only. -->
+            <component
+              :is="group.key === 'stops' ? CloseIcon : CheckIcon"
+              :size="18"
+              aria-hidden="true"
+              :class="group.key === 'stops' && enabled ? 'text-error' : 'text-on-surface-variant'"
+            />
           </div>
-          <ToggleSwitch id="disable-tweaks" :model-value="enabled" @update:modelValue="toggle" />
-        </div>
+        </li>
+      </ul>
+    </template>
 
-        <template v-for="group in groups" :key="group.key">
-          <h2 class="text-sm font-semibold px-3 mb-2" :class="group.titleTone">
-            {{ $t(`disable_tweaks.${group.key}_title`) }}
-          </h2>
-          <div class="mb-6">
-            <div v-for="item in group.items" :key="item.key" class="md3-list">
-              <div class="md3-list-item flex items-center gap-4 px-5 py-3.5">
-                <span class="item-badge" :class="[item.shape, group.badgeTone]">
-                  <component :is="item.icon" :size="20" />
-                </span>
-                <span class="flex-1 text-sm text-on-surface">{{
-                  $t(`disable_tweaks.items.${item.key}`)
-                }}</span>
-                <component
-                  :is="group.key === 'stops' ? CloseIcon : CheckIcon"
-                  :size="18"
-                  :class="
-                    group.key === 'stops' && enabled ? 'text-error' : 'text-on-surface-variant'
-                  "
-                />
-              </div>
-            </div>
-          </div>
-        </template>
-
-        <div class="flex gap-3 px-1 mb-8">
-          <InformationOutlineIcon class="text-on-surface-variant shrink-0" :size="20" />
-          <p class="text-xs text-on-surface-variant leading-relaxed">
-            {{ $t('disable_tweaks.reboot_note') }}
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
+    <SettingsNote>{{ $t('disable_tweaks.reboot_note') }}</SettingsNote>
+  </SettingsDetailLayout>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { exec } from 'kernelsu'
 import { useFluxConfigStore } from '@/stores/FluxConfig'
 import { useNotifyStore } from '@/stores/Notify'
 
-import ArrowLeftIcon from '@/components/icons/ArrowLeft.vue'
+import SettingsDetailLayout from '@/components/ui/SettingsDetailLayout.vue'
+import SettingsSwitch from '@/components/ui/SettingsSwitch.vue'
+import SettingsNote from '@/components/ui/SettingsNote.vue'
 import PauseIcon from '@/components/icons/Pause.vue'
 import CloseIcon from '@/components/icons/Close.vue'
 import CheckIcon from '@/components/icons/CheckCircle.vue'
@@ -96,15 +73,15 @@ import GpuIcon from '@/components/icons/Gpu.vue'
 import GamesIcon from '@/components/icons/Games.vue'
 import MonitorIcon from '@/components/icons/Monitor.vue'
 import AppWindowIcon from '@/components/icons/AppWindow.vue'
-import InformationOutlineIcon from '@/components/icons/InformationOutline.vue'
-import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
 
-const router = useRouter()
 const { t } = useI18n()
 const fluxConfigStore = useFluxConfigStore()
 const notify = useNotifyStore()
 
 const enabled = ref(false)
+const ready = ref(false)
+const readError = ref(false)
+const saving = ref(false)
 
 const groups = [
   {
@@ -136,10 +113,13 @@ onMounted(async () => {
     enabled.value = fluxConfigStore.isDisableTweaksEnabled
   } catch (error) {
     console.error('Failed to load disable tweaks setting:', error)
+    readError.value = true
   }
+  ready.value = true
 })
 
 async function toggle(value) {
+  if (saving.value) return
   if (value) {
     const ok = await notify.confirm({
       tone: 'danger',
@@ -155,16 +135,18 @@ async function toggle(value) {
     if (!ok) return
   }
 
+  saving.value = true
   enabled.value = value
   try {
-    if (!fluxConfigStore.isLoaded) await fluxConfigStore.loadConfig()
-    fluxConfigStore.setDisableTweaks(value)
-    await fluxConfigStore.saveConfig()
+    await fluxConfigStore.commit(() => fluxConfigStore.setDisableTweaks(value))
+    readError.value = false
   } catch (error) {
     console.error('Failed to set disable tweaks:', error)
-    enabled.value = fluxConfigStore.isDisableTweaksEnabled
     notify.error(t('notify.save_failed'))
     return
+  } finally {
+    enabled.value = fluxConfigStore.isDisableTweaksEnabled
+    saving.value = false
   }
 
   const reboot = await notify.confirm({
@@ -180,47 +162,14 @@ async function toggle(value) {
     notify.show(t('disable_tweaks.saved_reboot_later'))
   }
 }
-
-function goBack() {
-  router.back()
-}
 </script>
 
 <style scoped>
-.hero-badge {
-  width: 56px;
-  height: 56px;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  transition: background-color var(--m3-spring-default-effects-duration)
-    var(--m3-spring-default-effects);
-}
-
 .item-badge {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   display: grid;
   place-items: center;
   flex-shrink: 0;
-}
-
-.switch-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px 20px 20px 24px;
-  border-radius: 28px;
-  background: var(--color-surface-container-high);
-  color: var(--color-on-surface);
-  transition:
-    background-color var(--m3-spring-default-effects-duration) var(--m3-spring-default-effects),
-    border-radius var(--m3-spring-default-spatial-duration) var(--m3-spring-default-spatial);
-}
-
-.switch-card.on {
-  border-radius: 36px;
-  background: var(--color-error-container);
-  color: var(--color-on-error-container);
 }
 </style>
