@@ -42,6 +42,11 @@
 /// Canonical capability model (schema v4), written by `fluxd capabilities`.
 /// The schema is owned by SynthesisCore; see jni/gfx/capability_schema_v4.json.
 #define CAPABILITY_FILE CONFIG_DIR "/capabilities.json"
+
+/// Flux Compatibility Engine documents (all optional; see docs/GAME_RUNTIME.md).
+#define COMPAT_LIBRARY_FILE CONFIG_DIR "/compat_library.json"
+#define COMPAT_GAMES_FILE CONFIG_DIR "/compat_games.json"
+#define COMPAT_PROFILES_FILE CONFIG_DIR "/game_profiles.json"
 /// Minimum SynthesisCore synthesis_version (PROTOCOL_VERSION) this build expects.
 /// Keep in sync with SYNTHESIS_MIN_VERSION in module/service.sh and the WebUI monitor store.
 #define SYNTHESIS_CORE_MIN_VERSION 2

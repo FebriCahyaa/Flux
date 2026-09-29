@@ -26,6 +26,7 @@
 #include <Flux.hpp>
 #include <GameRegistry.hpp>
 
+#include <Analyze.hpp>
 #include <CapabilityCollector.hpp>
 #include <PlatformProbe.hpp>
 #include <VulkanProbe.hpp>
@@ -146,6 +147,35 @@ int capabilities_handler(const std::vector<std::string> &args) {
     return EXIT_SUCCESS;
 }
 
+
+/**
+ * Read-only compatibility analysis for one package: what the game gates on, what
+ * this hardware really offers, and the minimum override that would follow. Prints
+ * JSON for the WebUI and changes nothing on the device.
+ */
+int compat_analyze_handler(const std::vector<std::string> &args) {
+    if (args.empty()) {
+        std::cerr << "\033[31mERROR:\033[0m compat_analyze <package> [mode]" << std::endl;
+        return EXIT_FAILURE;
+    }
+    auto slurp = [](const char *path) {
+        std::ifstream f(path);
+        return std::string((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+    };
+    std::optional<flux::compat::Mode> mode;
+    if (args.size() > 1) {
+        mode = flux::compat::parse_mode(args[1]);
+        if (!mode) {
+            std::cerr << "\033[31mERROR:\033[0m unknown mode " << args[1] << std::endl;
+            return EXIT_FAILURE;
+        }
+    }
+    flux::compat::AnalyzeInputs in{slurp(CAPABILITY_FILE), slurp(COMPAT_LIBRARY_FILE), slurp(COMPAT_GAMES_FILE),
+                                   slurp(COMPAT_PROFILES_FILE)};
+    std::cout << flux::compat::analyze_package(args[0], mode, in) << std::endl;
+    return EXIT_SUCCESS;
+}
+
 // clang-format off
 std::vector<CliCommand> commands = {
     {
@@ -179,6 +209,14 @@ std::vector<CliCommand> commands = {
         0,
         1,
         capabilities_handler
+    },
+    {
+        "compat_analyze",
+        "Analyse a game's compatibility gate against the real hardware (read-only)",
+        "compat_analyze <package> [mode]",
+        1,
+        2,
+        compat_analyze_handler
     },
     {
         "version",

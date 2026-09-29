@@ -47,6 +47,25 @@ target_include_directories(flux_gfx SYSTEM PUBLIC "${RAPIDJSON_INCLUDE}")
 target_compile_options(flux_gfx PRIVATE ${FLUX_WARNINGS})
 target_link_libraries(flux_gfx PUBLIC ${CMAKE_DL_LIBS} Threads::Threads)
 
+# ---------------------------------------------------------------------------
+# flux_compat — Flux Compatibility Engine: resolver, profiles, runtime transactions.
+# Pure logic behind injectable seams (see jni/compat/Runtime.hpp), so it is the
+# same code the daemon links, exercised without a device.
+# ---------------------------------------------------------------------------
+add_library(flux_compat STATIC
+  jni/compat/CompatTypes.cpp
+  jni/compat/Hardware.cpp
+  jni/compat/GameProfile.cpp
+  jni/compat/Resolver.cpp
+  jni/compat/Runtime.cpp
+  jni/compat/PerfPlanner.cpp
+  jni/compat/GameRuntime.cpp
+  jni/compat/Analyze.cpp
+)
+target_include_directories(flux_compat PUBLIC jni/compat)
+target_link_libraries(flux_compat PUBLIC flux_gfx)
+target_compile_options(flux_compat PRIVATE ${FLUX_WARNINGS})
+
 enable_testing()
 
 # Each test is a standalone executable with its own main() and CHECK macro,
@@ -87,3 +106,7 @@ target_link_libraries(platform_probe_test PRIVATE flux_gfx)
 # does not break it.
 flux_add_test(synthesis_core_test tests/synthesis_core_test.cpp jni/base/SynthesisCore/SynthesisCore.cpp)
 target_include_directories(synthesis_core_test PRIVATE jni/base/SynthesisCore)
+
+# -- compatibility engine ----------------------------------------------------
+flux_add_test(compat_test tests/compat_test.cpp)
+target_link_libraries(compat_test PRIVATE flux_compat)
