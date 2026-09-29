@@ -44,8 +44,11 @@
         "subtitle": "Administra el comportamiento de Flux por juego",
         "search_placeholder": "Buscar aplicaciones",
         "no_apps_found": "No se encontraron aplicaciones",
+        "no_apps_installed": "No se encontraron aplicaciones instaladas",
+        "load_error_title": "No se pudieron cargar tus aplicaciones",
         "badges": {
-            "tweak_enabled": "Habilitado"
+            "tweak_enabled": "Habilitado",
+            "lite": "Lite"
         }
     },
     "settings_page": {

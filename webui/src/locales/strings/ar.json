@@ -42,8 +42,11 @@
         "subtitle": "إدارة سلوك Flux الخاص بكل لعبة",
         "search_placeholder": "ابحث في التطبيقات",
         "no_apps_found": "لم يتم العثور على تطبيقات",
+        "no_apps_installed": "لم يتم العثور على تطبيقات مثبتة",
+        "load_error_title": "تعذّر تحميل تطبيقاتك",
         "badges": {
-            "tweak_enabled": "مُفعّل"
+            "tweak_enabled": "مُفعّل",
+            "lite": "خفيف"
         }
     },
     "settings_page": {

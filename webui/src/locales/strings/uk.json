@@ -36,8 +36,11 @@
         "subtitle": "Керування поведінкою Flux для кожної гри",
         "search_placeholder": "Пошук застосунків",
         "no_apps_found": "Ніяких застосунків не знайдено",
+        "no_apps_installed": "Встановлених застосунків не знайдено",
+        "load_error_title": "Не вдалося завантажити ваші застосунки",
         "badges": {
-            "tweak_enabled": "Увімкнено"
+            "tweak_enabled": "Увімкнено",
+            "lite": "Lite"
         }
     },
     "settings_page": {

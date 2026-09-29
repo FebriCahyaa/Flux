@@ -42,8 +42,11 @@
         "subtitle": "Gerencie o comportamento do Flux por jogo",
         "search_placeholder": "Procurar aplicativos",
         "no_apps_found": "Nenhum aplicativo encontrado",
+        "no_apps_installed": "Nenhum aplicativo instalado encontrado",
+        "load_error_title": "Não foi possível carregar seus aplicativos",
         "badges": {
-            "tweak_enabled": "Habilitado"
+            "tweak_enabled": "Habilitado",
+            "lite": "Lite"
         }
     },
     "settings_page": {

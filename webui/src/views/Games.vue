@@ -56,6 +56,20 @@
       >
         <LoadingSpinner class="pt-10" :size="56" v-if="gamesStore.isLoading" />
 
+        <!-- App list failed to load entirely: shown instead of the tab
+             content, not just for All Apps — My Games would otherwise read
+             "no games configured" even when gamelistConfig has entries,
+             just because their app metadata couldn't be fetched. -->
+        <div v-else-if="gamesStore.loadError" class="empty m3-card">
+          <span class="empty-badge shape-clover4 bg-error-container text-on-error-container"
+            ><GamesIcon
+          /></span>
+          <div>
+            <p class="text-sm font-semibold text-on-surface">{{ $t('games_page.load_error_title') }}</p>
+            <p class="text-xs text-on-surface-variant mt-1">{{ gamesStore.loadError }}</p>
+          </div>
+        </div>
+
         <!-- My games -->
         <div v-else-if="tab === 'mine'" class="pb-4">
           <div v-if="!shownMine.length" class="empty m3-card">
@@ -99,7 +113,7 @@
                     <span
                       v-if="setting(app).lite_mode"
                       class="chip bg-tertiary-container text-on-tertiary-container"
-                      >Lite</span
+                      >{{ $t('games_page.badges.lite') }}</span
                     >
                     <span
                       v-if="setting(app).enable_dnd"
@@ -134,7 +148,7 @@
         <div v-else class="pb-4">
           <p class="text-xs text-on-surface-variant px-2 mb-3">{{ $t('games_page.all_hint') }}</p>
           <div v-if="!shownAll.length" class="text-center py-8 text-sm text-on-surface-variant">
-            {{ $t('games_page.no_apps_found') }}
+            {{ gamesStore.searchQuery ? $t('games_page.no_apps_found') : $t('games_page.no_apps_installed') }}
           </div>
           <div v-for="app in shownAll" :key="app.packageName" class="md3-list">
             <div class="md3-list-item flex items-center gap-4 px-4 py-3">
@@ -182,6 +196,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useGamesStore } from '@/stores/Games'
 import { useSessionsStore, formatDuration, fmt, relativeTime } from '@/stores/Sessions'
+import { useNotifyStore } from '@/stores/Notify'
 
 import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 import RippleComponent from '@/components/ui/Ripple.vue'
@@ -194,6 +209,7 @@ const router = useRouter()
 const { t, locale } = useI18n()
 const gamesStore = useGamesStore()
 const sessions = useSessionsStore()
+const notify = useNotifyStore()
 
 const tabs = ['mine', 'all']
 const tab = ref('mine')
@@ -240,11 +256,13 @@ function subtitle(app) {
 }
 
 async function toggle(app) {
+  if (busy[app.packageName]) return // no double-submit while a save is in flight
   busy[app.packageName] = true
   try {
     await gamesStore.toggleAppEnabled(app.packageName, !isMine(app))
   } catch (error) {
     console.error('Failed to update game list:', error)
+    notify.error(t('notify.save_failed'))
   } finally {
     busy[app.packageName] = false
   }

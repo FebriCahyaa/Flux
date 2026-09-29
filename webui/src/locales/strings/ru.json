@@ -109,8 +109,11 @@
         "subtitle": "Настройка поведения Flux для каждой игры",
         "search_placeholder": "Поиск приложений",
         "no_apps_found": "Приложения не найдены",
+        "no_apps_installed": "Установленные приложения не найдены",
+        "load_error_title": "Не удалось загрузить ваши приложения",
         "badges": {
-            "tweak_enabled": "Включено"
+            "tweak_enabled": "Включено",
+            "lite": "Lite"
         }
     },
     "cpu_governor": {

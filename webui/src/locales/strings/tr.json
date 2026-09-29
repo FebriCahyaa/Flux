@@ -34,8 +34,11 @@
         "subtitle": "Oyuna özgü Flux davranışını yönet",
         "search_placeholder": "Uygulama ara",
         "no_apps_found": "Uygulama bulunamadı",
+        "no_apps_installed": "Yüklü uygulama bulunamadı",
+        "load_error_title": "Uygulamaların yüklenemedi",
         "badges": {
-            "tweak_enabled": "Aktif"
+            "tweak_enabled": "Aktif",
+            "lite": "Lite"
         }
     },
     "settings_page": {

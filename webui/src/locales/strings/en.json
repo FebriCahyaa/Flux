@@ -46,9 +46,12 @@
     "subtitle": "Manage game-specific Flux behavior",
     "search_placeholder": "Search apps",
     "no_apps_found": "No apps found",
+    "no_apps_installed": "No installed apps found",
+    "load_error_title": "Couldn't load your apps",
     "badges": {
       "tweak_enabled": "Enabled",
-      "dnd": "DND"
+      "dnd": "DND",
+      "lite": "Lite"
     },
     "count": "no games | {n} game | {n} games",
     "tabs": {

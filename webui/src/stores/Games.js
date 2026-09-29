@@ -7,6 +7,7 @@ export const useGamesStore = defineStore('games', () => {
   const searchQuery = ref('')
   const isLoading = ref(false)
   const gamelistConfig = ref({})
+  const loadError = ref('') // set only when loadUserApps could not list installed apps at all
 
   const isAppEnabled = (packageName) => packageName in gamelistConfig.value
 
@@ -128,6 +129,7 @@ export const useGamesStore = defineStore('games', () => {
     }
 
     isLoading.value = true
+    loadError.value = ''
 
     try {
       const pkgs = await KernelSU.listApps()
@@ -202,6 +204,7 @@ export const useGamesStore = defineStore('games', () => {
       } catch (finalError) {
         console.error('[loadUserApps] Failed completely:', finalError)
         userApps.value = []
+        loadError.value = finalError?.message || String(finalError)
       }
     } finally {
       isLoading.value = false
@@ -231,6 +234,7 @@ export const useGamesStore = defineStore('games', () => {
     filteredApps,
     searchQuery,
     isLoading,
+    loadError,
     gamelistConfig,
     isAppEnabled,
 

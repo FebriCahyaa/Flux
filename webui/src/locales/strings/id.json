@@ -46,9 +46,12 @@
     "subtitle": "Kelola perilaku Flux per game",
     "search_placeholder": "Cari aplikasi",
     "no_apps_found": "Tidak ada aplikasi yang ditemukan",
+    "no_apps_installed": "Tidak ada aplikasi terpasang yang ditemukan",
+    "load_error_title": "Gagal memuat aplikasi kamu",
     "badges": {
       "tweak_enabled": "Aktif",
-      "dnd": "DND"
+      "dnd": "DND",
+      "lite": "Lite"
     },
     "count": "tanpa game | {n} game | {n} game",
     "tabs": {

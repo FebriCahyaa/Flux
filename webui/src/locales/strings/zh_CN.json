@@ -44,8 +44,11 @@
         "subtitle": "管理各游戏的 Flux 行为",
         "search_placeholder": "搜索应用",
         "no_apps_found": "未找到应用",
+        "no_apps_installed": "未找到已安装的应用",
+        "load_error_title": "无法加载您的应用",
         "badges": {
-            "tweak_enabled": "已启用"
+            "tweak_enabled": "已启用",
+            "lite": "Lite"
         }
     },
     "settings_page": {

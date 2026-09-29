@@ -93,10 +93,13 @@
     },
     "games_page": {
         "badges": {
-            "tweak_enabled": "有効化済み"
+            "tweak_enabled": "有効化済み",
+            "lite": "Lite"
         },
         "search_placeholder": "アプリ検索",
         "no_apps_found": "アプリが見つかりませんでした",
+        "no_apps_installed": "インストール済みのアプリが見つかりません",
+        "load_error_title": "アプリを読み込めませんでした",
         "title": "ゲーム",
         "subtitle": "ゲームごとのFluxの動作を管理"
     },
