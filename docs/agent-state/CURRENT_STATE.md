@@ -32,12 +32,12 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
 - **Game Runtime migration Step 4 (performance lifecycle, incl. 4.5 activation bridge): CLOSED** (owner, 2026-09-29).
   `integration/game-runtime-clean` @ `3e96312`. Final review done; one recovery fix (legacy
   `compat_journal` header). Host 13/13; CI 36624510915 green. **Device validation: NOT_TESTED.**
-- **Game Runtime migration Step 5 (session lifecycle): IN PROGRESS.**
+- **Game Runtime migration Step 5 (session lifecycle): IMPLEMENTED — architecture approved (owner, 2026-09-29). Device validation: NOT_TESTED.**
   `integration/game-runtime-clean` @ `7e35fba`: `jni/session/SessionManager.*`, `jni/SessionHost.*`,
   `tests/session_manager_test.cpp`, `docs/architecture/SESSION_MODEL.md`. Main.cpp reports events only;
   SessionManager orders GameRuntime → SessionRecorder (end in reverse). `sessions.json` unchanged.
   Host 14/14; CI 36630954964 green. Device: NOT_TESTED.
-- **Next:** owner review to close Step 5.
+- **Next:** awaiting owner direction (remaining plan steps 8–10: WebUI/docs/utility, device validation, integration report → PR).
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 
 ## Repositories and branches
