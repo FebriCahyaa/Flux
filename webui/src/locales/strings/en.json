@@ -851,7 +851,7 @@
     "provider_state_applied": "Applied",
     "provider_state_verified": "Verified",
     "provider_state_failed": "Failed",
-    "provider_hint_installed": "The provider has not loaded in this boot. Enable Zygisk in your root manager and reboot.",
+    "provider_hint_installed": "Not loaded yet. Reboot after turning this on; the provider then loads the first time a game with an identity profile is launched.",
     "provider_hint_not_configured": "Turn on “Use Zygisk backend” to let the provider apply identity changes to this game.",
     "override_device": "Device override",
     "override_cpu": "CPU override",

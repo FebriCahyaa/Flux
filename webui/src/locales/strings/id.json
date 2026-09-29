@@ -854,7 +854,7 @@
     "provider_state_applied": "Diterapkan",
     "provider_state_verified": "Terverifikasi",
     "provider_state_failed": "Gagal",
-    "provider_hint_installed": "Provider belum dimuat pada boot ini. Aktifkan Zygisk di root manager lalu reboot.",
+    "provider_hint_installed": "Belum dimuat. Reboot setelah mengaktifkan ini; provider dimuat saat game dengan profil identitas pertama kali diluncurkan.",
     "provider_hint_not_configured": "Aktifkan “Gunakan backend Zygisk” agar provider bisa menerapkan perubahan identitas ke game ini.",
     "override_device": "Override perangkat",
     "override_cpu": "Override CPU",
