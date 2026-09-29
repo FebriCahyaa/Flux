@@ -2,7 +2,7 @@
 
 Step 1 of `GAME_RUNTIME_MIGRATION_PLAN.md` (branch `integration/game-runtime-clean`).
 Code: `jni/runtime/Transaction.{hpp,cpp}` · Tests: `tests/transaction_test.cpp`.
-Status: **host-tested, not wired into `fluxd`** (not in `jni/Android.mk`), not device-tested.
+Status: **Step 1 CLOSED** — linked into `fluxd`, not called by anything yet, not device-tested.
 
 ## CURRENT
 
@@ -88,3 +88,44 @@ Legacy entry-only journals from the old branch (no header) are accepted as versi
 Tests cover: snapshot creation, apply, verify success, verify failure, apply failure, journal
 failure, rollback, restore (incl. reapply after overwrite), restore failure, crash recovery
 (incl. legacy journal and non-sticking restore), corrupted journal handling.
+
+## Integration status
+
+| Item | State |
+|---|---|
+| `jni/runtime/Android.mk` → static library `FluxRuntime` | added (`8fc92c0`) |
+| `fluxd` `LOCAL_STATIC_LIBRARIES` includes `FluxRuntime` | yes |
+| Called from `Main.cpp` / any daemon code | **no** — GameRuntime lifecycle not connected |
+| Imports from Resolver, ProviderPlan, Arming, Zygisk, identity code | none |
+| CI forbidden-symbol gate (`.github/scripts/check_forbidden_symbols.sh`, `build.yml` Host Tests job) | active; negative test (planted `flux_wrap_` symbol) fails as expected |
+
+The gate scans `jni/`, `scripts/`, `module/`, `CMakeLists.txt`, `compile_zip.sh` for: `Resolver`,
+`ProviderPlan`, `Arming`, `Zygisk`, `SetStaticObjectField` (Build/fingerprint writes), `flux_wrap_`
+(interposed property/GL/EGL/Vulkan wrappers), GOT/PLT patching markers, identity-profile fields,
+`resetprop` of `ro.product/build/hardware/board/soc`, and `libflux_zygisk`/`zygisk_provider` in
+packaging. Reading real hardware (`__system_property_get` in PlatformProbe/DeviceInfo,
+`vkGetPhysicalDeviceProperties` in VulkanProbe on `main`) is capability probing and allowed.
+
+## Build status
+
+CI run [36617841919](https://github.com/FebriCahyaa/Flux/actions/runs/36617841919)
+(`workflow_dispatch`, `integration/game-runtime-clean` @ `8fc92c0`): **success**.
+
+| Check | Result |
+|---|---|
+| Forbidden symbol check | PASS |
+| Host tests (ctest) | PASS 8/8 incl. `transaction_test` |
+| `ndk-build` arm64-v8a + armeabi-v7a (`FluxRuntime <= Transaction.cpp`, `-Werror`), `fluxd` linked | PASS |
+| WebUI build | PASS |
+| Packaging: `flux-1.4.1-129-8fc92c0-release-{arm64,arm,universal}.zip` | PASS |
+
+## Known limitations
+
+- Not used at runtime yet; LTO / `--gc-sections` may drop it from `fluxd` until something calls it.
+- Journal persistence (file path, atomic write, when `recover()` runs) is not implemented here;
+  it belongs to Session (migration step 5).
+- `NodeWriteOperation` covers node writes only; no process-priority or cgroup operation types yet.
+- No device validation; kernel nodes that reformat values on read (e.g. `[a] b` selectors) need a
+  `snapshot_view` supplied by the planner.
+- The build workflow also posts the artifact to Telegram on `workflow_dispatch` runs (existing
+  `build.yml` behaviour, unchanged).
