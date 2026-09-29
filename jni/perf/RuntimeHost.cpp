@@ -143,7 +143,7 @@ void RuntimeHost::on_profile_applied() {
     if (enabled_) rt_.after_profile_script();
 }
 
-void RuntimeHost::on_game_end(EndReason why) { rt_.on_game_end(why); }
+bool RuntimeHost::on_game_end(EndReason why) { return rt_.on_game_end(why); }
 
 void RuntimeHost::tick(int64_t now_ms) { rt_.tick(now_ms); }
 

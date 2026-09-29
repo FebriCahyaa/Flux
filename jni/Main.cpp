@@ -41,6 +41,7 @@
 #include "RenderBooster.hpp"
 #include "SessionRecorder.hpp"
 #include "GameRuntimeHost.hpp"
+#include "SessionHost.hpp"
 #include <ShellUtility.hpp>
 #include <SignalHandler.hpp>
 #include <SynthesisCore.hpp>
@@ -320,14 +321,13 @@ static void clear_dnd_if_needed(DaemonState &state) {
     }
 }
 
-using flux::perf::EndReason;
+using flux::session::EndReason;
 
-/// Ends the per-game workers: session statistics, the render booster (which restores the threads)
-/// and the Game Runtime performance context (restored through its transaction).
+/// Ends the game session (statistics, then the Game Runtime restore, in the order the session
+/// manager owns) and the render booster, which restores the game's threads.
 static void stop_session_workers(EndReason reason = EndReason::Exit) {
-    SessionRecorder::get_instance().stop();
+    flux_session::manager().end(reason, flux_runtime::now_ms());
     RenderBooster::get_instance().stop();
-    flux_runtime::host().on_game_end(reason);
 }
 
 /**
@@ -389,7 +389,7 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
     const pid_t game_pid = pidof_game(state.active_package);
     if (game_pid == 0) {
         LOGE("Unable to fetch PID of {}", state.active_package);
-        stop_session_workers();
+        stop_session_workers(EndReason::Failure);
         state.active_package.clear();
         state.pid_tracker.invalidate();
         state.in_game_session = false;
@@ -426,14 +426,13 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
     state.pid_tracker.set_pid(tracked_pid);
 
     // Session statistics (play time, FPS, temperatures) follow the tracked game.
-    SessionRecorder::get_instance().start(state.active_package, {game_pid, tracked_pid});
-    // Game Runtime: per-game performance profile. Activated before the profile script runs so the
-    // script sees the game's refresh request; idempotent while the same process keeps focus.
-    {
-        auto &runtime = flux_runtime::host();
-        runtime.set_enabled(!config_store.get_preferences().disable_tweaks);
-        runtime.on_game_active(state.active_package, tracked_pid, flux_runtime::now_ms());
-    }
+    // Game session: the session manager starts the Game Runtime performance context and then the
+    // statistics recorder. Begun before the profile script runs so the script sees the game's
+    // refresh request; idempotent while the same process keeps focus.
+    flux_runtime::host().set_enabled(!config_store.get_preferences().disable_tweaks);
+    flux_session::manager().begin({state.active_package, tracked_pid, static_cast<int>(state.synthesis_core.focused_uid),
+                                   {game_pid, tracked_pid}},
+                                  flux_runtime::now_ms());
     // Render threads on the fastest cores (re-applied every 3 s, restored when the session ends).
     if (const auto prefs = config_store.get_preferences(); prefs.render_boost && !prefs.disable_tweaks) {
         RenderBooster::get_instance().start({game_pid, tracked_pid}, prefs.render_realtime);
@@ -465,7 +464,7 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
         LOGI("Applying performance_lite profile for {} (PID: {}) [config]",
              state.active_package, game_pid);
         apply_performance_lite_profile(state.active_package, game_pid);
-        flux_runtime::host().on_profile_applied();
+        flux_session::manager().profile_applied();
 
     } else if (thermal_lite) {
         // Thermal pressure: debounce before downgrading to avoid oscillation.
@@ -485,7 +484,7 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
         LOGW("Thermal pressure (headroom {:.2f}, level {}, CPU {:.1f}C) — downgrading to performance_lite for {}",
              thermal, thermal_level, cpu_temp, state.active_package);
         apply_performance_lite_profile(state.active_package, game_pid);
-        flux_runtime::host().on_profile_applied();
+        flux_session::manager().profile_applied();
 
     } else {
         // Healthy headroom or thermal API unsupported — recover to full performance.
@@ -510,7 +509,7 @@ static constexpr auto THERMAL_SWITCH_DEBOUNCE = std::chrono::seconds(5);
         state.cur_mode = PERFORMANCE_PROFILE;
         LOGI("Applying performance profile for {} (PID: {})", state.active_package, game_pid);
         apply_performance_profile(false, state.active_package, game_pid);
-        flux_runtime::host().on_profile_applied();
+        flux_session::manager().profile_applied();
     }
 
     // DND handling
@@ -597,7 +596,7 @@ static void flux_main_daemon() {
     pthread_setname_np(pthread_self(), "MainThread");
 
     // Undo per-game values a previous fluxd left behind, before any profile script writes.
-    flux_runtime::host().on_daemon_start();
+    flux_session::manager().recover();
 
     run_perfcommon();
     apply_system_tweaks(true);
@@ -628,13 +627,13 @@ static void flux_main_daemon() {
 
     while (!daemon_stop_requested.load(std::memory_order_relaxed)) {
         // Sleep until something happens; wake once a second only while a launch boost has a deadline.
-        const int ret = poll(&pfd, 1, flux_runtime::host().needs_tick() ? 1000 : -1);
+        const int ret = poll(&pfd, 1, flux_session::manager().needs_tick() ? 1000 : -1);
         if (ret < 0) {
             if (errno == EINTR) continue;
             LOGE_TAG("MainThread", "poll() failed: {}", strerror(errno));
             break;
         }
-        flux_runtime::host().tick(flux_runtime::now_ms());
+        flux_session::manager().tick(flux_runtime::now_ms());
         if (ret == 0) continue;
 
         if (daemon_stop_requested.load(std::memory_order_relaxed)) [[unlikely]]
@@ -661,7 +660,7 @@ static void flux_main_daemon() {
             // Focus-loss check (3-strike debounce against transient blips)
             if (state.in_game_session && !state.active_package.empty()) {
                 if (!is_game_still_active(state)) [[unlikely]] {
-                    handle_game_exit(state);
+                    handle_game_exit(state, EndReason::FocusLost);
                 }
             }
 

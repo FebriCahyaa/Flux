@@ -63,7 +63,8 @@ public:
     /// The profile script ran (performance / performance_lite) for the active game.
     void on_profile_applied();
 
-    void on_game_end(EndReason why);
+    /// True when everything was restored cleanly.
+    bool on_game_end(EndReason why);
     void tick(int64_t now_ms);
 
     /// Refresh bridge: the rate for FLUX_REFRESH_TARGET_HZ, 0 when none. Only a rate the panel

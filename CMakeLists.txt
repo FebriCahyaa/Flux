@@ -121,3 +121,11 @@ target_link_libraries(runtime_host_test PRIVATE flux_perf)
 # Shell test of the game-time refresh writer (flux_refresh) against fake dumpsys/settings.
 add_test(NAME refresh_script_test COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/tests/refresh_script_test.sh
          ${CMAKE_CURRENT_SOURCE_DIR}/scripts/flux_profiler.sh)
+
+# -- session lifecycle ----------------------------------------------------------
+add_library(flux_session STATIC jni/session/SessionManager.cpp)
+target_include_directories(flux_session PUBLIC jni/session)
+target_compile_options(flux_session PRIVATE ${FLUX_WARNINGS})
+
+flux_add_test(session_manager_test tests/session_manager_test.cpp)
+target_link_libraries(session_manager_test PRIVATE flux_session)
