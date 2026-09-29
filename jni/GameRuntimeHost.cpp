@@ -22,6 +22,7 @@
 
 #include "DeviceMitigationStore.hpp"
 #include "FluxConfigStore.hpp"
+#include "ObservatoryHost.hpp"
 #include <Exec.hpp>
 #include <Flux.hpp>
 #include <FluxLog.hpp>
@@ -54,6 +55,9 @@ flux::perf::RuntimeDeps make_deps() {
         return std::nullopt;
     };
     d.log = [](const std::string &m) { LOGI_TAG("GameRuntime", "{}", m); };
+    // Observatory: notices after each transition; failures there never reach the runtime.
+    d.observer = flux_observatory::bridge().runtime_observer();
+    d.tx_observer = flux_observatory::bridge().transaction_observer();
     return d;
 }
 

@@ -45,8 +45,19 @@ const char *to_string(EndReason r) {
 GamePerformanceRuntime::GamePerformanceRuntime(RuntimeDeps deps)
     : d_(std::move(deps)), planner_(d_.node_io, d_.caps, d_.mitigation_allows) {}
 
+void GamePerformanceRuntime::notify(RuntimeNotice n) const {
+    if (!d_.observer) return;
+    try {
+        d_.observer(n);
+    } catch (...) {
+        // Observability must never change the runtime.
+    }
+}
+
 std::vector<RecoveryResult> GamePerformanceRuntime::recover() {
     std::vector<RecoveryResult> out;
+    notify({RuntimeNotice::Kind::RecoveryStart, true, "", "replaying journals left by a previous daemon", {}, {}});
+    size_t found_journals = 0;
     for (const std::string &path : {d_.paths.perf_journal, d_.paths.launch_journal, d_.paths.legacy_journal}) {
         if (path.empty() || !d_.files.read) continue;
         const auto text = d_.files.read(path);
@@ -58,8 +69,21 @@ std::vector<RecoveryResult> GamePerformanceRuntime::recover() {
         log("recovery " + path + ": restored " + std::to_string(r.report.restored) + "/" +
             std::to_string(r.report.found) + ", failed " + std::to_string(r.report.failed.size()) +
             ", corrupted " + std::to_string(r.report.corrupted.size()) + (r.removed ? ", journal removed" : ", journal kept"));
+        ++found_journals;
+        RuntimeNotice n;
+        n.kind = r.report.clean() ? RuntimeNotice::Kind::RecoverySuccess : RuntimeNotice::Kind::RecoveryFailed;
+        n.ok = r.report.clean();
+        n.detail = path;
+        n.after = {{"found", std::to_string(r.report.found)},
+                   {"restored", std::to_string(r.report.restored)},
+                   {"failed", std::to_string(r.report.failed.size())},
+                   {"corrupted", std::to_string(r.report.corrupted.size())},
+                   {"journal", r.removed ? "removed" : "kept"}};
         out.push_back(std::move(r));
+        notify(n);
     }
+    if (found_journals == 0)
+        notify({RuntimeNotice::Kind::RecoverySuccess, true, "", "no journal left behind", {}, {{"found", "0"}}});
     return out;
 }
 
@@ -114,6 +138,7 @@ bool GamePerformanceRuntime::on_game_start(const std::string &package, int pid, 
     if (!load_profiles(doc)) {
         state_ = RuntimeState::ResolveFailed;
         log("game " + package + ": profiles unreadable, nothing applied: " + error_);
+        notify({RuntimeNotice::Kind::Failure, false, package, "profiles unreadable: " + error_, {}, {}});
         return true;
     }
     if (!doc.games.count(package) && d_.gamelist_lite) {
@@ -125,6 +150,7 @@ bool GamePerformanceRuntime::on_game_start(const std::string &package, int pid, 
         for (const auto &e : profile_.errors) error_ += (error_.empty() ? "" : "; ") + e;
         state_ = RuntimeState::ResolveFailed;
         log("game " + package + ": profile resolve failed, nothing applied: " + error_);
+        notify({RuntimeNotice::Kind::Failure, false, package, "profile resolve failed: " + error_, {}, {}});
         return true;
     }
 
@@ -133,17 +159,20 @@ bool GamePerformanceRuntime::on_game_start(const std::string &package, int pid, 
         for (const auto &e : planned.errors) error_ += (error_.empty() ? "" : "; ") + e;
         state_ = RuntimeState::ResolveFailed;
         log("game " + package + ": plan rejected, nothing applied: " + error_);
+        notify({RuntimeNotice::Kind::Failure, false, package, "plan rejected: " + error_, {}, {}});
         return true;
     }
 
     if (!planned.plan.operations.empty()) {
-        tx_ = std::make_unique<Transaction>(next_tx_id(now_ms), std::move(planned.plan), sink_for(d_.paths.perf_journal));
+        tx_ = std::make_unique<Transaction>(next_tx_id(now_ms), std::move(planned.plan), sink_for(d_.paths.perf_journal),
+                                            d_.tx_observer);
         if (!tx_->start()) {
             error_ = "transaction " + tx_->id() + " failed and was rolled back";
             for (const auto &l : tx_->log()) log("game " + package + ": " + l);
             log("game " + package + ": " + error_ + "; Flux profile unaffected");
             tx_.reset();
             state_ = RuntimeState::Failed;
+            notify({RuntimeNotice::Kind::Failure, false, package, error_, {}, {}});
             return true;
         }
         log("game " + package + ": transaction " + tx_->id() + " " + flux::runtime::to_string(tx_->state()));
@@ -151,7 +180,7 @@ bool GamePerformanceRuntime::on_game_start(const std::string &package, int pid, 
 
     if (profile_.perf.launch_boost) {
         boost_ = std::make_unique<LaunchBoost>(planner_);
-        if (!boost_->begin({package}, now_ms, next_tx_id(now_ms), sink_for(d_.paths.launch_journal))) {
+        if (!boost_->begin({package}, now_ms, next_tx_id(now_ms), sink_for(d_.paths.launch_journal), d_.tx_observer)) {
             log("game " + package + ": launch boost not started");
             boost_.reset();
         }
@@ -160,6 +189,17 @@ bool GamePerformanceRuntime::on_game_start(const std::string &package, int pid, 
     refresh_target_hz_ = planned.refresh_target_hz;
     const bool applied = (tx_ && tx_->state() == TxState::Active) || launch_boost_active();
     state_ = applied || refresh_target_hz_ > 0 ? RuntimeState::Active : RuntimeState::Idle;
+    if (state_ == RuntimeState::Active) {
+        std::map<std::string, std::string> sources;
+        for (const auto &[field, src] : profile_.sources) sources[field] = src.describe();
+        if (tx_ && tx_->state() == TxState::Active)
+            notify({RuntimeNotice::Kind::ProfileApplied, true, package, "per-game values applied and verified (" + tx_->id() + ")",
+                    {}, sources});
+        std::map<std::string, std::string> after = {{"profile", profile_.profile},
+                                                    {"refresh_target_hz", std::to_string(refresh_target_hz_)},
+                                                    {"launch_boost", launch_boost_active() ? "active" : "off"}};
+        notify({RuntimeNotice::Kind::Activate, true, package, "performance context active", {}, after});
+    }
     return true;
 }
 
@@ -176,6 +216,9 @@ bool GamePerformanceRuntime::after_profile_script() {
 }
 
 bool GamePerformanceRuntime::on_game_end(EndReason why) {
+    const bool had_context = state_ == RuntimeState::Active || tx_ || boost_;
+    const bool had_profile = tx_ != nullptr;
+    const std::string package = package_;
     bool clean = true;
     if (boost_) {
         clean = boost_->cancel(why == EndReason::ProcessDeath ? LaunchBoost::Cancel::ProcessExit
@@ -193,6 +236,11 @@ bool GamePerformanceRuntime::on_game_end(EndReason why) {
     pid_ = 0;
     refresh_target_hz_ = 0;
     state_ = RuntimeState::Idle;
+    if (had_profile)
+        notify({RuntimeNotice::Kind::ProfileRestored, clean, package,
+                clean ? "per-game values restored and read back" : "restore incomplete; journal kept", {}, {}});
+    if (had_context)
+        notify({RuntimeNotice::Kind::Restore, clean, package, std::string("context ended: ") + to_string(why), {}, {}});
     return clean;
 }
 

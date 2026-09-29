@@ -28,6 +28,7 @@
 // a restarted process ends the current session (Switch) before the new one begins.
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -70,8 +71,22 @@ public:
     virtual bool needs_tick() const { return false; }
 };
 
+/// What the manager reports to an observer, always after all participants finished the transition.
+struct SessionNotice {
+    enum class Kind { Start, End, Switch } kind = Kind::Start;
+    SessionInfo session;
+    std::string previous_id; ///< Switch: the session that was replaced
+    bool clean = true;       ///< End: every participant cleaned up
+};
+
 class SessionManager {
 public:
+    /// Optional; exceptions are swallowed and never change the lifecycle.
+    void set_observer(std::function<void(const SessionNotice &)> o) { observer_ = std::move(o); }
+    /// Optional; receives the session id before participants begin and "" after they ended, so
+    /// what participants report can carry the id.
+    void set_context(std::function<void(const std::string &session_id)> c) { context_ = std::move(c); }
+
     /// Registration order is begin order; end runs in reverse.
     void add(SessionParticipant *participant) { participants_.push_back(participant); }
 
@@ -100,6 +115,10 @@ private:
     bool recovered_ = false;
     std::vector<std::string> events_; ///< bounded lifecycle log for diagnostics
     void note(const std::string &e);
+    void notify(const SessionNotice &n) const;
+    void context(const std::string &id) const;
+    std::function<void(const SessionNotice &)> observer_;
+    std::function<void(const std::string &)> context_;
 };
 
 } // namespace flux::session

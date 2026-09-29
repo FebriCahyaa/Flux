@@ -2,8 +2,8 @@
 
 Step 6 (Observatory foundation), branch `integration/game-runtime-clean`.
 Code: `jni/observatory/Event.{hpp,cpp}` (`flux::observatory`) · Tests: `tests/observatory_test.cpp`.
-Status: **Step 6 IN PROGRESS** — model, registry, validation, serialisation implemented and
-host-tested; **no producer emits events yet**; linked into `fluxd` as `FluxObservatory`, unused.
+Status: Step 6 foundation approved; **Step 6.5 IN PROGRESS** — producers wired through the
+integration bridge into an in-memory store in `fluxd` (no persistence).
 
 ## Event schema (v1)
 
@@ -26,21 +26,30 @@ host-tested; **no producer emits events yet**; linked into `fluxd` as `FluxObser
 Serialised as one JSON object per line (JSONL). Category is not stored per event; it is derived
 from the type through the registry.
 
-## Registry (initial)
+## Registry (Step 6.5)
 
-| Category | Types | Allowed sources | Requires |
-|---|---|---|---|
-| SESSION | `SESSION_START`, `SESSION_END`, `SESSION_SWITCH` | session | session_id |
-| RUNTIME | `RUNTIME_ACTIVATED`, `RUNTIME_RESTORED`, `PROFILE_REAPPLIED` | game_runtime | session_id |
-| RUNTIME | `RUNTIME_RESOLVE_FAILED` | game_runtime | — |
-| PERFORMANCE | `PERFORMANCE_PLAN` | performance | — |
-| PERFORMANCE | `LAUNCH_BOOST_START`, `LAUNCH_BOOST_END`, `REFRESH_REQUEST` | performance | session_id |
-| TRANSACTION | `TRANSACTION_APPLIED`, `TRANSACTION_FAILED`, `TRANSACTION_ROLLBACK`, `TRANSACTION_RESTORED` | transaction, game_runtime | transaction_id |
-| RECOVERY | `RECOVERY_RUN`, `RECOVERY_INCOMPLETE` | recovery, session, game_runtime | — |
+| Category | Type | Source | Requires | Emitted when (always after the transition) |
+|---|---|---|---|---|
+| SESSION | `SESSION_START` | session | session_id | all participants began |
+| SESSION | `SESSION_END` | session | session_id | all participants ended; `after.end_reason`, `duration_ms`, `clean` |
+| SESSION | `SESSION_SWITCH` | session | session_id | new session started after replacing `before.session_id` |
+| RUNTIME | `RUNTIME_ACTIVATE` | game_runtime | — | per-game context active (`after.profile`, `refresh_target_hz`, `launch_boost`) |
+| RUNTIME | `RUNTIME_RESTORE` | game_runtime | — | context ended and restore finished |
+| RUNTIME | `RUNTIME_FAILURE` | game_runtime | — | profiles unreadable / resolve failed / plan rejected / transaction rolled back |
+| PERFORMANCE | `PROFILE_APPLIED` | performance | — | per-game transaction applied **and read back**; `after` = field → source |
+| PERFORMANCE | `PROFILE_RESTORED` | performance | — | per-game transaction restored |
+| TRANSACTION | `TRANSACTION_BEGIN` | transaction | transaction_id | state moved to preparing |
+| TRANSACTION | `TRANSACTION_APPLY` | transaction | transaction_id | all writes done (ok) or a write / journal write failed (failed) |
+| TRANSACTION | `TRANSACTION_VERIFY` | transaction | transaction_id | all read-backs matched (ok) or one did not (failed) |
+| TRANSACTION | `TRANSACTION_ROLLBACK` | transaction | transaction_id | undo after a failure finished (ok / partial) |
+| TRANSACTION | `TRANSACTION_RESTORE` | transaction | transaction_id | end-of-lifecycle restore finished; `before` = undone values, `after` = originals |
+| RECOVERY | `RECOVERY_START` | recovery | — | journal replay begins at daemon start |
+| RECOVERY | `RECOVERY_SUCCESS` | recovery | — | a journal restored cleanly (or none existed) |
+| RECOVERY | `RECOVERY_FAILED` | recovery | — | a journal kept: failed or corrupted entries |
 
-New types are added with `EventRegistry::add` (unique, UPPER_SNAKE_CASE, at least one source).
-Kernel, Graphics and Thermal categories are **not** registered yet; they are added when those
-engines exist (see `OBSERVATORY.md` integration points).
+The Step 6 placeholder names (`RUNTIME_ACTIVATED`, `TRANSACTION_FAILED`, `RECOVERY_RUN`, …) were
+replaced before any producer or storage used them. Kernel, Graphics and Thermal types are not
+registered.
 
 ## Validation (rejects, never repairs)
 

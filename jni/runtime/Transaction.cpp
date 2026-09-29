@@ -129,6 +129,13 @@ bool NodeWriteOperation::verify_restore() {
     return now == original_;
 }
 
+void NodeWriteOperation::evidence(std::map<std::string, std::string> &before,
+                                  std::map<std::string, std::string> &after) const {
+    if (!have_original_) return;
+    before[path_] = original_;
+    after[path_] = value_;
+}
+
 std::string NodeWriteOperation::journal_entry() const {
     // Write-ahead: the entry exists from snapshot on; restoring an unchanged node is harmless.
     return have_original_ ? journal::encode_entry(path_, original_) : std::string{};
@@ -136,8 +143,25 @@ std::string NodeWriteOperation::journal_entry() const {
 
 // -- Transaction ----------------------------------------------------------------
 
-Transaction::Transaction(std::string id, RuntimePlan plan, JournalSink sink)
-    : id_(std::move(id)), plan_(std::move(plan)), sink_(std::move(sink)) {}
+Transaction::Transaction(std::string id, RuntimePlan plan, JournalSink sink, TxObserver observer)
+    : id_(std::move(id)), plan_(std::move(plan)), sink_(std::move(sink)), observer_(std::move(observer)) {}
+
+void Transaction::notify(TxNotice::Kind kind, bool ok, const std::string &detail) const {
+    if (!observer_) return;
+    try {
+        TxNotice n;
+        n.kind = kind;
+        n.ok = ok;
+        n.tx_id = id_;
+        n.domain = plan_.domain;
+        n.subject = plan_.subject;
+        n.detail = detail;
+        for (const TransactionOperation *op : touched_) op->evidence(n.before, n.after);
+        observer_(n);
+    } catch (...) {
+        // Observability must never change what the transaction does.
+    }
+}
 
 bool Transaction::persist() {
     if (!sink_) return true;
@@ -147,6 +171,7 @@ bool Transaction::persist() {
 bool Transaction::start() {
     if (state_ != TxState::Inactive) return state_ == TxState::Active;
     state_ = TxState::Preparing;
+    notify(TxNotice::Kind::Begin, true, std::to_string(plan_.operations.size()) + " operations planned");
     for (auto &op : plan_.operations) {
         if (!op->snapshot()) {
             skipped_.push_back(op->category() + ": " + op->describe());
@@ -157,19 +182,31 @@ bool Transaction::start() {
         if (!persist()) {
             log_.push_back("journal write failed before " + op->describe());
             touched_.pop_back(); // not applied, nothing to undo
-            rollback();
+            notify(TxNotice::Kind::Apply, false, "journal write failed before " + op->describe());
+            const bool clean = rollback();
             state_ = TxState::Failed;
+            notify(TxNotice::Kind::Rollback, clean, clean ? "rolled back" : "rollback incomplete");
             return false;
         }
-        if (!op->apply() || !op->verify()) {
+        const bool applied = op->apply();
+        const bool verified = applied && op->verify();
+        if (!verified) {
             log_.push_back("apply/verify failed: " + op->describe());
-            rollback();
+            notify(applied ? TxNotice::Kind::Verify : TxNotice::Kind::Apply, false,
+                   (applied ? "verify failed: " : "apply failed: ") + op->describe());
+            const bool clean = rollback();
             state_ = TxState::Failed;
+            notify(TxNotice::Kind::Rollback, clean, clean ? "rolled back" : "rollback incomplete");
             return false;
         }
         log_.push_back("applied " + op->describe());
     }
     state_ = touched_.empty() ? TxState::Inactive : TxState::Active;
+    if (state_ == TxState::Active) {
+        const std::string n = std::to_string(touched_.size()) + " operations";
+        notify(TxNotice::Kind::Apply, true, n + " applied");
+        notify(TxNotice::Kind::Verify, true, n + " read back");
+    }
     return true;
 }
 
@@ -198,8 +235,25 @@ bool Transaction::reapply() {
 bool Transaction::finish() {
     if (state_ != TxState::Active) return state_ == TxState::Inactive || state_ == TxState::Restored;
     state_ = TxState::Restoring;
+    std::map<std::string, std::string> before, after; // evidence of what is being restored
+    for (const TransactionOperation *op : touched_) op->evidence(after, before);
     const bool clean = rollback();
     state_ = clean ? TxState::Restored : TxState::Failed;
+    if (observer_) {
+        try {
+            TxNotice n;
+            n.kind = TxNotice::Kind::Restore;
+            n.ok = clean;
+            n.tx_id = id_;
+            n.domain = plan_.domain;
+            n.subject = plan_.subject;
+            n.detail = clean ? "restored and read back" : "restore incomplete; journal kept";
+            n.before = std::move(before);
+            n.after = std::move(after);
+            observer_(n);
+        } catch (...) {
+        }
+    }
     return clean;
 }
 

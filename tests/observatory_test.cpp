@@ -34,7 +34,7 @@ Event tx_failed(int64_t ts = kNow) {
     Event e;
     e.timestamp_ms = ts;
     e.source = "transaction";
-    e.type = "TRANSACTION_FAILED";
+    e.type = "TRANSACTION_ROLLBACK";
     e.severity = Severity::Warning;
     e.session_id = "s-1-1";
     e.reason = "verify failed: /proc/sys/vm/swappiness read back 100, expected 60";
@@ -48,11 +48,13 @@ Event tx_failed(int64_t ts = kNow) {
 
 void test_event_creation() {
     const EventRegistry reg = EventRegistry::builtin();
-    for (const char *t : {"SESSION_START", "SESSION_END", "RUNTIME_ACTIVATED", "PERFORMANCE_PLAN",
-                          "TRANSACTION_APPLIED", "TRANSACTION_FAILED", "RECOVERY_RUN"})
+    for (const char *t : {"SESSION_START", "SESSION_END", "SESSION_SWITCH", "RUNTIME_ACTIVATE", "RUNTIME_RESTORE",
+                          "RUNTIME_FAILURE", "PROFILE_APPLIED", "PROFILE_RESTORED", "TRANSACTION_BEGIN",
+                          "TRANSACTION_APPLY", "TRANSACTION_VERIFY", "TRANSACTION_ROLLBACK", "TRANSACTION_RESTORE",
+                          "RECOVERY_START", "RECOVERY_SUCCESS", "RECOVERY_FAILED"})
         CHECK(reg.find(t) != nullptr);
     CHECK(reg.find("SESSION_START")->category == Category::Session);
-    CHECK(reg.find("RECOVERY_RUN")->category == Category::Recovery);
+    CHECK(reg.find("RECOVERY_START")->category == Category::Recovery);
 
     CHECK(validate(session_start(), reg, kNow).empty());
     CHECK(validate(tx_failed(), reg, kNow).empty());
@@ -164,7 +166,7 @@ void test_ordering() {
     CHECK_EQ(all.size(), size_t{3});
     CHECK_EQ(all[0].timestamp_ms, kNow - 300);
     CHECK_EQ(all[1].type, std::string("SESSION_START"));   // equal timestamp: write order
-    CHECK_EQ(all[2].type, std::string("TRANSACTION_FAILED"));
+    CHECK_EQ(all[2].type, std::string("TRANSACTION_ROLLBACK"));
     CHECK(all[1].sequence < all[2].sequence);
 
     EventQuery q;

@@ -27,6 +27,7 @@
 #include "Transaction.hpp"
 
 #include <functional>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -49,6 +50,19 @@ struct RuntimePaths {
     std::string legacy_journal; ///< compat_journal from the old branch; recovered, never written
 };
 
+/// What the runtime reports to an observer, always after the transition it describes.
+struct RuntimeNotice {
+    enum class Kind {
+        Activate, Failure, Restore,               ///< runtime context
+        ProfileApplied, ProfileRestored,          ///< per-game performance values
+        RecoveryStart, RecoverySuccess, RecoveryFailed
+    } kind = Kind::Activate;
+    bool ok = true;
+    std::string package;
+    std::string detail;
+    std::map<std::string, std::string> before, after;
+};
+
 struct RuntimeDeps {
     flux::runtime::Io node_io;
     FileStore files;
@@ -58,6 +72,9 @@ struct RuntimeDeps {
     /// gamelist.json lite_mode for a package; nullopt when the game is not listed.
     std::function<std::optional<bool>(const std::string &package)> gamelist_lite;
     std::function<void(const std::string &)> log;
+    /// Optional observers (Observatory bridge). Exceptions are swallowed; behaviour never depends on them.
+    std::function<void(const RuntimeNotice &)> observer;
+    flux::runtime::TxObserver tx_observer;
 };
 
 enum class RuntimeState { Idle, ResolveFailed, Failed, Active };
@@ -105,6 +122,7 @@ private:
     void log(const std::string &m) const {
         if (d_.log) d_.log(m);
     }
+    void notify(RuntimeNotice n) const;
     std::string next_tx_id(int64_t now_ms);
     flux::runtime::Transaction::JournalSink sink_for(const std::string &path);
     bool load_profiles(ProfileDocument &doc);

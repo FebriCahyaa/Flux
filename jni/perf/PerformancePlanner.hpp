@@ -118,7 +118,8 @@ public:
     /// Start boosting. False when already boosting, when nothing is available, or when the
     /// transaction failed (already rolled back).
     bool begin(const GameContext &game, int64_t now_ms, const std::string &tx_id,
-               flux::runtime::Transaction::JournalSink sink = nullptr);
+               flux::runtime::Transaction::JournalSink sink = nullptr,
+               flux::runtime::TxObserver observer = nullptr);
     /// True while boosting; ends the boost (restore) once the deadline has passed.
     bool tick(int64_t now_ms);
     /// End the boost and restore. True when everything was restored cleanly (or nothing was active).

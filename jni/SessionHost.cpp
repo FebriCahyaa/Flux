@@ -17,6 +17,7 @@
 #include "SessionHost.hpp"
 
 #include "GameRuntimeHost.hpp"
+#include "ObservatoryHost.hpp"
 #include "SessionRecorder.hpp"
 
 #include <FluxLog.hpp>
@@ -80,6 +81,8 @@ flux::session::SessionManager &manager() {
         flux::session::SessionManager m;
         m.add(&runtime_participant);
         m.add(&recorder_participant);
+        m.set_observer(flux_observatory::bridge().session_observer());
+        m.set_context(flux_observatory::bridge().session_context());
         return m;
     }();
     return instance;

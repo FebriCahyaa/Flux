@@ -138,3 +138,12 @@ target_compile_options(flux_observatory PRIVATE ${FLUX_WARNINGS})
 
 flux_add_test(observatory_test tests/observatory_test.cpp)
 target_link_libraries(observatory_test PRIVATE flux_observatory)
+
+# -- observatory integration bridge ----------------------------------------------
+add_library(flux_bridge STATIC jni/bridge/ObservatoryBridge.cpp)
+target_include_directories(flux_bridge PUBLIC jni/bridge)
+target_link_libraries(flux_bridge PUBLIC flux_observatory flux_perf flux_session)
+target_compile_options(flux_bridge PRIVATE ${FLUX_WARNINGS})
+
+flux_add_test(observatory_bridge_test tests/observatory_bridge_test.cpp)
+target_link_libraries(observatory_bridge_test PRIVATE flux_bridge)

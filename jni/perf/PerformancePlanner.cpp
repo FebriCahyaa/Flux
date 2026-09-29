@@ -209,9 +209,10 @@ LaunchBoost::LaunchBoost(const PerformancePlanner &planner, int64_t max_ms)
     : planner_(planner), max_ms_(std::clamp(max_ms, kMinMs, kMaxMs)) {}
 
 bool LaunchBoost::begin(const GameContext &game, int64_t now_ms, const std::string &tx_id,
-                        flux::runtime::Transaction::JournalSink sink) {
+                        flux::runtime::Transaction::JournalSink sink, flux::runtime::TxObserver observer) {
     if (phase_ == Phase::Boosting) return false;
-    tx_ = std::make_unique<flux::runtime::Transaction>(tx_id, planner_.plan_launch_boost(game), std::move(sink));
+    tx_ = std::make_unique<flux::runtime::Transaction>(tx_id, planner_.plan_launch_boost(game), std::move(sink),
+                                                       std::move(observer));
     if (!tx_->start() || tx_->state() != flux::runtime::TxState::Active) {
         // failed (already rolled back) or nothing available: nothing to undo
         phase_ = Phase::Done;

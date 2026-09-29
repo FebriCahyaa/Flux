@@ -39,6 +39,22 @@ void SessionManager::note(const std::string &e) {
     events_.push_back(e);
 }
 
+void SessionManager::notify(const SessionNotice &n) const {
+    if (!observer_) return;
+    try {
+        observer_(n);
+    } catch (...) {
+    }
+}
+
+void SessionManager::context(const std::string &id) const {
+    if (!context_) return;
+    try {
+        context_(id);
+    } catch (...) {
+    }
+}
+
 void SessionManager::recover() {
     if (recovered_) return;
     recovered_ = true;
@@ -49,15 +65,22 @@ void SessionManager::recover() {
 bool SessionManager::begin(const SessionKey &key, int64_t now_ms) {
     recover(); // never begin before what a previous daemon left behind is undone
     if (current_.active && current_.key.same_process(key)) return false;
-    if (current_.active) end(EndReason::Switch, now_ms);
+    std::string previous;
+    if (current_.active) {
+        previous = current_.id;
+        end(EndReason::Switch, now_ms);
+    }
 
     current_ = SessionInfo{};
     current_.id = "s-" + std::to_string(now_ms) + "-" + std::to_string(++seq_);
     current_.key = key;
     current_.started_ms = now_ms;
     current_.active = true;
+    context(current_.id);
     for (auto *p : participants_) p->begin(current_);
     note("begin " + current_.id + " " + key.package + " pid " + std::to_string(key.pid));
+    notify({SessionNotice::Kind::Start, current_, "", true});
+    if (!previous.empty()) notify({SessionNotice::Kind::Switch, current_, previous, true});
     return true;
 }
 
@@ -73,6 +96,8 @@ bool SessionManager::end(EndReason why, int64_t now_ms) {
     note("end " + current_.id + " " + to_string(why) + (clean ? "" : " (not clean)"));
     last_ = current_;
     current_ = SessionInfo{};
+    notify({SessionNotice::Kind::End, last_, "", clean});
+    context("");
     return clean;
 }
 

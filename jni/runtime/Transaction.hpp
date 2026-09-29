@@ -25,6 +25,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -55,6 +56,9 @@ public:
     virtual bool verify_restore() = 0;
     /// Journal entry that undoes this operation after a crash; empty when there is nothing to undo.
     virtual std::string journal_entry() const { return {}; }
+    /// Evidence for observers: target -> original value, target -> requested value.
+    virtual void evidence(std::map<std::string, std::string> & /*before*/,
+                          std::map<std::string, std::string> & /*after*/) const {}
 };
 
 /// Write a value to a node, remembering its previous content. Missing or unreadable nodes are never written.
@@ -72,6 +76,8 @@ public:
     bool restore() override;
     bool verify_restore() override;
     std::string journal_entry() const override;
+    void evidence(std::map<std::string, std::string> &before,
+                  std::map<std::string, std::string> &after) const override;
 
 private:
     Io io_;
@@ -93,13 +99,24 @@ struct RuntimePlan {
 /// "tx-<ms>-<seq>": unique per daemon run given a monotonically increasing seq.
 std::string make_transaction_id(int64_t now_ms, uint64_t seq);
 
+/// What a transaction reports to an observer, always after the transition it describes.
+struct TxNotice {
+    enum class Kind { Begin, Apply, Verify, Rollback, Restore } kind = Kind::Begin;
+    bool ok = true;
+    std::string tx_id, domain, subject;
+    std::string detail; ///< failing operation or summary
+    std::map<std::string, std::string> before, after;
+};
+/// Optional; a throwing observer is ignored and never changes the transaction.
+using TxObserver = std::function<void(const TxNotice &)>;
+
 class Transaction {
 public:
     /// Receives the serialised journal before every apply (write-ahead) and after restore.
     /// Returning false stops the transaction before anything unjournaled is applied.
     using JournalSink = std::function<bool(const std::string &journal_text)>;
 
-    Transaction(std::string id, RuntimePlan plan, JournalSink sink = nullptr);
+    Transaction(std::string id, RuntimePlan plan, JournalSink sink = nullptr, TxObserver observer = nullptr);
 
     /// snapshot -> journal -> apply -> verify for each operation; any failure rolls back.
     bool start();
@@ -120,10 +137,12 @@ public:
 private:
     bool rollback();
     bool persist();
+    void notify(TxNotice::Kind kind, bool ok, const std::string &detail) const;
 
     std::string id_;
     RuntimePlan plan_;
     JournalSink sink_;
+    TxObserver observer_;
     std::vector<TransactionOperation *> touched_;
     std::vector<std::string> skipped_, log_;
     TxState state_ = TxState::Inactive;

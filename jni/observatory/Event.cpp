@@ -106,29 +106,28 @@ EventRegistry EventRegistry::builtin() {
         r.add({n, c, std::move(src), sess, tx, d});
     };
     const std::vector<std::string> session{"session"}, runtime{"game_runtime"}, perf{"performance"},
-        tx{"transaction", "game_runtime"}, recovery{"recovery", "session", "game_runtime"};
+        tx{"transaction"}, recovery{"recovery"};
 
-    add("SESSION_START", Category::Session, session, true, false, "a game session began");
+    add("SESSION_START", Category::Session, session, true, false, "a game session began (all participants started)");
     add("SESSION_END", Category::Session, session, true, false, "a game session ended; reason = end reason");
     add("SESSION_SWITCH", Category::Session, session, true, false, "another game or a restarted process replaced the session");
 
-    add("RUNTIME_ACTIVATED", Category::Runtime, runtime, true, false, "per-game performance context active");
-    add("RUNTIME_RESTORED", Category::Runtime, runtime, true, false, "per-game performance context restored");
-    add("RUNTIME_RESOLVE_FAILED", Category::Runtime, runtime, false, false, "profile could not be resolved; nothing applied");
-    add("PROFILE_REAPPLIED", Category::Runtime, runtime, true, false, "per-game values re-applied after the profile script");
+    add("RUNTIME_ACTIVATE", Category::Runtime, runtime, false, false, "per-game performance context became active");
+    add("RUNTIME_RESTORE", Category::Runtime, runtime, false, false, "per-game performance context ended and was restored");
+    add("RUNTIME_FAILURE", Category::Runtime, runtime, false, false, "profile unreadable/unresolvable or transaction failed; nothing left applied");
 
-    add("PERFORMANCE_PLAN", Category::Performance, perf, false, false, "planner produced a RuntimePlan");
-    add("LAUNCH_BOOST_START", Category::Performance, perf, true, false, "launch boost began");
-    add("LAUNCH_BOOST_END", Category::Performance, perf, true, false, "launch boost ended; reason = cancel reason");
-    add("REFRESH_REQUEST", Category::Performance, perf, true, false, "refresh target handed to the refresh writer");
+    add("PROFILE_APPLIED", Category::Performance, perf, false, false, "per-game values applied and read back");
+    add("PROFILE_RESTORED", Category::Performance, perf, false, false, "per-game values restored");
 
-    add("TRANSACTION_APPLIED", Category::Transaction, tx, false, true, "all operations applied and verified");
-    add("TRANSACTION_FAILED", Category::Transaction, tx, false, true, "apply or verify failed");
-    add("TRANSACTION_ROLLBACK", Category::Transaction, tx, false, true, "applied operations rolled back");
-    add("TRANSACTION_RESTORED", Category::Transaction, tx, false, true, "restore at the end of the lifecycle");
+    add("TRANSACTION_BEGIN", Category::Transaction, tx, false, true, "transaction started");
+    add("TRANSACTION_APPLY", Category::Transaction, tx, false, true, "operations written (or a write failed)");
+    add("TRANSACTION_VERIFY", Category::Transaction, tx, false, true, "read-back verification result");
+    add("TRANSACTION_ROLLBACK", Category::Transaction, tx, false, true, "applied operations undone after a failure");
+    add("TRANSACTION_RESTORE", Category::Transaction, tx, false, true, "restore at the end of the lifecycle");
 
-    add("RECOVERY_RUN", Category::Recovery, recovery, false, false, "journal replayed at daemon start");
-    add("RECOVERY_INCOMPLETE", Category::Recovery, recovery, false, false, "journal kept: failed or corrupted entries");
+    add("RECOVERY_START", Category::Recovery, recovery, false, false, "journal replay started at daemon start");
+    add("RECOVERY_SUCCESS", Category::Recovery, recovery, false, false, "journal restored cleanly (or none left behind)");
+    add("RECOVERY_FAILED", Category::Recovery, recovery, false, false, "journal kept: failed or corrupted entries");
     return r;
 }
 
