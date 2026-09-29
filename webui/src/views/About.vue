@@ -1,27 +1,14 @@
 <template>
-  <div class="page h-full flex flex-col overflow-hidden bg-surface">
-    <div class="max-w-3xl mx-auto h-full flex flex-col w-full">
-      <div class="flex-none p-5 pb-3">
-        <button
-          @click="goBack"
-          class="m3-press w-10 h-10 -ms-2 rounded-full grid place-items-center text-on-surface hover:bg-surface-container-high"
-          :aria-label="$t('common.cancel')"
-        >
-          <ArrowLeftIcon class="w-6 h-6 rtl:rotate-180" />
-        </button>
-      </div>
-
-      <div class="scrollbar-hidden pb-safe-nav flex-1 min-h-0 overflow-y-scroll px-4">
-        <div class="flex items-end justify-between gap-3 mt-8 mb-6 px-1">
-          <h1 class="m3-headline text-4xl text-on-surface">
-            {{ $t('settings_page.section.about') }}
-          </h1>
-          <span
-            class="allow-copy shrink-0 rounded-full bg-surface-container-high px-3 py-1 text-xs font-medium text-on-surface-variant"
-          >
-            {{ versionText }}
-          </span>
-        </div>
+  <!-- About is a special screen: the shared shell gives it the same back bar
+       and title as every other settings page; the content stays its own. -->
+  <SettingsDetailLayout :title="$t('settings_page.about.title')">
+    <template #title-aside>
+      <span
+        class="allow-copy shrink-0 rounded-full bg-surface-container-high px-3 py-1 text-xs font-medium text-on-surface-variant"
+      >
+        {{ versionText }}
+      </span>
+    </template>
 
         <!-- Developer card (M3 Expressive) -->
         <section
@@ -32,18 +19,19 @@
           <div class="relative flex items-center gap-4">
             <div
               class="about-avatar shape-cookie12 bg-primary-container text-on-primary-container grid place-items-center shrink-0"
+              aria-hidden="true"
             >
               <CodeIcon :size="30" />
             </div>
             <div class="min-w-0">
-              <h3 class="m3-headline text-2xl text-on-surface">FebriCahyaa</h3>
+              <h2 class="m3-headline text-2xl text-on-surface">FebriCahyaa</h2>
               <p class="text-xs text-on-surface-variant mt-1">
                 {{ $t('settings_page.about.role') }}
               </p>
               <span
                 class="mt-2 inline-flex items-center gap-1.5 rounded-full bg-primary text-on-primary px-2.5 py-1 text-xs font-semibold"
               >
-                <span class="about-dot"></span>{{ $t('settings_page.about.status') }}
+                <span class="about-dot" aria-hidden="true"></span>{{ $t('settings_page.about.status') }}
               </span>
             </div>
           </div>
@@ -72,22 +60,25 @@
             {{ $t('settings_page.about.description') }}
           </p>
 
-          <!-- Button group: tonal + filled, pills that morph on press -->
+          <!-- Button group: tonal + filled, pills that morph on press. They open an
+               external page, so they are announced as links. -->
           <div class="relative flex gap-2 mt-5">
             <RippleComponent
+              role="link"
               @click="openGithub"
-              class="m3-press m3-press-morph flex-1 flex items-center justify-center gap-2 rounded-full bg-secondary-container text-on-secondary-container py-3.5 cursor-pointer"
+              class="about-link m3-press m3-press-morph flex-1 flex items-center justify-center gap-2 rounded-full bg-secondary-container text-on-secondary-container py-3.5 cursor-pointer"
               tabindex="0"
             >
-              <GithubIcon :size="18" />
+              <GithubIcon :size="18" aria-hidden="true" />
               <span class="text-sm font-semibold">GitHub</span>
             </RippleComponent>
             <RippleComponent
+              role="link"
               @click="openTelegram"
-              class="m3-press m3-press-morph flex-1 flex items-center justify-center gap-2 rounded-full bg-primary text-on-primary py-3.5 cursor-pointer"
+              class="about-link m3-press m3-press-morph flex-1 flex items-center justify-center gap-2 rounded-full bg-primary text-on-primary py-3.5 cursor-pointer"
               tabindex="0"
             >
-              <TelegramIcon :size="18" />
+              <TelegramIcon :size="18" aria-hidden="true" />
               <span class="text-sm font-semibold">Telegram</span>
             </RippleComponent>
           </div>
@@ -98,24 +89,20 @@
           <p class="m3-headline text-lg text-primary">"{{ $t('settings_page.about.tagline') }}"</p>
           <p class="text-xs text-on-surface-variant opacity-60 mt-1">Flux Tweaks · FebriCahyaa</p>
         </div>
-      </div>
-    </div>
-  </div>
+  </SettingsDetailLayout>
 </template>
 
 <script setup>
 import { computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useHomeStore } from '@/stores/Home'
 import * as KernelSU from '@/helpers/KernelSU'
 
+import SettingsDetailLayout from '@/components/ui/SettingsDetailLayout.vue'
 import RippleComponent from '@/components/ui/Ripple.vue'
-import ArrowLeftIcon from '@/components/icons/ArrowLeft.vue'
 import CodeIcon from '@/components/icons/Code.vue'
 import GithubIcon from '@/components/icons/Github.vue'
 import TelegramIcon from '@/components/icons/Telegram.vue'
 
-const router = useRouter()
 const homeStore = useHomeStore()
 
 const versionText = computed(() => {
@@ -130,10 +117,6 @@ onMounted(() => {
 
 const openGithub = () => KernelSU.openWebsite('https://github.com/FebriCahyaa/Flux')
 const openTelegram = () => KernelSU.openWebsite('https://t.me/c/3901105851/3')
-
-function goBack() {
-  router.back()
-}
 </script>
 
 <style scoped>
@@ -185,6 +168,11 @@ function goBack() {
 
 .about-facts .fact:nth-child(4) {
   border-bottom-right-radius: 24px;
+}
+
+.about-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 @keyframes about-spin {
