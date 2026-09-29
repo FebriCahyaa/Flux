@@ -34,7 +34,8 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   `tests/game_runtime_test.cpp`, `docs/architecture/GAME_RUNTIME_PERFORMANCE_LIFECYCLE.md`. Host 11/11 PASS;
   CI run 36621945822 green. Profiles from `game_profiles.json` (+ `compat_library.json` presets, gamelist
   lite fallback); journals `perf_journal`, `launch_journal`; legacy `compat_journal` recovered.
-  **Not called by `fluxd`** (Main.cpp wiring, device adapters, probe, refresh executor pending). Device: NOT_TESTED.
+  **Wired into `fluxd`** (`dd86b7c`): boot recovery, game start/reapply/tick/end hooks, real adapters,
+  capability probe, refresh bridge → `flux_refresh`. Host 13/13; CI 36623380177 green. Device: NOT_TESTED.
 - **Next:** owner review to close Step 4. Session migration not started.
 
 ### Step 2 status (owner-confirmed, 2026-09-29)

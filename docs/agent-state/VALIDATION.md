@@ -82,3 +82,16 @@ Step 1: **CLOSED**.
 | Forbidden-symbol check | clean |
 | CI run https://github.com/FebriCahyaa/Flux/actions/runs/36621945822 | success: host tests, ndk-build arm64+arm, WebUI, packaging |
 | fluxd call path / device | not implemented / NOT_TESTED |
+
+## Game Runtime Step 4 wiring — 2026-09-29 (`integration/game-runtime-clean` @ `dd86b7c`)
+| Check | Result |
+|---|---|
+| Tests first (runtime_host_test red at configure) | observed |
+| Daemon lifecycle test: fluxd start → recover journal → game start event → runtime active → repeat pass idempotent → reapply → game exit → restore (journal removed) → disable_tweaks | PASS |
+| Refresh bridge: supported 90 Hz requested; 144 Hz on 60/90/120 panel ignored; `dumpsys display` parsing (119.99→120) | PASS |
+| Refresh shell test (`flux_refresh`: target honoured, unsupported ignored, restore, garbage ignored, double boost) | PASS |
+| Adapter test (real temp dir): missing node skipped, virtual/removable block devices excluded, apply+restore on real files, rollback on ENOSPC write, atomic FileStore, symlink target refused | PASS |
+| Host ctest total | PASS 13/13 |
+| Forbidden-symbol check | clean |
+| CI https://github.com/FebriCahyaa/Flux/actions/runs/36623380177 (ndk-build of Main.cpp/Profiler.cpp/GameRuntimeHost.cpp, arm64+arm, packaging) | success |
+| Device | NOT_TESTED |
