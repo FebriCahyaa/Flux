@@ -20,12 +20,16 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   `integration/game-runtime-clean` @ `63dd11c` (code `b604eac`, build `8fc92c0`). `FluxRuntime`
   linked into `fluxd` but not called; forbidden-symbol CI gate active. CI run 36617841919 green
   (host 8/8, ndk-build arm64+arm, WebUI, 3 zips). Device: NOT_TESTED.
-- **Game Runtime migration Step 2 (performance planner + launch boost): IN PROGRESS.**
+- **Game Runtime migration Step 2 (performance planner + launch boost): CLOSED** (owner, 2026-09-29).
   `integration/game-runtime-clean` @ `38a2f7e` (code `98a7a25`): `jni/perf/PerformancePlanner.*`,
   `tests/performance_planner_test.cpp`, `docs/architecture/PERFORMANCE_PLANNER.md`. Host 9/9 PASS;
   CI run 36619381182 green (host, forbidden-symbol gate, ndk-build arm64+arm, WebUI, 3 zips).
   `FluxPerf` linked into `fluxd`, **no call path** (needs Session). Device: NOT_TESTED.
-- **Next:** owner review to close Step 2. Session migration not started.
+- **Game Runtime migration Step 3 (performance profile inheritance): IN PROGRESS.**
+  `integration/game-runtime-clean` @ `a954925` (code `3410fbd`): `jni/perf/ProfileModel.*`,
+  `tests/profile_model_test.cpp`, `docs/architecture/PERFORMANCE_PROFILE_MODEL.md`. Host 10/10 PASS;
+  CI run 36620727531 green. Not loaded/called by `fluxd`. Device: NOT_TESTED.
+- **Next:** owner review to close Step 3. Session migration not started.
 
 ### Step 2 status (owner-confirmed, 2026-09-29)
 

@@ -38,8 +38,8 @@ Branch `integration/game-runtime-clean` (= main). Plan: `GAME_RUNTIME_MIGRATION_
 | Step | Status |
 |---|---|
 | 1 Transaction engine decoupling | **CLOSED** — `b604eac`, `8fc92c0`, `63dd11c`; CI run 36617841919 green |
-| 2 Perf planner + launch boost | IN PROGRESS — `98a7a25`, `38a2f7e`; CI 36619381182 green; awaiting review |
-| 3 Profile inheritance (perf only) | NOT STARTED |
+| 2 Perf planner + launch boost | **CLOSED** — `98a7a25`, `38a2f7e`, `64ce145`; CI 36619381182 green |
+| 3 Profile inheritance (perf only) | IN PROGRESS — `3410fbd`, `a954925`; CI 36620727531 green; awaiting review |
 | 4 GameRuntime perf lifecycle | NOT STARTED |
 | 5 Session + journal + recovery | NOT STARTED — gated on Step 1 |
 | 6–10 | NOT STARTED |

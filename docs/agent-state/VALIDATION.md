@@ -61,3 +61,13 @@ Step 1: **CLOSED**.
 | Forbidden-symbol check | clean |
 | CI run https://github.com/FebriCahyaa/Flux/actions/runs/36619381182 (workflow_dispatch) | success: host tests, ndk-build arm64+arm with FluxPerf, WebUI, packaging |
 | Daemon call path / device | none by design / NOT_TESTED |
+
+## Game Runtime Step 3 — 2026-09-29 (`integration/game-runtime-clean` @ `3410fbd`)
+| Check | Result |
+|---|---|
+| Tests written first; CMake configure failed without implementation (red) | observed |
+| Host ctest incl. `profile_model_test` (-Werror) | PASS 10/10 |
+| Scenarios: inheritance order, override priority, missing parent, unknown profile, cycle/self-cycle, invalid field/value/type/custom Hz, invalid document, explanation text, legacy game_profiles, legacy library, gamelist lite_mode | PASS |
+| Forbidden-symbol check | clean |
+| CI run https://github.com/FebriCahyaa/Flux/actions/runs/36620727531 | success: host tests, ndk-build arm64+arm (FluxPerf with rapidjson), WebUI, packaging |
+| Device file loading / daemon call path / device | not implemented / not implemented / NOT_TESTED |
