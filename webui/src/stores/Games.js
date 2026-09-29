@@ -69,27 +69,35 @@ export const useGamesStore = defineStore('games', () => {
       throw new Error('Package name is required')
     }
 
-    const currentConfig = { ...gamelistConfig.value }
+    // Applied optimistically so the toggle feels instant; rolled back below
+    // if the write fails, so a failed save never reads as if it succeeded.
+    const previousConfig = gamelistConfig.value
+    const previousEnabled = previousConfig[packageName] !== undefined
+    const nextConfig = { ...previousConfig }
 
     if (config) {
-      currentConfig[packageName] = {
+      nextConfig[packageName] = {
         lite_mode: !!config.lite_mode,
         enable_dnd: !!config.enable_dnd,
       }
     } else {
-      delete currentConfig[packageName]
+      delete nextConfig[packageName]
     }
 
-    gamelistConfig.value = currentConfig
+    gamelistConfig.value = nextConfig
 
     const appIndex = userApps.value.findIndex((a) => a.packageName === packageName)
-    if (appIndex !== -1) {
-      userApps.value[appIndex].isEnabled = !!config
+    if (appIndex !== -1) userApps.value[appIndex].isEnabled = !!config
+
+    try {
+      await saveGamelistConfig()
+    } catch (e) {
+      gamelistConfig.value = previousConfig
+      if (appIndex !== -1) userApps.value[appIndex].isEnabled = previousEnabled
+      throw e
     }
 
-    await saveGamelistConfig()
-
-    return currentConfig[packageName] || null
+    return nextConfig[packageName] || null
   }
 
   async function toggleAppEnabled(packageName, enabled) {

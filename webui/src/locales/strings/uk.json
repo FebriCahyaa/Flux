@@ -32,7 +32,8 @@
         }
     },
     "games_page": {
-        "title": "Мої ігри",
+        "title": "Ігри",
+        "subtitle": "Керування поведінкою Flux для кожної гри",
         "search_placeholder": "Пошук застосунків",
         "no_apps_found": "Ніяких застосунків не знайдено",
         "badges": {

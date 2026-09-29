@@ -40,7 +40,8 @@
         }
     },
     "games_page": {
-        "title": "Mis juegos",
+        "title": "Juegos",
+        "subtitle": "Administra el comportamiento de Flux por juego",
         "search_placeholder": "Buscar aplicaciones",
         "no_apps_found": "No se encontraron aplicaciones",
         "badges": {

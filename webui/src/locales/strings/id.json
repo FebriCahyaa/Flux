@@ -42,7 +42,8 @@
     }
   },
   "games_page": {
-    "title": "Game Saya",
+    "title": "Game",
+    "subtitle": "Kelola perilaku Flux per game",
     "search_placeholder": "Cari aplikasi",
     "no_apps_found": "Tidak ada aplikasi yang ditemukan",
     "badges": {

@@ -97,7 +97,8 @@
         },
         "search_placeholder": "アプリ検索",
         "no_apps_found": "アプリが見つかりませんでした",
-        "title": "マイゲーム"
+        "title": "ゲーム",
+        "subtitle": "ゲームごとのFluxの動作を管理"
     },
     "log_level_selection": {
         "title": "ログレベル"

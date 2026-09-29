@@ -42,7 +42,8 @@
     }
   },
   "games_page": {
-    "title": "My Games",
+    "title": "Games",
+    "subtitle": "Manage game-specific Flux behavior",
     "search_placeholder": "Search apps",
     "no_apps_found": "No apps found",
     "badges": {

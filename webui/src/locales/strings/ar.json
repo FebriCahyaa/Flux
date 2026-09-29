@@ -38,7 +38,8 @@
         }
     },
     "games_page": {
-        "title": "ألعابي",
+        "title": "الألعاب",
+        "subtitle": "إدارة سلوك Flux الخاص بكل لعبة",
         "search_placeholder": "ابحث في التطبيقات",
         "no_apps_found": "لم يتم العثور على تطبيقات",
         "badges": {

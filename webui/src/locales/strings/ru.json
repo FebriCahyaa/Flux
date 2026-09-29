@@ -105,7 +105,8 @@
         }
     },
     "games_page": {
-        "title": "Мои Игры",
+        "title": "Игры",
+        "subtitle": "Настройка поведения Flux для каждой игры",
         "search_placeholder": "Поиск приложений",
         "no_apps_found": "Приложения не найдены",
         "badges": {

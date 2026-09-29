@@ -3,7 +3,7 @@
     <div class="max-w-3xl mx-auto h-full flex flex-col w-full">
       <!-- Header -->
       <div class="flex-none px-5 pt-6">
-        <div class="flex justify-between items-end mb-4 text-on-surface">
+        <div class="flex justify-between items-end mb-1 text-on-surface">
           <h1 class="m3-headline text-[32px]">{{ $t('games_page.title') }}</h1>
           <span
             class="rounded-full bg-surface-container-high px-3 py-1 text-xs font-medium text-on-surface-variant"
@@ -11,6 +11,7 @@
             {{ $t('games_page.count', myGames.length) }}
           </span>
         </div>
+        <p class="text-xs text-on-surface-variant mb-4">{{ $t('games_page.subtitle') }}</p>
 
         <!-- Tabs: my games / all apps -->
         <div class="tabs mb-3" role="tablist">
@@ -34,6 +35,7 @@
             v-model="gamesStore.searchQuery"
             type="text"
             :placeholder="$t('games_page.search_placeholder')"
+            :aria-label="$t('games_page.search_placeholder')"
             class="bg-transparent border-none outline-none text-on-surface placeholder-on-surface-variant w-full"
           />
           <button

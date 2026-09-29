@@ -38,7 +38,8 @@
         }
     },
     "games_page": {
-        "title": "Meus Jogos",
+        "title": "Jogos",
+        "subtitle": "Gerencie o comportamento do Flux por jogo",
         "search_placeholder": "Procurar aplicativos",
         "no_apps_found": "Nenhum aplicativo encontrado",
         "badges": {

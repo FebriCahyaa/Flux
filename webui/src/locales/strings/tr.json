@@ -30,7 +30,8 @@
         }
     },
     "games_page": {
-        "title": "Oyunlarım",
+        "title": "Oyunlar",
+        "subtitle": "Oyuna özgü Flux davranışını yönet",
         "search_placeholder": "Uygulama ara",
         "no_apps_found": "Uygulama bulunamadı",
         "badges": {

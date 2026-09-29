@@ -40,7 +40,8 @@
         "success_save_log": "日志成功保存到 {path}"
     },
     "games_page": {
-        "title": "我的游戏",
+        "title": "游戏",
+        "subtitle": "管理各游戏的 Flux 行为",
         "search_placeholder": "搜索应用",
         "no_apps_found": "未找到应用",
         "badges": {
