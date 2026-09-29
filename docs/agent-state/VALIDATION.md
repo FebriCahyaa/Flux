@@ -95,3 +95,18 @@ Step 1: **CLOSED**.
 | Forbidden-symbol check | clean |
 | CI https://github.com/FebriCahyaa/Flux/actions/runs/36623380177 (ndk-build of Main.cpp/Profiler.cpp/GameRuntimeHost.cpp, arm64+arm, packaging) | success |
 | Device | NOT_TESTED |
+
+## Game Runtime Step 4 final review — 2026-09-29 (`integration/game-runtime-clean` @ `3e96312`)
+| Area | Result |
+|---|---|
+| Main.cpp lifecycle integration (diff review) | OK |
+| Journal recovery path | OK after fix: legacy `#flux-compat-journal v1` header now parsed; test added (red -> green) |
+| Game start activation / game exit restore / process death restore / daemon restart recovery | PASS (host tests) |
+| Refresh bridge (C++ + shell) | PASS |
+| Adapter safety (real temp files) | PASS |
+| Rollback behaviour | PASS |
+| Forbidden-symbol gate | clean |
+| Host ctest | PASS 13/13 |
+| CI https://github.com/FebriCahyaa/Flux/actions/runs/36624510915 | success (host, ndk-build arm64+arm, WebUI, packaging) |
+| Device validation | **NOT_TESTED** |
+Step 4: **IMPLEMENTED**.

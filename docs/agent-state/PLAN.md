@@ -40,8 +40,8 @@ Branch `integration/game-runtime-clean` (= main). Plan: `GAME_RUNTIME_MIGRATION_
 | 1 Transaction engine decoupling | **CLOSED** — `b604eac`, `8fc92c0`, `63dd11c`; CI run 36617841919 green |
 | 2 Perf planner + launch boost | **CLOSED** — `98a7a25`, `38a2f7e`, `64ce145`; CI 36619381182 green |
 | 3 Profile inheritance (perf only) | **CLOSED** — `3410fbd`, `a954925`; CI 36620727531 green |
-| 4 GameRuntime perf lifecycle | IN PROGRESS — `af4643d`, `c37ef15`, `dd86b7c` (fluxd wiring); CI 36623380177 green; awaiting review + device validation |
-| 5 Session + journal + recovery | NOT STARTED — gated on Step 1 |
+| 4 GameRuntime perf lifecycle (+4.5 activation bridge) | **IMPLEMENTED** — `af4643d`, `c37ef15`, `dd86b7c`, `3e96312`; CI 36624510915 green; device NOT_TESTED |
+| 5 Session migration | NOT STARTED — prepared (see below) |
 | 6 Refresh target | DONE inside Step 4 (`dd86b7c`) |
 | 7 Daemon wiring | DONE inside Step 4 for the performance runtime (`dd86b7c`) |
 | 8–10 | NOT STARTED |
@@ -78,3 +78,23 @@ Out of scope for Phase 1: any rename in code, paths, module ids, packages or UI 
 
 ## Next phase: Phase 2 — Aeyrin context / capability foundation
 Or, if the owner prefers, the integration audit above first.
+
+## Step 5 preparation — Session migration (not started)
+
+Current owners after Step 4: `Main.cpp` owns game detection, PID tracking, 3-strike focus loss and
+DND; `GamePerformanceRuntime` owns the per-game performance transaction; `SessionRecorder` owns
+statistics (and still `RefreshMatcher`, B-12).
+
+Proposed Step 5 scope (for owner approval):
+1. A neutral `Session` value (id, package, pid, uid, start/end time, end reason, profile explanation,
+   transaction ids, recovery result) created by the lifecycle, not by detection.
+2. Session owns ordering of start/end across GameRuntime, SessionRecorder and RenderBooster so
+   `stop_session_workers(reason)` becomes one owner; Main.cpp keeps detection only.
+3. Port from the old branch only the idempotent begin/end, one-session-at-a-time and
+   `EndReason` semantics — not `Analyze`, `Arming`, provider status or compatibility context.
+4. No telemetry storage yet (Phase 5); Session exposes data for the Observatory later.
+5. Tests first: begin idempotency, switch, process death, daemon stop, crash then recovery,
+   ordering of worker stop vs restore.
+
+Open question for the owner: should Session also absorb `SessionRecorder`'s session id/history
+format now, or keep `sessions.json` untouched until Phase 5?

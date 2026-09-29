@@ -29,23 +29,10 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   `integration/game-runtime-clean` @ `a954925` (code `3410fbd`): `jni/perf/ProfileModel.*`,
   `tests/profile_model_test.cpp`, `docs/architecture/PERFORMANCE_PROFILE_MODEL.md`. Host 10/10 PASS;
   CI run 36620727531 green. Not loaded/called by `fluxd`. Device: NOT_TESTED.
-- **Game Runtime migration Step 4 (performance lifecycle): IN PROGRESS.**
-  `integration/game-runtime-clean` @ `c37ef15` (decision doc `af4643d` first): `jni/perf/GamePerformanceRuntime.*`,
-  `tests/game_runtime_test.cpp`, `docs/architecture/GAME_RUNTIME_PERFORMANCE_LIFECYCLE.md`. Host 11/11 PASS;
-  CI run 36621945822 green. Profiles from `game_profiles.json` (+ `compat_library.json` presets, gamelist
-  lite fallback); journals `perf_journal`, `launch_journal`; legacy `compat_journal` recovered.
-  **Wired into `fluxd`** (`dd86b7c`): boot recovery, game start/reapply/tick/end hooks, real adapters,
-  capability probe, refresh bridge → `flux_refresh`. Host 13/13; CI 36623380177 green. Device: NOT_TESTED.
-- **Next:** owner review to close Step 4. Session migration not started.
-
-### Step 2 status (owner-confirmed, 2026-09-29)
-
-| IMPLEMENTED | NOT_IMPLEMENTED |
-|---|---|
-| PerformancePlanner | daemon lifecycle invocation |
-| RuntimePlan generation | device capability probe runtime |
-| LaunchBoost planning | refresh executor connection (`flux_refresh`) |
-| Transaction integration | real device validation |
+- **Game Runtime migration Step 4 (performance lifecycle, incl. 4.5 activation bridge): IMPLEMENTED.**
+  `integration/game-runtime-clean` @ `3e96312`. Final review done; one recovery fix (legacy
+  `compat_journal` header). Host 13/13; CI 36624510915 green. **Device validation: NOT_TESTED.**
+- **Next: Step 5 — Session migration** (preparation recorded in PLAN.md; not started).
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 
 ## Repositories and branches
