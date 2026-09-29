@@ -51,3 +51,13 @@ CI run https://github.com/FebriCahyaa/Flux/actions/runs/36617841919 (workflow_di
 | Transaction engine called at runtime | not yet (by design) |
 | Device | NOT_TESTED |
 Step 1: **CLOSED**.
+
+## Game Runtime Step 2 — 2026-09-29 (`integration/game-runtime-clean` @ `98a7a25`)
+| Check | Result |
+|---|---|
+| Tests written first; CMake configure failed without implementation (red) | observed |
+| Host ctest incl. `performance_planner_test` (-Werror) | PASS 9/9 |
+| Scenarios: profile→plan, zero writes while planning, invalid selection rejected, unsupported node/refresh, mitigation block, interface rejection (`..`), execute+restore via Transaction, transaction failure rollback, launch-boost timeout, duration clamp, one-at-a-time, cancellation (journal emptied), nothing-available, failing-write rollback | PASS |
+| Forbidden-symbol check | clean |
+| CI run https://github.com/FebriCahyaa/Flux/actions/runs/36619381182 (workflow_dispatch) | success: host tests, ndk-build arm64+arm with FluxPerf, WebUI, packaging |
+| Daemon call path / device | none by design / NOT_TESTED |

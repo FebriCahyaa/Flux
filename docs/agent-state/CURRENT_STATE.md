@@ -20,8 +20,12 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   `integration/game-runtime-clean` @ `63dd11c` (code `b604eac`, build `8fc92c0`). `FluxRuntime`
   linked into `fluxd` but not called; forbidden-symbol CI gate active. CI run 36617841919 green
   (host 8/8, ndk-build arm64+arm, WebUI, 3 zips). Device: NOT_TESTED.
-- **Next:** awaiting owner clarification — the approved plan's Step 2 is *perf planner + launch
-  boost*; Session migration is Step 5 (see BLOCKERS B-20). Nothing started beyond Step 1.
+- **Game Runtime migration Step 2 (performance planner + launch boost): IN PROGRESS.**
+  `integration/game-runtime-clean` @ `38a2f7e` (code `98a7a25`): `jni/perf/PerformancePlanner.*`,
+  `tests/performance_planner_test.cpp`, `docs/architecture/PERFORMANCE_PLANNER.md`. Host 9/9 PASS;
+  CI run 36619381182 green (host, forbidden-symbol gate, ndk-build arm64+arm, WebUI, 3 zips).
+  `FluxPerf` linked into `fluxd`, **no call path** (needs Session). Device: NOT_TESTED.
+- **Next:** owner review to close Step 2. Session migration not started.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 
 ## Repositories and branches
