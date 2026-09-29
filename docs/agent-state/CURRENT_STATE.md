@@ -25,11 +25,17 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   `tests/performance_planner_test.cpp`, `docs/architecture/PERFORMANCE_PLANNER.md`. Host 9/9 PASS;
   CI run 36619381182 green (host, forbidden-symbol gate, ndk-build arm64+arm, WebUI, 3 zips).
   `FluxPerf` linked into `fluxd`, **no call path** (needs Session). Device: NOT_TESTED.
-- **Game Runtime migration Step 3 (performance profile inheritance): IN PROGRESS.**
+- **Game Runtime migration Step 3 (performance profile inheritance): CLOSED** (owner, 2026-09-29).
   `integration/game-runtime-clean` @ `a954925` (code `3410fbd`): `jni/perf/ProfileModel.*`,
   `tests/profile_model_test.cpp`, `docs/architecture/PERFORMANCE_PROFILE_MODEL.md`. Host 10/10 PASS;
   CI run 36620727531 green. Not loaded/called by `fluxd`. Device: NOT_TESTED.
-- **Next:** owner review to close Step 3. Session migration not started.
+- **Game Runtime migration Step 4 (performance lifecycle): IN PROGRESS.**
+  `integration/game-runtime-clean` @ `c37ef15` (decision doc `af4643d` first): `jni/perf/GamePerformanceRuntime.*`,
+  `tests/game_runtime_test.cpp`, `docs/architecture/GAME_RUNTIME_PERFORMANCE_LIFECYCLE.md`. Host 11/11 PASS;
+  CI run 36621945822 green. Profiles from `game_profiles.json` (+ `compat_library.json` presets, gamelist
+  lite fallback); journals `perf_journal`, `launch_journal`; legacy `compat_journal` recovered.
+  **Not called by `fluxd`** (Main.cpp wiring, device adapters, probe, refresh executor pending). Device: NOT_TESTED.
+- **Next:** owner review to close Step 4. Session migration not started.
 
 ### Step 2 status (owner-confirmed, 2026-09-29)
 

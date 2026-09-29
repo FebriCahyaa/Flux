@@ -71,3 +71,14 @@ Step 1: **CLOSED**.
 | Forbidden-symbol check | clean |
 | CI run https://github.com/FebriCahyaa/Flux/actions/runs/36620727531 | success: host tests, ndk-build arm64+arm (FluxPerf with rapidjson), WebUI, packaging |
 | Device file loading / daemon call path / device | not implemented / not implemented / NOT_TESTED |
+
+## Game Runtime Step 4 — 2026-09-29 (`integration/game-runtime-clean` @ `c37ef15`)
+| Check | Result |
+|---|---|
+| Location decision documented before implementation (`af4643d`) | done |
+| Tests written first; CMake configure failed without implementation (red) | observed |
+| Host ctest incl. `game_runtime_test` (-Werror) | PASS 11/11 |
+| Scenarios: start applies profile (+ write-ahead journal, idempotent), no-profile game unchanged, exit restores (+ reapply after script overwrite, journal removed), process death rollback incl. launch boost, boost deadline, daemon restart recovery (+ legacy compat_journal, unrecoverable journal kept), transaction failure fallback, resolve failure (unknown profile, invalid JSON) fail closed, multi-game switch and pid restart, compatibility fields ignored, gamelist lite fallback | PASS |
+| Forbidden-symbol check | clean |
+| CI run https://github.com/FebriCahyaa/Flux/actions/runs/36621945822 | success: host tests, ndk-build arm64+arm, WebUI, packaging |
+| fluxd call path / device | not implemented / NOT_TESTED |
