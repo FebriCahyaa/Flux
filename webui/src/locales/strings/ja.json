@@ -41,8 +41,10 @@
         "title": "設定",
         "section": {
             "system": "システム",
-            "preferences": "環境設定",
-            "others": "その他"
+            "gaming": "ゲーム",
+            "performance": "パフォーマンス",
+            "diagnostics": "診断",
+            "app": "アプリ"
         },
         "language": {
             "title": "言語"

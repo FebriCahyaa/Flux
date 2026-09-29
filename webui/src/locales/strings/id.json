@@ -69,10 +69,11 @@
   "settings_page": {
     "title": "Pengaturan",
     "section": {
-      "preferences": "Preferensi",
+      "gaming": "Game",
+      "performance": "Performa",
       "system": "Sistem",
-      "others": "Lainnya",
-      "about": "Tentang"
+      "diagnostics": "Diagnostik",
+      "app": "Aplikasi"
     },
     "lite_mode": {
       "title": "Terapkan Mode Lite",

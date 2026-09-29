@@ -46,9 +46,11 @@
     "settings_page": {
         "title": "Налаштування",
         "section": {
-            "preferences": "Параметри",
+            "gaming": "Ігри",
+            "performance": "Продуктивність",
             "system": "Система",
-            "others": "Інші"
+            "diagnostics": "Діагностика",
+            "app": "Застосунок"
         },
         "lite_mode": {
             "title": "Примусовий легкий режим",

@@ -54,9 +54,11 @@
     "settings_page": {
         "title": "设置",
         "section": {
-            "preferences": "偏好",
+            "gaming": "游戏",
+            "performance": "性能",
             "system": "系统",
-            "others": "其他"
+            "diagnostics": "诊断",
+            "app": "应用"
         },
         "lite_mode": {
             "title": "强制轻量模式",

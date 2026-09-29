@@ -69,10 +69,11 @@
   "settings_page": {
     "title": "Settings",
     "section": {
-      "preferences": "Preferences",
+      "gaming": "Gaming",
+      "performance": "Performance",
       "system": "System",
-      "others": "Others",
-      "about": "About"
+      "diagnostics": "Diagnostics",
+      "app": "App"
     },
     "lite_mode": {
       "title": "Enforce Lite Mode",

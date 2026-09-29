@@ -185,19 +185,18 @@ const onPill = (value, danger = false) =>
       }
     : null
 
-// Each entry gets its own shape and colour so the list is easy to scan.
+// Current-level label for Log Level's row, reusing the same key
+// LogLevelSelection.vue already uses — no new mapping invented.
+const logLevelLabel = computed(() => t(`log_level_selection.level_${fluxConfigStore.logLevel}`))
+
+// Sections grouped by user mental model (gaming / performance tuning /
+// kernel-level system knobs / troubleshooting / app-level), not by where a
+// setting happens to live internally. Each entry gets its own shape and
+// colour so the list is easy to scan.
 const allSections = () => [
   {
-    key: 'preferences',
+    key: 'gaming',
     items: [
-      {
-        key: 'lite_mode',
-        icon: LeafIcon,
-        shape: 'shape-flower',
-        tone: tone.secondary,
-        run: go('lite_mode'),
-        status: () => onPill(fluxConfigStore.isLiteModeEnabled),
-      },
       {
         key: 'game_tweaks',
         icon: GamesIcon,
@@ -205,6 +204,11 @@ const allSections = () => [
         tone: tone.tertiary,
         run: go('game_tweaks'),
       },
+    ],
+  },
+  {
+    key: 'performance',
+    items: [
       {
         key: 'flux_boost',
         icon: BoltChargeIcon,
@@ -219,22 +223,15 @@ const allSections = () => [
         shape: 'shape-pentagon',
         tone: tone.secondary,
         run: go('flux_sched'),
+        status: () => onPill(fluxConfigStore.isFluxSchedEnabled),
       },
       {
-        key: 'disable_tweaks',
-        icon: PauseIcon,
-        shape: 'shape-cookie6',
-        tone: tone.error,
-        run: go('disable_tweaks'),
-        status: () => onPill(fluxConfigStore.isDisableTweaksEnabled, true),
-      },
-      {
-        key: 'language',
-        icon: LanguageIcon,
-        shape: 'shape-circle',
-        tone: tone.neutral,
-        run: go('language'),
-        subtitle: () => currentLanguage.value,
+        key: 'lite_mode',
+        icon: LeafIcon,
+        shape: 'shape-flower',
+        tone: tone.secondary,
+        run: go('lite_mode'),
+        status: () => onPill(fluxConfigStore.isLiteModeEnabled),
       },
     ],
   },
@@ -262,6 +259,20 @@ const allSections = () => [
         shape: 'shape-clover4',
         tone: tone.primary,
         run: go('device_mitigation'),
+        status: () => onPill(fluxConfigStore.isDeviceMitigationEnabled),
+      },
+    ],
+  },
+  {
+    key: 'diagnostics',
+    items: [
+      {
+        key: 'disable_tweaks',
+        icon: PauseIcon,
+        shape: 'shape-cookie6',
+        tone: tone.error,
+        run: go('disable_tweaks'),
+        status: () => onPill(fluxConfigStore.isDisableTweaksEnabled, true),
       },
       {
         key: 'log_level',
@@ -269,18 +280,27 @@ const allSections = () => [
         shape: 'shape-cookie4',
         tone: tone.neutral,
         run: go('log_level'),
+        subtitle: () => logLevelLabel.value,
       },
-    ],
-  },
-  {
-    key: 'others',
-    items: [
       {
         key: 'save_log',
         icon: ContentSaveIcon,
         shape: 'shape-cookie9',
         tone: tone.primary,
         run: openExportModal,
+      },
+    ],
+  },
+  {
+    key: 'app',
+    items: [
+      {
+        key: 'language',
+        icon: LanguageIcon,
+        shape: 'shape-circle',
+        tone: tone.neutral,
+        run: go('language'),
+        subtitle: () => currentLanguage.value,
       },
       {
         key: 'create_shortcut',

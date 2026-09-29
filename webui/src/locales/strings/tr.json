@@ -44,9 +44,11 @@
     "settings_page": {
         "title": "Ayarlar",
         "section": {
-            "preferences": "Tercihler",
+            "gaming": "Oyun",
+            "performance": "Performans",
             "system": "Sistem",
-            "others": "Başka"
+            "diagnostics": "Tanılama",
+            "app": "Uygulama"
         },
         "lite_mode": {
             "title": "Basit Moda Geç",

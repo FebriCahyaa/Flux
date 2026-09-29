@@ -52,9 +52,11 @@
     "settings_page": {
         "title": "Configurações",
         "section": {
-            "preferences": "Preferências",
+            "gaming": "Jogos",
+            "performance": "Desempenho",
             "system": "Sistema",
-            "others": "Outros"
+            "diagnostics": "Diagnóstico",
+            "app": "Aplicativo"
         },
         "lite_mode": {
             "description": "Ative o Modo Lite por padrão para todos os jogos",

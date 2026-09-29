@@ -54,9 +54,11 @@
     "settings_page": {
         "title": "Configuraciones",
         "section": {
-            "preferences": "Preferencias",
+            "gaming": "Juegos",
+            "performance": "Rendimiento",
             "system": "Sistema",
-            "others": "Otros"
+            "diagnostics": "Diagnóstico",
+            "app": "Aplicación"
         },
         "lite_mode": {
             "title": "Forzar Modo Lite",

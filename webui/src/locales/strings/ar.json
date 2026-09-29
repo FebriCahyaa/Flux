@@ -52,9 +52,11 @@
     "settings_page": {
         "title": "الإعدادات",
         "section": {
-            "preferences": "التفضيلات",
+            "gaming": "الألعاب",
+            "performance": "الأداء",
             "system": "النظام",
-            "others": "أُخرى"
+            "diagnostics": "التشخيص",
+            "app": "التطبيق"
         },
         "lite_mode": {
             "title": "وضع الاداء الخفيف",
