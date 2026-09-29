@@ -110,3 +110,15 @@ Step 1: **CLOSED**.
 | CI https://github.com/FebriCahyaa/Flux/actions/runs/36624510915 | success (host, ndk-build arm64+arm, WebUI, packaging) |
 | Device validation | **NOT_TESTED** |
 Step 4: **IMPLEMENTED**.
+
+## Game Runtime Step 5 — 2026-09-29 (`integration/game-runtime-clean` @ `7e35fba`)
+| Check | Result |
+|---|---|
+| Tests written first; CMake configure failed without implementation (red) | observed |
+| session begin, duplicate begin (same process no-op; restarted process / other game → switch, reverse end), session end, duplicate end (no participant called), process death reason, daemon restart recovery (once; implicit before first begin), cleanup ordering (reverse; failing participant does not block restore), forwarding only while active | PASS |
+| Two tests initially assumed no recovery call before begin; implementation correctly recovers first — tests updated to the daemon order | noted |
+| Host ctest | PASS 14/14 |
+| Forbidden-symbol check | clean |
+| CI https://github.com/FebriCahyaa/Flux/actions/runs/36630954964 (ndk-build of Main.cpp, SessionHost.cpp, FluxSession) | success |
+| sessions.json format | unchanged (no code change in SessionRecorder) |
+| Device | NOT_TESTED |

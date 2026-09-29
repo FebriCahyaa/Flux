@@ -40,8 +40,8 @@ Branch `integration/game-runtime-clean` (= main). Plan: `GAME_RUNTIME_MIGRATION_
 | 1 Transaction engine decoupling | **CLOSED** — `b604eac`, `8fc92c0`, `63dd11c`; CI run 36617841919 green |
 | 2 Perf planner + launch boost | **CLOSED** — `98a7a25`, `38a2f7e`, `64ce145`; CI 36619381182 green |
 | 3 Profile inheritance (perf only) | **CLOSED** — `3410fbd`, `a954925`; CI 36620727531 green |
-| 4 GameRuntime perf lifecycle (+4.5 activation bridge) | **IMPLEMENTED** — `af4643d`, `c37ef15`, `dd86b7c`, `3e96312`; CI 36624510915 green; device NOT_TESTED |
-| 5 Session migration | NOT STARTED — prepared (see below) |
+| 4 GameRuntime perf lifecycle (+4.5 activation bridge) | **CLOSED** — `af4643d`, `c37ef15`, `dd86b7c`, `3e96312`; CI 36624510915 green; device NOT_TESTED |
+| 5 Session migration | IN PROGRESS — `7e35fba`; CI 36630954964 green; awaiting review |
 | 6 Refresh target | DONE inside Step 4 (`dd86b7c`) |
 | 7 Daemon wiring | DONE inside Step 4 for the performance runtime (`dd86b7c`) |
 | 8–10 | NOT STARTED |
@@ -96,5 +96,4 @@ Proposed Step 5 scope (for owner approval):
 5. Tests first: begin idempotency, switch, process death, daemon stop, crash then recovery,
    ordering of worker stop vs restore.
 
-Open question for the owner: should Session also absorb `SessionRecorder`'s session id/history
-format now, or keep `sessions.json` untouched until Phase 5?
+Owner decision: keep `sessions.json` unchanged until Phase 5 (applied in `7e35fba`).
