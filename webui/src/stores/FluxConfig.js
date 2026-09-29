@@ -212,8 +212,9 @@ export const useFluxConfigStore = defineStore('fluxConfig', () => {
     config.value.cpu_governor.balance = governor
 
     if (
-      currentProfile.value === 'balanced' ||
-      (currentProfile.value === 'performance' && isLiteModeEnabled.value)
+      (currentProfile.value === 'balanced' ||
+        (currentProfile.value === 'performance' && isLiteModeEnabled.value)) &&
+      /^[\w-]+$/.test(governor)
     ) {
       exec(`/data/adb/modules/flux/system/bin/flux_utility change_cpu_gov ${governor}`).then(({ errno, stderr }) => {
         if (errno !== 0) {
@@ -227,7 +228,7 @@ export const useFluxConfigStore = defineStore('fluxConfig', () => {
     ensureConfigStructure()
     config.value.cpu_governor.powersave = governor
 
-    if (currentProfile.value === 'powersave') {
+    if (currentProfile.value === 'powersave' && /^[\w-]+$/.test(governor)) {
       exec(`/data/adb/modules/flux/system/bin/flux_utility change_cpu_gov ${governor}`).then(({ errno, stderr }) => {
         if (errno !== 0) {
           console.error('[setPowersaveGovernor] Failed to change CPU governor:', stderr)
