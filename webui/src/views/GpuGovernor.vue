@@ -1,33 +1,18 @@
 <template>
-  <div class="page h-full flex flex-col overflow-hidden bg-surface">
-    <div class="max-w-3xl mx-auto h-full flex flex-col w-full">
-      <div class="flex-none p-5 pb-3">
-        <button
-          @click="goBack"
-          class="m3-press w-10 h-10 -ms-2 rounded-full grid place-items-center text-on-surface hover:bg-surface-container-high"
-          :aria-label="$t('common.cancel')"
-        >
-          <ArrowLeftIcon class="w-6 h-6 rtl:rotate-180" />
-        </button>
-      </div>
-
-      <div class="scrollbar-hidden pb-safe-nav flex-1 min-h-0 overflow-y-scroll px-4">
-        <div class="flex items-center gap-4 mt-8 mb-4 px-1">
-          <span class="hero-badge shape-sunny bg-secondary-container text-on-secondary-container">
-            <GpuIcon :size="28" />
-          </span>
-          <h1 class="m3-headline text-4xl text-on-surface">{{ $t('gpu_governor.title') }}</h1>
-        </div>
-
-        <p class="text-sm text-on-surface-variant leading-relaxed px-1 mb-5">
-          {{ $t('gpu_governor.brief') }}
-        </p>
-
+  <SettingsDetailLayout
+    :title="$t('gpu_governor.title')"
+    :description="$t('gpu_governor.brief')"
+    :icon="GpuIcon"
+    shape="shape-sunny"
+    tone="bg-secondary-container text-on-secondary-container"
+    :read-error="readError"
+  >
         <LoadingSpinner v-if="!probed" class="pt-6" :size="48" />
 
-        <div v-else-if="!node" class="empty m3-card mb-5">
+        <div v-else-if="!node" class="empty m3-card mb-5" role="status">
           <span
             class="empty-badge shape-clover4 bg-surface-container-highest text-on-surface-variant"
+            aria-hidden="true"
           >
             <GpuIcon />
           </span>
@@ -61,9 +46,11 @@
             </div>
           </div>
 
+          <!-- One picker per Flux profile (balanced / powersave), not the
+               governor running now — that is shown in the card above. -->
           <div class="space-y-3 mb-5">
             <GovernorPicker
-              class="m3-enter"
+              :busy="saving"
               :title="$t('gpu_governor.balance_title')"
               :description="$t('gpu_governor.balance_description')"
               :icon="TuneIcon"
@@ -75,8 +62,7 @@
               @select="(g) => choose('balance', g)"
             />
             <GovernorPicker
-              class="m3-enter"
-              style="animation-delay: 60ms"
+              :busy="saving"
               :title="$t('gpu_governor.powersave_title')"
               :description="$t('gpu_governor.powersave_description')"
               :icon="BatterySaverIcon"
@@ -90,38 +76,31 @@
           </div>
         </template>
 
-        <div class="flex gap-3 px-1 mb-8">
-          <InformationOutlineIcon class="text-on-surface-variant shrink-0" :size="20" />
-          <p class="text-xs text-on-surface-variant leading-relaxed">
-            {{ $t('gpu_governor.apply_note') }}
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
+        <SettingsNote>{{ $t('gpu_governor.apply_note') }}</SettingsNote>
+  </SettingsDetailLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onActivated } from 'vue'
-import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { exec } from 'kernelsu'
 import { useFluxConfigStore } from '@/stores/FluxConfig'
 import { useNotifyStore } from '@/stores/Notify'
 
-import ArrowLeftIcon from '@/components/icons/ArrowLeft.vue'
+import SettingsDetailLayout from '@/components/ui/SettingsDetailLayout.vue'
+import SettingsNote from '@/components/ui/SettingsNote.vue'
 import GpuIcon from '@/components/icons/Gpu.vue'
 import TuneIcon from '@/components/icons/Tune.vue'
 import BatterySaverIcon from '@/components/icons/BatterySaver.vue'
-import InformationOutlineIcon from '@/components/icons/InformationOutline.vue'
 import GovernorPicker from '@/components/ui/GovernorPicker.vue'
 import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 
-const router = useRouter()
 const { t } = useI18n()
 const fluxConfigStore = useFluxConfigStore()
 const notify = useNotifyStore()
 
+const readError = ref(false)
+const saving = ref(false)
 const probed = ref(false)
 const node = ref('')
 const available = ref([])
@@ -163,12 +142,14 @@ onMounted(async () => {
     if (!fluxConfigStore.isLoaded) await fluxConfigStore.loadConfig()
   } catch (error) {
     console.error('Failed to load config:', error)
+    readError.value = true
   }
   probe()
 })
 onActivated(() => probed.value && probe())
 
 async function choose(profile, governor) {
+  if (saving.value) return
   if (governor === 'performance') {
     const ok = await notify.confirm({
       tone: 'danger',
@@ -188,9 +169,10 @@ async function choose(profile, governor) {
     if (!ok) return
   }
 
+  saving.value = true
   try {
-    fluxConfigStore.setGpuGovernor(profile, governor)
-    await fluxConfigStore.saveConfig()
+    await fluxConfigStore.commit(() => fluxConfigStore.setGpuGovernor(profile, governor))
+    readError.value = false
     notify.success(
       t('gpu_governor.saved', {
         governor: governor || t('gpu_governor.kernel_default'),
@@ -204,23 +186,13 @@ async function choose(profile, governor) {
   } catch (error) {
     console.error('Failed to set GPU governor:', error)
     notify.error(t('notify.save_failed'))
+  } finally {
+    saving.value = false
   }
-}
-
-function goBack() {
-  router.back()
 }
 </script>
 
 <style scoped>
-.hero-badge {
-  width: 56px;
-  height: 56px;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-}
-
 .device {
   display: flex;
   gap: 16px;
