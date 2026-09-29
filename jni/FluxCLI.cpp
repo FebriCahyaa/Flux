@@ -26,6 +26,10 @@
 #include <Flux.hpp>
 #include <GameRegistry.hpp>
 
+#include <CapabilityCollector.hpp>
+#include <PlatformProbe.hpp>
+#include <VulkanProbe.hpp>
+
 std::string get_module_version() {
     std::ifstream prop_file(MODULE_PROP);
     std::string line;
@@ -101,6 +105,47 @@ int daemon_handler(const std::vector<std::string> &args) {
     return run_daemon();
 }
 
+/**
+ * Collect the canonical capability model and print it, optionally writing it to
+ * a file as well.
+ *
+ * Capability collection runs here, in a short-lived CLI process, rather than in
+ * the daemon: a driver that misbehaves while being probed can then take nothing
+ * with it but this invocation. The daemon reads the resulting file; it never
+ * hosts the probe itself. Later phases consume the model, and no part of this
+ * build interprets it.
+ */
+int capabilities_handler(const std::vector<std::string> &args) {
+    using namespace flux::gfx;
+
+    const SystemQuery query = default_system_query();
+    CapabilityModel model;
+
+    run_collectors(
+        {
+            std::make_shared<VulkanCollector>(),
+            std::make_shared<GpuSysfsCollector>(query),
+            std::make_shared<DisplayCollector>(query),
+            std::make_shared<HwcCollector>(query),
+            std::make_shared<RenderEngineCollector>(query),
+            std::make_shared<RuntimeCollector>(query),
+        },
+        model);
+
+    std::cout << model.to_json() << std::endl;
+
+    if (!args.empty()) {
+        if (!model.write_file(args[0])) {
+            std::cerr << "\033[31mERROR:\033[0m Could not write " << args[0] << std::endl;
+            return EXIT_FAILURE;
+        }
+    }
+
+    // A device with no Vulkan is a supported device, so an unavailable collector
+    // is not a failure of this command.
+    return EXIT_SUCCESS;
+}
+
 // clang-format off
 std::vector<CliCommand> commands = {
     {
@@ -126,6 +171,14 @@ std::vector<CliCommand> commands = {
         0,
         0,
         check_gamelist_handler
+    },
+    {
+        "capabilities",
+        "Probe graphics capabilities and print the canonical model",
+        "capabilities [output_file]",
+        0,
+        1,
+        capabilities_handler
     },
     {
         "version",

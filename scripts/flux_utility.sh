@@ -200,6 +200,21 @@ report() {
 	node /proc/oplus_scheduler/sched_assist/sched_assist_enabled
 	node /proc/ppm/enabled
 
+	section "Display / refresh rate"
+	for k in min_refresh_rate peak_refresh_rate user_refresh_rate miui_refresh_rate; do
+		echo "$k: $(settings get system "$k" 2>/dev/null)"
+	done
+	echo "adaptive: $(cat "$MODULE_CONFIG/refresh_adaptive_status" 2>/dev/null || echo off)"
+	echo "adaptive saved: $(cat "$MODULE_CONFIG/refresh_adaptive_orig" 2>/dev/null || echo -)"
+	echo "game hold: $(cat /dev/.flux_refresh_orig 2>/dev/null || echo -)"
+	echo "home: $(cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME 2>/dev/null | tail -n 1)"
+	for k in enable_frame_rate_override use_content_detection_for_refresh_rate set_idle_timer_ms set_touch_timer_ms \
+		set_display_power_timer_ms; do
+		echo "ro.surface_flinger.$k: $(getprop ro.surface_flinger.$k)"
+	done
+	dumpsys display 2>/dev/null | grep -m 1 -E '[sS]upportedModes' | sed 's/}, {/}\n  {/g' | head -20
+	dumpsys SurfaceFlinger 2>/dev/null | grep -iE -m 8 'refresh ?rate|activeMode|desiredMode|idle timer|touch timer'
+
 	section "HiCo Thermal"
 	if [ -x /data/adb/modules/hico/system/bin/hicod ]; then
 		/data/adb/modules/hico/system/bin/hicod status 2>&1
@@ -297,7 +312,7 @@ save_logs() {
 	cp -r /sys/fs/pstore/. "$report_dir/pstore/" 2>/dev/null
 
 	(
-		cd "$report_dir"
+		cd "$report_dir" || exit 1
 		[ -f "$log_file" ] && rm -f "$log_file"
 		tar -czf "$log_file" .
 	)
@@ -318,10 +333,10 @@ save_logs() {
 
 logcat() {
 	# Clear screen
-	echo -ne "\e[H\e[2J\e[3J"
+	printf '%b' "\e[H\e[2J\e[3J"
 
 	# Trap CTRL+C and exit gracefully
-	trap 'echo -ne "\e[H\e[2J\e[3J"; exit 0' INT
+	trap 'printf "%b" "\e[H\e[2J\e[3J"; exit 0' INT
 
 	# Detect SoC
 	SOC="Unknown"
@@ -337,12 +352,12 @@ logcat() {
 	esac
 
 	# Header
-	echo -e "\e[1;36m┌────────────────────────────────────────────┐"
-	echo -e "│          \e[1;37mFlux Tweaks Log Viewer\e[1;36m          │"
-	echo -e "└────────────────────────────────────────────┘\e[0m"
+	printf '%b\n' "\e[1;36m┌────────────────────────────────────────────┐"
+	printf '%b\n' "│          \e[1;37mFlux Tweaks Log Viewer\e[1;36m          │"
+	printf '%b\n' "└────────────────────────────────────────────┘\e[0m"
 
 	# Info block
-	echo -e "
+	printf '%b\n' "
 \e[1;32mModule Version:\e[0m $(awk -F'=' '/version=/ {print $2}' /data/adb/modules/flux/module.prop)
 \e[1;32mChipset:\e[0m        $SOC $(getprop ro.board.platform)
 \e[1;32mFingerprint:\e[0m    $(getprop ro.build.fingerprint)
@@ -366,7 +381,7 @@ logcat() {
 		*) level_color="\e[0m" ;;    # Default
 		esac
 
-		echo -e "\e[1;32m$timestamp\e[0m ${level_color}${msg}\e[0m"
+		printf '%b\n' "\e[1;32m$timestamp\e[0m ${level_color}${msg}\e[0m"
 	done
 }
 

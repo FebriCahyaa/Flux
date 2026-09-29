@@ -46,6 +46,11 @@ export const useFluxConfigStore = defineStore('fluxConfig', () => {
     adaptive_refresh: config.value?.preferences?.adaptive_refresh ?? false,
     zram_tune: config.value?.preferences?.zram_tune ?? false,
   }))
+  // RAM optimizer and performance boost (on by default)
+  const ramOptimizer = computed(() => config.value?.preferences?.ram_optimizer ?? true)
+  const perfBoost = computed(() => config.value?.preferences?.perf_boost ?? true)
+  // '' = auto (fluxd picks the best one the kernel offers)
+  const congestionControl = computed(() => config.value?.preferences?.congestion_control ?? '')
   // Empty = keep the kernel's own GPU governor
   const gpuGovernor = computed(() => ({
     balance: config.value?.gpu_governor?.balance ?? '',
@@ -117,6 +122,15 @@ export const useFluxConfigStore = defineStore('fluxConfig', () => {
     if (config.value.preferences.log_level === undefined) {
       config.value.preferences.log_level = 5
     }
+    if (config.value.preferences.congestion_control === undefined) {
+      config.value.preferences.congestion_control = ''
+    }
+    if (config.value.preferences.ram_optimizer === undefined) {
+      config.value.preferences.ram_optimizer = true
+    }
+    if (config.value.preferences.perf_boost === undefined) {
+      config.value.preferences.perf_boost = true
+    }
   }
 
   function setLiteMode(enabled) {
@@ -173,6 +187,22 @@ export const useFluxConfigStore = defineStore('fluxConfig', () => {
     if (!keys.includes(key)) return
     ensureConfigStructure()
     config.value.preferences[key] = enabled
+  }
+
+  function setRamOptimizer(enabled) {
+    ensureConfigStructure()
+    config.value.preferences.ram_optimizer = enabled
+  }
+
+  function setPerfBoost(enabled) {
+    ensureConfigStructure()
+    config.value.preferences.perf_boost = enabled
+  }
+
+  /** algo '' = auto (fluxd's own bbr3 > bbr2 > bbrplus > bbr > westwood > cubic priority). */
+  function setCongestionControl(algo) {
+    ensureConfigStructure()
+    config.value.preferences.congestion_control = algo
   }
 
   /** profile: 'balance' | 'powersave'; governor '' restores the kernel default. */
@@ -259,6 +289,12 @@ export const useFluxConfigStore = defineStore('fluxConfig', () => {
     setFluxBoost,
     gameTweaks,
     setGameTweak,
+    ramOptimizer,
+    setRamOptimizer,
+    perfBoost,
+    setPerfBoost,
+    congestionControl,
+    setCongestionControl,
     gpuGovernor,
     setGpuGovernor,
     config,

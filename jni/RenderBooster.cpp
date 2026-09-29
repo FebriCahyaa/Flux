@@ -22,7 +22,6 @@
 #include <charconv>
 #include <cstring>
 #include <fstream>
-#include <map>
 #include <string_view>
 #include <unordered_set>
 
@@ -98,6 +97,7 @@ std::vector<int> parse_cpu_list(const std::string &list) {
         if (comma == std::string::npos) comma = list.size();
         std::string_view part(list.data() + pos, comma - pos);
         while (!part.empty() && std::isspace(static_cast<unsigned char>(part.back()))) part.remove_suffix(1);
+        while (!part.empty() && std::isspace(static_cast<unsigned char>(part.front()))) part.remove_prefix(1);
         pos = comma + 1;
 
         int first = 0;
@@ -131,16 +131,37 @@ std::vector<CpuCluster> detect_clusters(const std::string &root) {
         }
     }
 
-    std::map<long, std::vector<int>, std::greater<>> groups;
+    std::vector<std::pair<long, int>> keyed; // (key, cpu), one entry per core
     for (int cpu : cpus) {
         const std::string base = root + "/cpu" + std::to_string(cpu);
         const long key = use_capacity ? read_positive(base + "/cpu_capacity")
                                       : read_positive(base + "/cpufreq/cpuinfo_max_freq");
-        if (key > 0) groups[key].push_back(cpu);
+        if (key > 0) keyed.emplace_back(key, cpu);
     }
+    // Fastest first; ties keep the lower CPU number first (stable for otherwise-equal cores).
+    std::sort(keyed.begin(), keyed.end(), [](const auto &a, const auto &b) {
+        return a.first != b.first ? a.first > b.first : a.second < b.second;
+    });
 
+    // Some kernels report cpu_capacity per physical core rather than per cluster, and per-core
+    // silicon binning can then make two cores of the same physical cluster differ by a few
+    // percent (seen on some Snapdragon 8 Gen 2/3 builds). Grouping on an exact match would treat
+    // every such core as its own single-core "cluster", fragmenting a normal 2- or 3-cluster
+    // phone into many and badly confusing boost_masks() below. A real cluster boundary (little
+    // vs big vs prime) is always a much larger jump, so a generous relative tolerance tells the
+    // two apart without needing a device-specific table.
+    constexpr double kSameClusterTolerance = 0.15; // 15%: binning variance is usually a few percent
     std::vector<CpuCluster> clusters;
-    for (auto &[capacity, members] : groups) clusters.push_back({capacity, std::move(members)});
+    for (const auto &[key, cpu] : keyed) {
+        if (!clusters.empty()) {
+            const long rep = clusters.back().capacity; // the highest key seen so far in this cluster
+            if (rep > 0 && (rep - key) <= static_cast<long>(kSameClusterTolerance * static_cast<double>(rep))) {
+                clusters.back().cpus.push_back(cpu);
+                continue;
+            }
+        }
+        clusters.push_back({key, {cpu}});
+    }
     return clusters;
 }
 

@@ -125,7 +125,86 @@
     "gpu_governor": {
       "title": "GPU Governor",
       "description": "Choose the GPU governor for the balanced and powersave profiles"
+    },
+    "congestion_control": {
+      "title": "Network Congestion Control",
+      "description": "Pick the TCP algorithm games use, or leave it on the recommended default"
+    },
+    "ram_optimizer": {
+      "title": "RAM Optimizer",
+      "description": "Adaptive memory management that scales to your device's RAM size"
+    },
+    "perf_boost": {
+      "title": "Performance Boost",
+      "description": "Extra scheduler and memory-bandwidth tunings for smoother frame pacing"
+    },
+    "clean_cache": {
+      "title": "Clean App Cache",
+      "description": "Free cached data from all apps right now — nothing is deleted automatically",
+      "cleaning": "Cleaning…",
+      "done": "App caches cleared",
+      "failed": "Cache clean failed — check root access"
     }
+  },
+  "ram_optimizer": {
+    "title": "RAM Optimizer",
+    "brief": "Reads your device's actual RAM size and applies a matching set of memory-management settings — swappiness, free-memory watermarks, page-cache pressure and writeback timing — so a 3 GB phone is tuned differently from a 16 GB one. Everything is restored when the game ends.",
+    "toggle_title": "Enable RAM Optimizer",
+    "state_on": "On — memory management adapts to your device's RAM tier",
+    "state_off": "Off — stock kernel memory settings while gaming",
+    "tier_title": "{tier} GB RAM tier detected",
+    "tier_description": "Flux auto-selects the profile that fits this amount of RAM. No manual tuning needed.",
+    "tunes_title": "What it tunes",
+    "tunes": {
+      "swappiness": {
+        "title": "Swap aggressiveness",
+        "description": "Lower on large-RAM phones (less need to swap), higher on small-RAM phones (faster OOM relief). Scales from 15 to 100 across the six RAM tiers."
+      },
+      "watermark": {
+        "title": "Free-memory watermarks",
+        "description": "min_free_kbytes and extra_free_kbytes scale from 16 MB (3 GB tier) to 96 MB (16 GB tier), so kswapd wakes up early enough to reclaim before the game has to wait."
+      },
+      "vfs_cache": {
+        "title": "Page-cache pressure",
+        "description": "Higher on small-RAM phones (reclaim dentries and inodes faster for the game), lower on large ones (keep the launcher and apps warm). Range: 60–150."
+      },
+      "writeback": {
+        "title": "Dirty-page writeback",
+        "description": "Expires dirty pages less often (5 s / 50 s instead of the default), so the kernel's writeback thread interrupts the game less frequently."
+      },
+      "compaction": {
+        "title": "Memory compaction",
+        "description": "Proactive compaction is disabled during gaming — it steals CPU cycles looking for contiguous pages while the game is already keeping cores busy."
+      }
+    },
+    "apply_note": "Settings take effect at the start of the next game session and are restored when you leave the game."
+  },
+  "perf_boost": {
+    "title": "Performance Boost",
+    "brief": "A set of micro-tunings that reduce scheduler latency and improve memory-bandwidth allocation while a game runs. All values are saved before being changed and restored when you leave the game.",
+    "toggle_title": "Enable Performance Boost",
+    "state_on": "On — extra scheduler and bandwidth tunings active while gaming",
+    "state_off": "Off — stock scheduler settings while gaming",
+    "effects_title": "What it changes",
+    "effects": {
+      "migration": {
+        "title": "Task migration cost",
+        "description": "Raises the scheduler's estimate of how expensive inter-core migrations are, so it avoids moving the game's threads more often and keeps hot data in per-core caches."
+      },
+      "latency": {
+        "title": "Scheduler latency targets",
+        "description": "Adjusts CFS granularity and wakeup latency so the game's threads get longer, more predictable time slices without being pre-empted by background work."
+      },
+      "autogroup": {
+        "title": "Task autogroup off",
+        "description": "Android's session-based autogroups are disabled while gaming. Multi-threaded game engines benefit more from flat scheduling than from session isolation."
+      },
+      "bandwidth": {
+        "title": "Memory-bus bandwidth hints",
+        "description": "On Qualcomm platforms, raises the DCVS bus ceiling for L3/DDR/LLCC so the game sees high memory bandwidth without waiting for the bus to ramp up."
+      }
+    },
+    "apply_note": "Changes take effect at the start of the next game session and are fully restored when you leave."
   },
   "game_settings": {
     "title": "Game Settings",
@@ -383,7 +462,16 @@
     "battery_saver_off": "Inactive",
     "thermal_unsupported_title": "Thermal API Unavailable",
     "thermal_gki_note": "GKI kernels may not expose thermal headroom API",
-    "profile_active": "Active"
+    "profile_active": "Active",
+    "thermal_status": {
+      "2": "Moderate",
+      "3": "Severe",
+      "4": "Critical",
+      "5": "Emergency",
+      "6": "Shutdown imminent"
+    },
+    "call": "Call",
+    "call_active": "In call"
   },
   "flux_sched": {
     "title": "Flux Sched",
@@ -402,7 +490,7 @@
     },
     "io": {
       "title": "Storage latency",
-      "description": "Completes storage requests on the CPU that asked for them (the game's), keeping them off busy little cores."
+      "description": "Completes storage requests on the CPU that asked for them (the game's), keeping them off busy little cores; raises read-ahead for streaming assets and textures. On UFS/NVMe (a real multi-queue device) also widens the queue and lets the storage controller's own command reordering take over from the kernel scheduler; eMMC gets a more modest queue and keeps a scheduler suited to its single command queue. Everything reverts when the game ends."
     },
     "priority": {
       "title": "Game priority",
@@ -482,6 +570,19 @@
       "slow_message": "This governor can keep the GPU at a low clock, so animations and scrolling may stutter."
     }
   },
+  "congestion_control": {
+    "title": "Network Congestion Control",
+    "brief": "Congestion control decides how TCP reacts to network jams — it's what keeps ping steady in a match instead of spiking. Auto picks the best one this kernel offers; pick a specific algorithm to override it.",
+    "running_now": "Running now",
+    "recommended": "Recommended",
+    "auto": "Auto (recommended)",
+    "picker_title": "Algorithm",
+    "picker_description": "Applied while a game runs, alongside the other network tweaks. Auto currently means {algo}.",
+    "unsupported": "No congestion control algorithms found",
+    "unsupported_hint": "This kernel does not expose /proc/sys/net/ipv4/tcp_available_congestion_control.",
+    "apply_note": "Auto follows fluxd's own priority (BBR3 > BBR2 > BBRplus > BBR > Westwood > CUBIC), picking the fastest one this kernel actually has. The change applies on the next game session.",
+    "saved": "Congestion control: {algo}"
+  },
   "game_tweaks": {
     "title": "Game Tweaks",
     "brief": "Extra tweaks applied only while a game runs. Everything is put back when you leave the game.",
@@ -495,7 +596,7 @@
     },
     "net_tweaks": {
       "title": "Network latency",
-      "description": "Low-latency TCP with the best congestion control this kernel has (BBR, Westwood or CUBIC), ECN and Fast Open for steadier ping."
+      "description": "Low-latency TCP with the congestion control chosen in Network Congestion Control (auto by default), ECN and Fast Open for steadier ping."
     },
     "touch_tweaks": {
       "title": "Touch response",
@@ -586,11 +687,11 @@
     },
     "adaptive_refresh": {
       "title": "Adaptive refresh rate",
-      "description": "Lets the panel drop to its lowest rate (60 Hz or more) on static content while the peak stays at the highest; frame rate override on, idle drop after 3 s, touch returns to the peak at once. Games keep their own refresh handling."
+      "description": "Lets the panel drop to a lower rate (60 Hz or more) on static content inside apps while the peak stays at the highest. Only a rate the panel reaches without a mode switch is used, so there is no stutter; if the panel has none, nothing is changed. The home screen, recents and the notification shade stay at the peak so swiping is smooth. Frame rate override on, idle drop after 3 s. Games keep their own refresh handling."
     },
     "zram_tune": {
       "title": "Zram sized to RAM",
-      "description": "Resizes compressed swap to the device RAM (3/4 up to 4 GB, half above, at most 6 GB) with the lz4 compressor. Applied at boot; vendor setups with writeback to storage are left alone. Off puts the ROM's size back."
+      "description": "Resizes compressed swap to the device's RAM tier (≈133% at 3 GB, down to ≈62% at 16 GB+) with the lz4 compressor. Applied at boot; vendor setups with writeback to storage are left alone. Off puts the ROM's size back."
     }
   }
 }

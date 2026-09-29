@@ -3,6 +3,20 @@
 ## Unreleased
 
 ### Fixed
+- **`flux_utility logcat`/`save_logs` were not portable to every `/system/bin/sh`**: the log
+  viewer used `echo -e`/`echo -ne` for its colors and screen-clear sequences, which only some
+  shells interpret as backslash escapes — on shells that don't, it printed the raw `-e`/`-ne` and
+  literal `\e[...]` text instead of color. Switched to `printf '%b'`, which every POSIX shell
+  handles the same way. `save_logs` also now bails out of its `cd` into the temp report directory
+  instead of silently continuing (and archiving the wrong directory) if that `cd` ever fails
+- **Zram now sized by RAM tier, not a flat 6 GB cap**: a 12 GB and a 16 GB phone used to get
+  identical zram (both hit the cap); the size now follows an explicit tier table (3/4/6/8/12/16 GB,
+  ~133% down to ~62% of RAM) so it keeps scaling on higher-RAM devices instead of flattening out
+- **Storage tuning now tells UFS/NVMe apart from eMMC**: while gaming, `nr_requests` and the I/O
+  scheduler used to get the same values on every storage type. UFS/NVMe (a real multi-queue device)
+  now gets a wider queue and `none` when offered (the controller's own command reordering makes the
+  kernel scheduler redundant work); eMMC keeps a more modest queue and `mq-deadline`, which bounds
+  latency better on its single command queue. Removable SD is left alone entirely
 - **Performance Lite never engaged on hot devices**: Android's thermal headroom grows with heat
   (1.0 = severe throttling) but was read as "headroom left", so Flux saw a phone at 96 °C as cool.
   fluxd and SynthesisCore now publish the headroom left. Lite also starts at thermal status
@@ -11,8 +25,48 @@
 - Render threads on fast cores no longer moves the game's other threads off the little cores on
   two-cluster phones (4+4, 2+6): all of MLBB on the four big cores of a Redmi Note 13 Pro 5G ran
   at 96 °C. Phones with little / big / prime clusters keep it
+- **CPU topology detection could fragment one cluster into several** on kernels that report
+  `cpu_capacity` per physical core rather than per cluster, where silicon binning makes cores of
+  the same cluster differ by a few percent: exact-value grouping saw those as separate
+  single-core "clusters" and could badly confuse which cores render threads and other game
+  threads were pinned to. Cores within 15% of each other are now grouped as one cluster (a real
+  little/big/prime boundary is always a far larger jump). New host test
+  (`tests/render_booster_test.cpp`) covers 4+4, 1+3+4, 2+6, single-cluster, the max-frequency
+  fallback and this binning case directly
+- **Adaptive refresh made the home screen laggy**: on panels without LTPO every drop to the low
+  rate and back is a display mode switch that costs a frame or two, and on the launcher that
+  happened at the start of almost every swipe. fluxd now keeps the peak rate while the launcher
+  (home, recents, app drawer) or the notification shade has focus and puts the adaptive minimum
+  back 2 s after an app opens, at once for a game or screen off. The low rate is now one the panel
+  reaches seamlessly from its peak (`alternativeRefreshRates`, at the resolution in use); when there
+  is none the range is left untouched instead of adding stutter. `refresh_adaptive_status` says
+  which, and the bug report gains a Display / refresh rate section
 
 ### New
+- **RAM Optimizer** (Settings → RAM Optimizer): reads the device's actual MemTotal and maps it to
+  one of six tiers (3/4/6/8/12/16 GB). Each tier applies a matching set of memory-management
+  tunings — swappiness (15–100), free-memory watermarks (min_free_kbytes / extra_free_kbytes
+  16–96 MB), vfs_cache_pressure (60–150), dirty writeback timing, page-cluster=0, and KSM scan
+  rate — so a 3 GB phone is tuned differently from a 16 GB one without any manual input. All
+  values are saved before being changed and fully restored when the game ends. Can be toggled
+  off per-device from the WebUI
+- **Performance Boost** (Settings → Performance Boost): a set of scheduler and memory-bus
+  micro-tunings that reduce task-migration overhead (sched_migration_cost_ns, sched_nr_migrate),
+  improve CFS time-slice predictability (granularity / wakeup targets), disable session autogroups
+  while gaming, suppress proactive stat-interval overhead, and — on Qualcomm platforms — raise the
+  DCVS bus ceiling for L3/DDR/LLCC so the game sees high memory bandwidth without waiting for the
+  bus to ramp. On GKI kernels the same knobs are written to debugfs when available. Xiaomi's migt
+  is enabled on devices that have it. Fully restored on game exit. Toggleable from the WebUI
+- **Clean App Cache** (Settings → Clean App Cache button): triggers `pm trim-caches` (Android's
+  official package manager command) with the maximum value to request all app caches freed, then
+  drops kernel dentries/inodes via `/proc/sys/vm/drop_caches`. Runs only when the button is
+  tapped — nothing happens automatically. Shows a "Cleaning…" indicator while running and a
+  success/failure notification when done
+- **Network Congestion Control picker** (Settings → Network Congestion Control): the TCP algorithm
+  used while gaming is no longer fixed — pick a specific one (whatever this kernel's
+  `tcp_available_congestion_control` offers) or leave it on Auto, which keeps fluxd's own priority
+  (BBR3 > BBR2 > BBRplus > BBR > Westwood > CUBIC) and is shown as the recommended default. A
+  choice this kernel doesn't actually have falls back to Auto rather than failing to apply
 - **Render threads on fast cores** (Game tweaks, on): fluxd finds the game's render threads
   (Unity UnityMain / UnityGfxDevice, Unreal GameThread / RenderThread / RHIThread, GLThread, or
   the main thread of NativeActivity games) and pins them to the fastest cores with nice -15; on

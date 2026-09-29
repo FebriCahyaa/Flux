@@ -125,6 +125,25 @@
     "gpu_governor": {
       "title": "Governor GPU",
       "description": "Pilih governor GPU untuk profil seimbang dan hemat daya"
+    },
+    "congestion_control": {
+      "title": "Kontrol Kemacetan Jaringan",
+      "description": "Pilih algoritma TCP yang dipakai game, atau biarkan pada bawaan yang direkomendasikan"
+    },
+    "ram_optimizer": {
+      "title": "RAM Optimizer",
+      "description": "Manajemen memori adaptif yang menyesuaikan diri dengan ukuran RAM perangkat"
+    },
+    "perf_boost": {
+      "title": "Performance Boost",
+      "description": "Penyetelan halus scheduler dan bandwidth memori untuk frame yang lebih mulus"
+    },
+    "clean_cache": {
+      "title": "Bersihkan Cache Aplikasi",
+      "description": "Bebaskan data cache dari semua aplikasi sekarang — tidak ada yang dihapus otomatis",
+      "cleaning": "Membersihkan…",
+      "done": "Cache aplikasi berhasil dibersihkan",
+      "failed": "Gagal membersihkan cache — periksa akses root"
     }
   },
   "game_settings": {
@@ -386,7 +405,16 @@
     "battery_saver_off": "Tidak aktif",
     "thermal_unsupported_title": "API Termal Tidak Tersedia",
     "thermal_gki_note": "Kernel GKI mungkin tidak mengekspos API thermal headroom",
-    "profile_active": "Aktif"
+    "profile_active": "Aktif",
+    "thermal_status": {
+      "2": "Sedang",
+      "3": "Parah",
+      "4": "Kritis",
+      "5": "Darurat",
+      "6": "Akan mati"
+    },
+    "call": "Panggilan",
+    "call_active": "Sedang menelepon"
   },
   "flux_sched": {
     "title": "Flux Sched",
@@ -405,7 +433,7 @@
     },
     "io": {
       "title": "Latensi penyimpanan",
-      "description": "Menyelesaikan permintaan penyimpanan di CPU yang memintanya (milik game), bukan di core kecil yang sibuk."
+      "description": "Menyelesaikan permintaan penyimpanan di CPU yang memintanya (milik game), bukan di core kecil yang sibuk; menaikkan read-ahead untuk streaming aset dan tekstur. Di UFS/NVMe (perangkat multi-queue sungguhan) antrean juga diperlebar dan pengurutan perintah diserahkan ke controller penyimpanannya sendiri, bukan scheduler kernel; eMMC mendapat antrean lebih sederhana dan scheduler yang cocok untuk command queue tunggalnya. Semua dikembalikan saat game selesai."
     },
     "priority": {
       "title": "Prioritas game",
@@ -485,6 +513,19 @@
       "slow_message": "Governor ini bisa menahan GPU di clock rendah, sehingga animasi dan scroll bisa patah-patah."
     }
   },
+  "congestion_control": {
+    "title": "Kontrol Kemacetan Jaringan",
+    "brief": "Kontrol kemacetan menentukan cara TCP bereaksi saat jaringan padat — ini yang menjaga ping tetap stabil saat mabar, bukannya melonjak. Auto memilih yang terbaik yang tersedia di kernel ini; pilih algoritma tertentu untuk menimpanya.",
+    "running_now": "Berjalan sekarang",
+    "recommended": "Direkomendasikan",
+    "auto": "Auto (direkomendasikan)",
+    "picker_title": "Algoritma",
+    "picker_description": "Diterapkan selama game berjalan, bersama tweak jaringan lainnya. Auto saat ini berarti {algo}.",
+    "unsupported": "Tidak ada algoritma kontrol kemacetan yang ditemukan",
+    "unsupported_hint": "Kernel ini tidak menyediakan /proc/sys/net/ipv4/tcp_available_congestion_control.",
+    "apply_note": "Auto mengikuti prioritas fluxd sendiri (BBR3 > BBR2 > BBRplus > BBR > Westwood > CUBIC), memilih yang tercepat yang benar-benar dimiliki kernel ini. Perubahan berlaku pada sesi game berikutnya.",
+    "saved": "Kontrol kemacetan: {algo}"
+  },
   "game_tweaks": {
     "title": "Tweak Game",
     "brief": "Tweak tambahan yang hanya diterapkan saat game berjalan. Semuanya dikembalikan saat kamu keluar dari game.",
@@ -498,7 +539,7 @@
     },
     "net_tweaks": {
       "title": "Latensi jaringan",
-      "description": "TCP latensi rendah dengan kontrol kemacetan terbaik yang dimiliki kernel ini (BBR, Westwood atau CUBIC), ECN dan Fast Open agar ping lebih stabil."
+      "description": "TCP latensi rendah dengan kontrol kemacetan yang dipilih di Kontrol Kemacetan Jaringan (auto secara bawaan), ECN dan Fast Open agar ping lebih stabil."
     },
     "touch_tweaks": {
       "title": "Respons sentuhan",
@@ -589,11 +630,71 @@
     },
     "adaptive_refresh": {
       "title": "Refresh rate adaptif",
-      "description": "Layar boleh turun ke rate terendah (60 Hz atau lebih) saat konten diam, puncak tetap tertinggi; frame rate override aktif, turun saat diam setelah 3 detik, sentuhan langsung kembali ke puncak. Game tetap memakai pengaturan refresh-nya sendiri."
+      "description": "Layar boleh turun ke rate lebih rendah (60 Hz atau lebih) saat konten diam di dalam aplikasi, puncak tetap tertinggi. Hanya rate yang bisa dicapai layar tanpa ganti mode yang dipakai, jadi tidak patah-patah; jika layar tidak punya, tidak ada yang diubah. Homescreen, recents dan panel notifikasi tetap di rate puncak agar geser tetap mulus. Frame rate override aktif, turun saat diam setelah 3 detik. Game tetap memakai pengaturan refresh-nya sendiri."
     },
     "zram_tune": {
       "title": "Zram sesuai RAM",
-      "description": "Ukuran swap terkompresi disesuaikan dengan RAM (3/4 hingga 4 GB, setengah di atasnya, maksimal 6 GB) dengan kompresor lz4. Diterapkan saat boot; setelan vendor dengan writeback ke penyimpanan dibiarkan. Dimatikan = ukuran ROM dikembalikan."
+      "description": "Mengubah ukuran swap terkompresi sesuai tingkatan RAM perangkat (≈133% di 3 GB, turun sampai ≈62% di 16 GB+) dengan kompresor lz4. Diterapkan saat boot; setup vendor dengan writeback ke penyimpanan dibiarkan. Nonaktif mengembalikan ukuran bawaan ROM."
     }
+  },
+  "ram_optimizer": {
+    "title": "RAM Optimizer",
+    "brief": "Membaca ukuran RAM perangkat dan menerapkan pengaturan manajemen memori yang sesuai — swappiness, watermark memori bebas, tekanan page-cache, dan waktu writeback — sehingga ponsel 3 GB dikonfigurasi berbeda dari ponsel 16 GB. Semua nilai dikembalikan saat game selesai.",
+    "toggle_title": "Aktifkan RAM Optimizer",
+    "state_on": "Aktif — manajemen memori menyesuaikan tier RAM perangkat",
+    "state_off": "Nonaktif — pengaturan memori kernel bawaan saat bermain",
+    "tier_title": "Tier RAM {tier} GB terdeteksi",
+    "tier_description": "Flux otomatis memilih profil yang sesuai dengan jumlah RAM ini. Tidak perlu penyetelan manual.",
+    "tunes_title": "Yang disetel",
+    "tunes": {
+      "swappiness": {
+        "title": "Agresivitas swap",
+        "description": "Lebih rendah pada ponsel RAM besar (lebih sedikit kebutuhan swap), lebih tinggi pada ponsel RAM kecil (pemulihan OOM lebih cepat). Berkisar dari 15 hingga 100 di enam tier RAM."
+      },
+      "watermark": {
+        "title": "Watermark memori bebas",
+        "description": "min_free_kbytes dan extra_free_kbytes disesuaikan dari 16 MB (tier 3 GB) hingga 96 MB (tier 16 GB), sehingga kswapd bangun cukup awal untuk membebaskan memori sebelum game harus menunggu."
+      },
+      "vfs_cache": {
+        "title": "Tekanan page-cache",
+        "description": "Lebih tinggi pada ponsel RAM kecil (bebaskan dentry dan inode lebih cepat untuk game), lebih rendah pada yang besar (jaga launcher dan aplikasi tetap hangat). Rentang: 60–150."
+      },
+      "writeback": {
+        "title": "Writeback halaman kotor",
+        "description": "Halaman kotor kedaluwarsa lebih jarang (5 d / 50 d alih-alih default), sehingga thread writeback kernel lebih jarang mengganggu game."
+      },
+      "compaction": {
+        "title": "Kompaksi memori",
+        "description": "Kompaksi proaktif dinonaktifkan saat bermain — proses ini memakai siklus CPU untuk mencari halaman yang berdekatan sementara game sudah membuat core sibuk."
+      }
+    },
+    "apply_note": "Pengaturan berlaku di awal sesi game berikutnya dan dikembalikan saat Anda keluar dari game."
+  },
+  "perf_boost": {
+    "title": "Performance Boost",
+    "brief": "Sekumpulan penyetelan halus yang mengurangi latensi scheduler dan meningkatkan alokasi bandwidth memori saat game berjalan. Semua nilai disimpan sebelum diubah dan dikembalikan saat Anda keluar dari game.",
+    "toggle_title": "Aktifkan Performance Boost",
+    "state_on": "Aktif — penyetelan scheduler dan bandwidth tambahan aktif saat bermain",
+    "state_off": "Nonaktif — pengaturan scheduler bawaan saat bermain",
+    "effects_title": "Yang diubah",
+    "effects": {
+      "migration": {
+        "title": "Biaya migrasi tugas",
+        "description": "Meningkatkan estimasi scheduler tentang betapa mahalnya migrasi antar-core, sehingga thread game lebih jarang dipindahkan dan data panas tetap di cache per-core."
+      },
+      "latency": {
+        "title": "Target latensi scheduler",
+        "description": "Menyesuaikan granularitas CFS dan latensi wakeup agar thread game mendapatkan time slice yang lebih panjang dan dapat diprediksi tanpa di-preempt oleh pekerjaan latar belakang."
+      },
+      "autogroup": {
+        "title": "Autogroup tugas nonaktif",
+        "description": "Autogroup berbasis sesi Android dinonaktifkan saat bermain. Engine game multi-thread lebih diuntungkan dengan scheduling datar daripada isolasi sesi."
+      },
+      "bandwidth": {
+        "title": "Petunjuk bandwidth bus memori",
+        "description": "Pada platform Qualcomm, meningkatkan batas atas DCVS bus untuk L3/DDR/LLCC agar game mendapatkan bandwidth memori tinggi tanpa menunggu bus meningkat kecepatannya."
+      }
+    },
+    "apply_note": "Perubahan berlaku di awal sesi game berikutnya dan sepenuhnya dikembalikan saat Anda keluar."
   }
 }
