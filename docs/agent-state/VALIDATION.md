@@ -124,3 +124,14 @@ Step 4: **IMPLEMENTED**.
 | Device | NOT_TESTED |
 
 Step 5: **IMPLEMENTED**, architecture approved by owner (2026-09-29). Device validation: **NOT_TESTED** (B-25).
+
+## Step 6 Observatory foundation — 2026-09-29 (`integration/game-runtime-clean` @ `b82761e`)
+| Check | Result |
+|---|---|
+| Tests written first; CMake configure failed without implementation (red) | observed |
+| event creation (registry, validate, store assigns id/sequence), serialization round-trip (escapes, snapshots), invalid event rejection (source, reason, unknown type, disallowed source, missing session/transaction id, invalid severity/confidence/result, rejected not stored), timestamp validation (0, negative, 1970, far future, small skew, non-integer), ordering (timestamp then write sequence, filters, limit, bounded drop), corrupted handling (empty, invalid JSON, array, missing fields, truncated, unknown key, schema 9, JSONL line reporting) | PASS |
+| Host ctest | PASS 15/15 |
+| Forbidden-symbol check | clean |
+| CI https://github.com/FebriCahyaa/Flux/actions/runs/36632946443 (ndk-build incl. FluxObservatory) | success |
+| sessions.json / session_live.json | unchanged |
+| Producers / device | none wired / NOT_TESTED |

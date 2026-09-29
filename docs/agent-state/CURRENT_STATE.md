@@ -37,7 +37,13 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   `tests/session_manager_test.cpp`, `docs/architecture/SESSION_MODEL.md`. Main.cpp reports events only;
   SessionManager orders GameRuntime → SessionRecorder (end in reverse). `sessions.json` unchanged.
   Host 14/14; CI 36630954964 green. Device: NOT_TESTED.
-- **Next:** awaiting owner direction (remaining plan steps 8–10: WebUI/docs/utility, device validation, integration report → PR).
+- **Step 6 (Zairenkai Observatory foundation): IN PROGRESS.**
+  `integration/game-runtime-clean` @ `b82761e`: `jni/observatory/{Event,EventStore}.*`,
+  `tests/observatory_test.cpp`, `docs/architecture/{OBSERVATORY,EVENT_MODEL}.md`. Schema v1, registry
+  (SESSION/RUNTIME/PERFORMANCE/TRANSACTION/RECOVERY), validation, JSONL, write/query/ordering interfaces +
+  bounded memory store. Additive: **no producers wired**, SessionRecorder/sessions.json untouched, no device
+  storage/retention. Host 15/15; CI 36632946443 green.
+- **Next:** owner review of Step 6.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 
 ## Repositories and branches

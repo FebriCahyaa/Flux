@@ -97,3 +97,11 @@ Proposed Step 5 scope (for owner approval):
    ordering of worker stop vs restore.
 
 Owner decision: keep `sessions.json` unchanged until Phase 5 (applied in `7e35fba`).
+
+## Step 6 — Zairenkai Observatory foundation (IN PROGRESS)
+
+Done (`b82761e`): event schema v1, registry, validation, serialisation, storage interfaces, memory store,
+host tests, docs. Not in scope: producers, device storage, retention, timeline, WebUI, KERNEL/GRAPHICS/THERMAL
+categories. Integration points listed in `docs/architecture/OBSERVATORY.md`.
+Suggested next: wire producers (SessionManager, GamePerformanceRuntime, Transaction, recovery) to an
+`EventSink`, then Phase 5 storage + 7-day retention under `/data/adb/.config/zairenkai/telemetry/`.
