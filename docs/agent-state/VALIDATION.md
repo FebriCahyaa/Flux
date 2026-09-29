@@ -38,3 +38,16 @@ GitHub repository search. Trademark databases: NOT_TESTED (B-14).
 | Isolation grep (Resolver/Backend/ProviderPlan/Arming/zygisk/identity/ro./GL/Vulkan) on `jni/runtime`, test | CLEAN |
 | `fluxd` device build | unchanged (engine not in `Android.mk`); CI NOT_TESTED |
 | Device | NOT_TESTED |
+
+## Game Runtime Step 1 closure — 2026-09-29 (`integration/game-runtime-clean` @ `8fc92c0`)
+CI run https://github.com/FebriCahyaa/Flux/actions/runs/36617841919 (workflow_dispatch): success.
+| Check | Result |
+|---|---|
+| Forbidden symbol check (CI step) | PASS; local negative test with planted `flux_wrap_` → exit 1 |
+| Host tests in CI | PASS 8/8 incl. `transaction_test` |
+| `ndk-build` r29 arm64-v8a + armeabi-v7a, `FluxRuntime <= Transaction.cpp` with `-Werror`, `fluxd` linked | PASS |
+| WebUI build in CI | PASS |
+| Packaging (arm64, arm, universal zips) | PASS |
+| Transaction engine called at runtime | not yet (by design) |
+| Device | NOT_TESTED |
+Step 1: **CLOSED**.

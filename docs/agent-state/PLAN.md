@@ -37,7 +37,7 @@ Branch `integration/game-runtime-clean` (= main). Plan: `GAME_RUNTIME_MIGRATION_
 
 | Step | Status |
 |---|---|
-| 1 Transaction engine decoupling | IN PROGRESS — code + host tests done (`b604eac`), awaiting CI + review |
+| 1 Transaction engine decoupling | **CLOSED** — `b604eac`, `8fc92c0`, `63dd11c`; CI run 36617841919 green |
 | 2 Perf planner + launch boost | NOT STARTED |
 | 3 Profile inheritance (perf only) | NOT STARTED |
 | 4 GameRuntime perf lifecycle | NOT STARTED |
