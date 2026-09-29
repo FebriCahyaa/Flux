@@ -16,7 +16,13 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
 - **Phase 1.6 (Game Runtime integration preparation): PREPARATION COMPLETE.**
   `docs/architecture/GAME_RUNTIME_MIGRATION_PLAN.md`. Branch `integration/game-runtime-clean`
   created from `main` @ `b75491c` and pushed, **no commits on it**. No production code changed.
-- **Next:** wait for owner approval, then migration steps 1–10 of the plan on the integration branch.
+- **Game Runtime migration Step 1 (transaction engine decoupling): IN PROGRESS.**
+  `integration/game-runtime-clean` @ `b604eac`: `jni/runtime/Transaction.{hpp,cpp}`,
+  `tests/transaction_test.cpp`, `docs/architecture/TRANSACTION_ENGINE.md` (doc lives on the
+  integration branch). Host tests 8/8 PASS. Not linked into `fluxd`; CI Android build and device:
+  NOT_TESTED. Pending: CI run on the integration branch + owner review to close Step 1.
+- **Next:** Step 2+ only after Step 1 is closed. Session migration (Step 5) must not start before
+  transaction tests pass (they do) and Step 1 is approved.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 
 ## Repositories and branches

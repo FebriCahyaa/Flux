@@ -28,3 +28,13 @@ session scratchpad, `webui/dist` and `node_modules` are git-ignored.
 Documentation only; no build inputs changed. Evidence commands: web search, `curl` to
 registry.npmjs.org / pypi.org / crates.io (404 = unclaimed), `dns.google/resolve` NS lookups,
 GitHub repository search. Trademark databases: NOT_TESTED (B-14).
+
+## Game Runtime Step 1 — 2026-09-29 (`integration/game-runtime-clean` @ `b604eac`)
+| Check | Result |
+|---|---|
+| Tests written before implementation; CMake configure failed without `Transaction.cpp` (red) | observed |
+| Host ctest (7 existing + `transaction_test`) with `-Werror` | PASS 8/8 |
+| `transaction_test` scenarios: snapshot, apply, verify success, verify failure, apply failure, journal-sink failure, rollback, restore/reapply, restore failure, crash recovery (+ legacy journal, non-sticking restore), corrupted journal (malformed, relative, `..`, empty path, unknown version, empty) | PASS |
+| Isolation grep (Resolver/Backend/ProviderPlan/Arming/zygisk/identity/ro./GL/Vulkan) on `jni/runtime`, test | CLEAN |
+| `fluxd` device build | unchanged (engine not in `Android.mk`); CI NOT_TESTED |
+| Device | NOT_TESTED |

@@ -33,7 +33,16 @@ conflicts with frozen contracts (D-04), removal/disablement of the identity-subs
 ## Phase 1.6 — Integration preparation: PREPARATION COMPLETE
 
 Branch `integration/game-runtime-clean` (= main). Plan: `GAME_RUNTIME_MIGRATION_PLAN.md` §3 steps
-1–10. Zygisk and all identity code excluded. **Awaiting owner approval (B-17).**
+1–10. Zygisk and all identity code excluded. Approved by owner.
+
+| Step | Status |
+|---|---|
+| 1 Transaction engine decoupling | IN PROGRESS — code + host tests done (`b604eac`), awaiting CI + review |
+| 2 Perf planner + launch boost | NOT STARTED |
+| 3 Profile inheritance (perf only) | NOT STARTED |
+| 4 GameRuntime perf lifecycle | NOT STARTED |
+| 5 Session + journal + recovery | NOT STARTED — gated on Step 1 |
+| 6–10 | NOT STARTED |
 
 ## Phase 0 findings carried forward
 
