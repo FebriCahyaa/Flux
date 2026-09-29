@@ -97,3 +97,12 @@ target_compile_options(flux_runtime PRIVATE ${FLUX_WARNINGS})
 
 flux_add_test(transaction_test tests/transaction_test.cpp)
 target_link_libraries(transaction_test PRIVATE flux_runtime)
+
+# -- performance planner (on top of the transaction engine) --------------------
+add_library(flux_perf STATIC jni/perf/PerformancePlanner.cpp)
+target_include_directories(flux_perf PUBLIC jni/perf)
+target_link_libraries(flux_perf PUBLIC flux_runtime)
+target_compile_options(flux_perf PRIVATE ${FLUX_WARNINGS})
+
+flux_add_test(performance_planner_test tests/performance_planner_test.cpp)
+target_link_libraries(performance_planner_test PRIVATE flux_perf)
