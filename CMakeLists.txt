@@ -87,3 +87,13 @@ target_link_libraries(platform_probe_test PRIVATE flux_gfx)
 # does not break it.
 flux_add_test(synthesis_core_test tests/synthesis_core_test.cpp jni/base/SynthesisCore/SynthesisCore.cpp)
 target_include_directories(synthesis_core_test PRIVATE jni/base/SynthesisCore)
+
+# -- runtime transaction engine ------------------------------------------------
+# Host-only for now: jni/Android.mk builds jni/*.cpp, so fluxd does not link this
+# until the Game Runtime integration wires it in (GAME_RUNTIME_MIGRATION_PLAN.md).
+add_library(flux_runtime STATIC jni/runtime/Transaction.cpp)
+target_include_directories(flux_runtime PUBLIC jni/runtime)
+target_compile_options(flux_runtime PRIVATE ${FLUX_WARNINGS})
+
+flux_add_test(transaction_test tests/transaction_test.cpp)
+target_link_libraries(transaction_test PRIVATE flux_runtime)
