@@ -16,6 +16,12 @@
             "chipset": "芯片组",
             "androidSDK": "Android SDK"
         },
+        "active_profile": {
+            "subtitle": "根据游戏和设备状态自动切换"
+        },
+        "device_section": {
+            "title": "设备"
+        },
         "support_button": {
             "title": "支持开发",
             "description": "Flux Tweaks 对所有人永远免费。如果你觉得好用，可以通过捐赠来表达你的支持。"

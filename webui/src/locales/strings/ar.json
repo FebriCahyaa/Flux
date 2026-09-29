@@ -22,6 +22,12 @@
             "chipset": "المعالج",
             "androidSDK": "اندرويد SDK"
         },
+        "active_profile": {
+            "subtitle": "يتغيّر تلقائيًا حسب اللعبة وحالة الجهاز"
+        },
+        "device_section": {
+            "title": "الجهاز"
+        },
         "support_button": {
             "title": "ادعمني",
             "description": "Flux Tweaks لازال، و سيظل دائما مجاني لك و للجميع. رغم ذلك يمكنك إظهار بعض الدعم عن طريق التبرع."

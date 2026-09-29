@@ -16,6 +16,12 @@
       "chipset": "Chipset",
       "androidSDK": "Android SDK"
     },
+    "active_profile": {
+      "subtitle": "Switches automatically based on the game and device state"
+    },
+    "device_section": {
+      "title": "Device"
+    },
     "support_button": {
       "title": "Back the Project",
       "description": "Flux Tweaks is free, forever — built out of passion for Android performance. If it’s made your device faster, consider supporting the work."

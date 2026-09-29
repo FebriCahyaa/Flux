@@ -16,6 +16,12 @@
       "chipset": "Chipset",
       "androidSDK": "Android SDK"
     },
+    "active_profile": {
+      "subtitle": "Berganti otomatis sesuai game dan kondisi perangkat"
+    },
+    "device_section": {
+      "title": "Perangkat"
+    },
     "support_button": {
       "title": "Dukung Proyek Ini",
       "description": "Flux Tweaks gratis selamanya — dibangun atas dasar semangat terhadap performa Android. Jika perangkat kamu terasa lebih cepat, pertimbangkan untuk mendukung pengembangannya."

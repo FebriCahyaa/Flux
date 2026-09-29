@@ -14,6 +14,12 @@
             "chipset": "Çipset",
             "androidSDK": "Android SDK"
         },
+        "active_profile": {
+            "subtitle": "Oyuna ve cihaz durumuna göre otomatik olarak değişir"
+        },
+        "device_section": {
+            "title": "Cihaz"
+        },
         "support_button": {
             "title": "Beni Destekle",
             "description": "Flux Tweaks ,her zaman, sizin ve herkes için ücretsiz olmuştur ve öyle kalacaktır. Ancak, bir bağış yaparak bana destek olduğunuzu gösterebilirsiniz."

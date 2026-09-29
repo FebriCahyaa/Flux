@@ -29,6 +29,12 @@
             "kernel": "Kernel",
             "chipset": "Chipset",
             "androidSDK": "Android SDK"
+        },
+        "active_profile": {
+            "subtitle": "Muda automaticamente de acordo com o jogo e o estado do dispositivo"
+        },
+        "device_section": {
+            "title": "Dispositivo"
         }
     },
     "games_page": {

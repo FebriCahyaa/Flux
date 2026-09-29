@@ -15,7 +15,10 @@
     <!-- Scrollable Content -->
     <div class="scrollbar-hidden pb-safe-nav flex-1 min-h-0 overflow-y-scroll">
       <div class="max-w-3xl mx-auto px-4 py-1">
-        <!-- Hero: daemon status and active profile -->
+        <!-- Hero: Flux identity + daemon status only. Kept compact on purpose
+             -- this is a status readout, not a poster; the active profile has
+             its own section right below so it reads as the primary control,
+             not a segmented row buried inside the hero. -->
         <section
           class="hero m3-enter relative overflow-hidden rounded-[32px] p-5 mb-3"
           :class="heroTone.container"
@@ -27,95 +30,112 @@
               class="mascot shape-cookie12 shrink-0 grid place-items-center"
               :class="heroTone.mascot"
             >
-              <img :src="homeStore.logoImage" class="w-24 h-24 object-contain" alt="Flux" />
+              <img :src="homeStore.logoImage" class="w-16 h-16 object-contain" alt="Flux" />
             </div>
             <div class="min-w-0 flex-1">
               <span
                 class="status-chip inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
                 :class="heroTone.chip"
               >
-                <span class="dot"></span>{{ statusChipText }}
+                <span class="dot" aria-hidden="true"></span>{{ statusChipText }}
               </span>
               <h2 class="m3-headline text-2xl mt-2">{{ daemonStatusText }}</h2>
               <p class="text-xs mt-1 opacity-80">{{ daemonPidText }}</p>
             </div>
           </div>
+        </section>
 
-          <!-- Connected button group: the active profile is highlighted (profiles switch automatically) -->
-          <div class="relative mt-5">
-            <p class="text-xs font-semibold opacity-80 mb-2 px-1">
-              {{ $t('home_page.info_card.profile') }}
-            </p>
-            <div class="profile-group flex gap-0.5" role="list">
-              <span
-                v-for="p in profiles"
-                :key="p"
-                role="listitem"
-                class="profile-seg flex-1 text-center text-xs font-semibold py-2.5 truncate"
-                :class="
-                  p === activeProfile ? 'is-active bg-primary text-on-primary' : heroTone.segment
-                "
-                :aria-current="p === activeProfile ? 'true' : undefined"
-              >
-                {{ $t(`home_page.profile_short.${p}`) }}
-              </span>
-            </div>
+        <!-- Active profile: the primary control on Home. Profiles switch
+             automatically (Flux's existing behaviour, unchanged); the
+             segmented row below is a quick-glance view of all four, not a
+             new switcher. -->
+        <section class="profile-card m3-enter bg-surface-container rounded-[28px] p-5 mb-3">
+          <p class="text-xs font-semibold text-on-surface-variant mb-1">
+            {{ $t('home_page.info_card.profile') }}
+          </p>
+          <h2 class="m3-headline text-[28px] text-on-surface">{{ currentProfileText }}</h2>
+          <p class="text-xs text-on-surface-variant mt-1 mb-4">
+            {{ $t('home_page.active_profile.subtitle') }}
+          </p>
+          <div class="profile-group flex gap-0.5" role="list">
+            <span
+              v-for="p in profiles"
+              :key="p"
+              role="listitem"
+              class="profile-seg flex-1 text-center text-xs font-semibold py-2.5 truncate"
+              :class="
+                p === activeProfile
+                  ? 'is-active bg-primary text-on-primary'
+                  : 'bg-surface-container-high text-on-surface-variant'
+              "
+              :aria-current="p === activeProfile ? 'true' : undefined"
+            >
+              {{ $t(`home_page.profile_short.${p}`) }}
+            </span>
           </div>
         </section>
 
-        <!-- Bento: device facts -->
-        <section class="grid grid-cols-2 gap-2 mb-3">
-          <div
-            class="bento m3-enter col-span-2 bg-surface-container rounded-[28px] p-4 flex items-center gap-4"
-            style="animation-delay: 40ms"
-          >
-            <span class="badge shape-cookie6 bg-secondary-container text-on-secondary-container"
-              ><ConsoleIcon
-            /></span>
-            <div class="min-w-0">
-              <p class="text-xs text-on-surface-variant">{{ $t('home_page.info_card.kernel') }}</p>
-              <p class="allow-copy text-sm font-semibold text-on-surface break-all">
-                {{ displayValue(homeStore.kernelVersion) }}
-              </p>
+        <!-- Device: compact metadata rows, not four standalone colour cards. -->
+        <h2 class="m3-section-title px-1">{{ $t('home_page.device_section.title') }}</h2>
+        <section class="m3-enter mb-3" :aria-busy="!homeStore.isInitialized">
+          <div class="md3-list">
+            <div class="md3-list-item flex items-center gap-4 px-5 py-3.5">
+              <span class="badge-sm shape-pentagon bg-tertiary-container text-on-tertiary-container"
+                ><ChipsetIcon :size="20"
+              /></span>
+              <span class="text-sm text-on-surface-variant flex-1">{{
+                $t('home_page.info_card.chipset')
+              }}</span>
+              <span v-if="!homeStore.isInitialized" class="skel" aria-hidden="true"></span>
+              <span v-else class="allow-copy text-sm font-semibold text-on-surface text-right">{{
+                displayValue(homeStore.chipsetName)
+              }}</span>
             </div>
           </div>
-
-          <div
-            class="bento m3-enter bg-tertiary-container text-on-tertiary-container rounded-[28px] p-4"
-            style="animation-delay: 80ms"
-          >
-            <span class="badge shape-pentagon bg-tertiary text-on-tertiary mb-6"
-              ><ChipsetIcon
-            /></span>
-            <p class="text-xs opacity-80">{{ $t('home_page.info_card.chipset') }}</p>
-            <p class="allow-copy m3-headline text-lg break-words">
-              {{ displayValue(homeStore.chipsetName) }}
-            </p>
+          <div class="md3-list">
+            <div class="md3-list-item flex items-center gap-4 px-5 py-3.5">
+              <span class="badge-sm shape-cookie6 bg-secondary-container text-on-secondary-container"
+                ><ConsoleIcon :size="20"
+              /></span>
+              <span class="text-sm text-on-surface-variant flex-1">{{
+                $t('home_page.info_card.kernel')
+              }}</span>
+              <span v-if="!homeStore.isInitialized" class="skel" aria-hidden="true"></span>
+              <span
+                v-else
+                class="allow-copy text-sm font-semibold text-on-surface text-right break-all"
+                >{{ displayValue(homeStore.kernelVersion) }}</span
+              >
+            </div>
           </div>
-
-          <div
-            class="bento m3-enter bg-secondary-container text-on-secondary-container rounded-[28px] p-4"
-            style="animation-delay: 120ms"
-          >
-            <span class="badge shape-clover4 bg-secondary text-on-secondary mb-6"
-              ><AndroidIcon
-            /></span>
-            <p class="text-xs opacity-80">{{ $t('home_page.info_card.androidSDK') }}</p>
-            <p class="allow-copy m3-headline text-4xl">{{ displayValue(homeStore.androidSDK) }}</p>
+          <div class="md3-list">
+            <div class="md3-list-item flex items-center gap-4 px-5 py-3.5">
+              <span class="badge-sm shape-clover4 bg-secondary-container text-on-secondary-container"
+                ><AndroidIcon :size="20"
+              /></span>
+              <span class="text-sm text-on-surface-variant flex-1">{{
+                $t('home_page.info_card.androidSDK')
+              }}</span>
+              <span v-if="!homeStore.isInitialized" class="skel" aria-hidden="true"></span>
+              <span v-else class="allow-copy text-sm font-semibold text-on-surface">{{
+                displayValue(homeStore.androidSDK)
+              }}</span>
+            </div>
           </div>
-
-          <div
-            class="bento m3-enter col-span-2 bg-surface-container rounded-[28px] p-4 flex items-center gap-4"
-            style="animation-delay: 160ms"
-          >
-            <span class="badge shape-sunny bg-primary-container text-on-primary-container"
-              ><StarIcon
-            /></span>
-            <div class="min-w-0">
-              <p class="text-xs text-on-surface-variant">{{ $t('home_page.info_card.module') }}</p>
-              <p class="allow-copy text-sm font-semibold text-on-surface break-all">
-                {{ displayValue(homeStore.moduleVersion) }}
-              </p>
+          <div class="md3-list">
+            <div class="md3-list-item flex items-center gap-4 px-5 py-3.5">
+              <span class="badge-sm shape-sunny bg-primary-container text-on-primary-container"
+                ><StarIcon :size="20"
+              /></span>
+              <span class="text-sm text-on-surface-variant flex-1">{{
+                $t('home_page.info_card.module')
+              }}</span>
+              <span v-if="!homeStore.isInitialized" class="skel" aria-hidden="true"></span>
+              <span
+                v-else
+                class="allow-copy text-sm font-semibold text-on-surface text-right break-all"
+                >{{ displayValue(homeStore.moduleVersion) }}</span
+              >
             </div>
           </div>
         </section>
@@ -250,7 +270,6 @@ const heroTone = computed(() => {
       deco: 'bg-error',
       mascot: 'bg-error/25',
       chip: 'bg-error text-on-error',
-      segment: 'bg-on-error-container/10',
     }
   }
   return {
@@ -258,7 +277,6 @@ const heroTone = computed(() => {
     deco: 'bg-primary',
     mascot: 'bg-tertiary-container',
     chip: 'bg-on-primary-container text-primary-container',
-    segment: 'bg-on-primary-container/10',
   }
 })
 
@@ -303,17 +321,19 @@ function handleDonateClick() {
 <style scoped>
 .hero-deco {
   position: absolute;
-  width: 220px;
-  height: 220px;
-  right: -70px;
-  top: -80px;
-  opacity: 0.16;
+  width: 160px;
+  height: 160px;
+  right: -50px;
+  top: -60px;
+  opacity: 0.14;
   animation: hero-spin 30s linear infinite;
 }
 
+/* Supporting identity, not the focal point: the hero is a status readout
+   first, so the mascot stays compact instead of dominating the viewport. */
 .mascot {
-  width: 112px;
-  height: 112px;
+  width: 72px;
+  height: 72px;
   animation: mascot-breathe 5s var(--m3-spring-default-spatial) infinite alternate;
 }
 
@@ -346,29 +366,20 @@ function handleDonateClick() {
   flex-grow: 1.35;
 }
 
-.badge,
 .badge-sm {
   display: grid;
   place-items: center;
   flex-shrink: 0;
-}
-
-.badge {
-  width: 48px;
-  height: 48px;
-}
-
-.badge-sm {
   width: 40px;
   height: 40px;
 }
 
-.bento {
-  transition: transform var(--m3-spring-fast-spatial-duration) var(--m3-spring-fast-spatial);
-}
-
-.bento:active {
-  transform: scale(0.97);
+.skel {
+  display: inline-block;
+  width: 64px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--color-surface-container-highest);
 }
 
 @keyframes hero-spin {

@@ -24,6 +24,12 @@
             "chipset": "Chipset",
             "androidSDK": "SDK de Android"
         },
+        "active_profile": {
+            "subtitle": "Cambia automáticamente según el juego y el estado del dispositivo"
+        },
+        "device_section": {
+            "title": "Dispositivo"
+        },
         "support_button": {
             "title": "Apóyame",
             "description": "Flux Tweaks es, y siempre será, gratuito para ti y para todos. Sin embargo, puedes demostrar que te importa haciendo una donación."

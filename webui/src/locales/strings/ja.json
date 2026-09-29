@@ -22,6 +22,12 @@
             "kernel": "カーネル",
             "androidSDK": "Android SDK"
         },
+        "active_profile": {
+            "subtitle": "ゲームとデバイスの状態に応じて自動的に切り替わります"
+        },
+        "device_section": {
+            "title": "デバイス"
+        },
         "support_button": {
             "title": "開発者を支援",
             "description": "Flux Tweaksは、現在も、そしてこれからもずっと、あなたとすべての人にとって無料です。もしよろしければ、寄付を通じて開発を応援していただけると幸いです。"
