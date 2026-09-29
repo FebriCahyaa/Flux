@@ -10,7 +10,10 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
 - **Phase 1 (naming registry + availability evidence): complete — documentation only.**
   `docs/architecture/NAMING_REGISTRY.md`. Aeyrin public brand stopped (B-13); trademark databases
   owner-pending (B-14). Owner decisions D-08…D-12 recorded.
-- **Next:** integration audit of `ccr-23925ebb-375wkg` (D-09) or Phase 2, per owner.
+- **Phase 1.5 (Game Runtime integration audit): AUDIT COMPLETE — not integrated.**
+  `docs/architecture/GAME_RUNTIME_INTEGRATION_REPORT.md`. Nothing merged or cherry-picked; branch
+  `ccr-23925ebb-375wkg` preserved. Identity layers marked REMOVE OR REDESIGN (B-15).
+- **Next:** owner accepts/rejects the report; then the clean integration line (report §8) or Phase 2.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 
 ## Repositories and branches

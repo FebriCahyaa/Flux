@@ -28,7 +28,7 @@ part is partial. Blockers are in `BLOCKERS.md`.
 Read-only audit of `Flux@ccr-23925ebb-375wkg` vs `main` (74 files, +11,002/−21): per-file purpose,
 conflicts with frozen contracts (D-04), removal/disablement of the identity-substitution layer
 (D-10), tests, and an integration report `docs/architecture/GAME_RUNTIME_INTEGRATION_REPORT.md`.
-Scheduled after Phase 1; no merge until the report is accepted.
+**Status: AUDIT COMPLETE (Phase 1.5).** Report written; no merge until accepted. Migration order: report §8.
 
 ## Phase 0 findings carried forward
 
