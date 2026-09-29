@@ -23,7 +23,26 @@ part is partial. Blockers are in `BLOCKERS.md`.
 | 14 | Device validation | all runtime phases |
 | 15 | Release and final architecture audit | 14 |
 
-## Next phase: Phase 1 — Naming and migration architecture
+## Integration audit (owner decision D-09) — before Phase 8
+
+Read-only audit of `Flux@ccr-23925ebb-375wkg` vs `main` (74 files, +11,002/−21): per-file purpose,
+conflicts with frozen contracts (D-04), removal/disablement of the identity-substitution layer
+(D-10), tests, and an integration report `docs/architecture/GAME_RUNTIME_INTEGRATION_REPORT.md`.
+Scheduled after Phase 1; no merge until the report is accepted.
+
+## Phase 0 findings carried forward
+
+| Finding | Fixed in |
+|---|---|
+| B-05 three disagreeing GKI classifiers | Phase 3 |
+| B-07 SoC code decoding mismatch, weak substring matching | Phase 2–3 |
+| B-10 `flux_utility.sh` `$@` dispatch, no write allowlist | Phase 11 |
+| B-12 `RefreshMatcher` (policy) inside `SessionRecorder` (observer) | Phase 6–7 |
+| B-04 HiCo Max/Extreme vs thermal-safety rule | Phase 9 |
+| `apply()` writes without read-back / rollback in `perfcommon` | Phase 3, 11 |
+| Count-based session retention (30) | Phase 5 |
+
+## Phase 1 — Naming and migration architecture (DONE, see PHASE_STATUS)
 
 Deliverables (documents and, where useful, non-shipping metadata only):
 
@@ -40,3 +59,6 @@ Deliverables (documents and, where useful, non-shipping metadata only):
    `fluxd --version`, `module.prop` and the WebUI About page — design only.
 
 Out of scope for Phase 1: any rename in code, paths, module ids, packages or UI strings.
+
+## Next phase: Phase 2 — Aeyrin context / capability foundation
+Or, if the owner prefers, the integration audit above first.

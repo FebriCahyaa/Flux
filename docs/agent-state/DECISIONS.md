@@ -43,3 +43,25 @@ Repository documents are written in English to match the existing READMEs and co
 ## D-07 — Commit identity (2026-09-29)
 Commits in all three repositories use `FebriCahyaa <febricahya12345@gmail.com>` as author and
 committer (owner instruction). Signing uses the session's configured SSH signing program.
+
+## D-08 — Phase 1 scope (owner, 2026-09-29)
+Phase 1 is limited to the naming registry and availability evidence audit. No production rename,
+no path migration, no identifier changes.
+
+## D-09 — Do not merge `Flux@ccr-23925ebb-375wkg` directly (owner, 2026-09-29)
+First audit its diff against `main` and prepare an integration report; merge decision follows.
+
+## D-10 — Zygisk provider preserved temporarily under constraints (owner, 2026-09-29)
+Must remain optional, process-scoped, compatibility-only; no hardware spoofing, no anti-cheat
+bypass, no anti-detection. The identity-substitution layer on the unmerged branch does not meet
+"no hardware spoofing" and must not enter the integration line as is.
+
+## D-11 — Capability schema v4 ownership (owner, 2026-09-29)
+Owned by current SynthesisCore until the migration architecture is documented.
+
+## D-12 — HiCo README is a historical phase document (owner, 2026-09-29)
+Preserve; never remove.
+
+## D-13 — Aeyrin public-brand stage stopped (2026-09-29)
+Phase 1 evidence found existing non-software uses and a taken GitHub handle (B-13). Internal
+design use continues; public branding waits for owner decision and trademark search.

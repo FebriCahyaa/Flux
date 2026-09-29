@@ -23,3 +23,8 @@ Android SDK, JDK 25 toolchain for AGP 9, or device.
 
 Working trees were clean after every check (`git status --short` empty); build output went to the
 session scratchpad, `webui/dist` and `node_modules` are git-ignored.
+
+## Phase 1 — 2026-09-29
+Documentation only; no build inputs changed. Evidence commands: web search, `curl` to
+registry.npmjs.org / pypi.org / crates.io (404 = unclaimed), `dns.google/resolve` NS lookups,
+GitHub repository search. Trademark databases: NOT_TESTED (B-14).

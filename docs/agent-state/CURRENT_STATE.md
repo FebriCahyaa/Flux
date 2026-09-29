@@ -7,8 +7,10 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
 
 - **Phase 0 (baseline audit): complete — documentation only.** No source, script, data, path,
   identifier or UI string was changed in any repository.
-- **Next: Phase 1** (naming registry + clearance evidence, codename registry, build-metadata and
-  compatibility-alias design; still no production renames). See `PLAN.md`.
+- **Phase 1 (naming registry + availability evidence): complete — documentation only.**
+  `docs/architecture/NAMING_REGISTRY.md`. Aeyrin public brand stopped (B-13); trademark databases
+  owner-pending (B-14). Owner decisions D-08…D-12 recorded.
+- **Next:** integration audit of `ccr-23925ebb-375wkg` (D-09) or Phase 2, per owner.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 
 ## Repositories and branches
