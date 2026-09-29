@@ -29,6 +29,13 @@ bool Arming::installed() const {
     return false;
 }
 
+bool Arming::bundled() const {
+    if (!io_.exists) return false;
+    for (const auto &l : cfg_.bundled_libs)
+        if (io_.exists(l)) return true;
+    return false;
+}
+
 bool Arming::loaded() const {
     if (!io_.exists || !io_.read || !io_.exists(cfg_.info_file)) return false;
     auto text = io_.read(cfg_.info_file);
@@ -40,14 +47,14 @@ bool Arming::loaded() const {
 
 BackendState Arming::backend_state() const {
     if (sdk_ < cfg_.min_sdk) return BackendState::Unsupported;
-    if (!installed()) return BackendState::Unavailable;
+    if (!installed()) return bundled() ? BackendState::NotConfigured : BackendState::Unavailable;
     if (!cfg_.user_enabled) return BackendState::NotConfigured;
     return BackendState::Available;
 }
 
 ProviderState Arming::provider_state() const {
     if (sdk_ < cfg_.min_sdk) return ProviderState::Unsupported;
-    if (!installed()) return ProviderState::Unavailable;
+    if (!installed()) return bundled() ? ProviderState::NotConfigured : ProviderState::Unavailable;
     if (!cfg_.user_enabled) return ProviderState::NotConfigured;
     return loaded() ? ProviderState::Loaded : ProviderState::Installed;
 }

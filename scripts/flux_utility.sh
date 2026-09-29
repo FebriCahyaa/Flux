@@ -399,5 +399,50 @@ logcat() {
 	done
 }
 
+# provider <enable|disable|status>: the Zygisk compatibility provider ships switched off. Enabling copies
+# zygisk_provider/<abi>.so to zygisk/<abi>.so, which is the only thing that makes Zygisk load it into
+# app processes; disabling removes zygisk/. Either way it takes a reboot to (un)load. `provider off`
+# additionally creates the module's kill switch (the provider stays inert even if enabled).
+provider() {
+	mod=/data/adb/modules/flux
+	case "$1" in
+	enable)
+		found=0
+		mkdir -p "$mod/zygisk"
+		for abi in arm64-v8a armeabi-v7a; do
+			[ -f "$mod/zygisk_provider/$abi.so" ] || continue
+			cp "$mod/zygisk_provider/$abi.so" "$mod/zygisk/$abi.so" || continue
+			chmod 0644 "$mod/zygisk/$abi.so"
+			chcon u:object_r:system_file:s0 "$mod/zygisk/$abi.so" 2>/dev/null
+			found=1
+		done
+		chcon u:object_r:system_file:s0 "$mod/zygisk" 2>/dev/null
+		if [ "$found" = 0 ]; then
+			rmdir "$mod/zygisk" 2>/dev/null
+			echo "no provider library in this build"
+			return 1
+		fi
+		rm -f "$mod/no_provider"
+		echo "enabled (reboot to load)"
+		;;
+	disable)
+		rm -rf "$mod/zygisk"
+		echo "disabled (reboot to unload)"
+		;;
+	off)
+		touch "$mod/no_provider"
+		echo "kill switch set: the provider does nothing"
+		;;
+	status)
+		if [ -f "$mod/zygisk/arm64-v8a.so" ] || [ -f "$mod/zygisk/armeabi-v7a.so" ]; then echo enabled; else echo disabled; fi
+		[ -f "$mod/no_provider" ] && echo "kill-switch: on"
+		;;
+	*)
+		echo "usage: flux_utility provider <enable|disable|off|status>"
+		return 2
+		;;
+	esac
+}
+
 # shellcheck disable=SC2068
 $@

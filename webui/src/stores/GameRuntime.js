@@ -9,6 +9,8 @@ const PROFILES = `${DIR}/game_profiles.json`
 const LIBRARY = `${DIR}/compat_library.json`
 const ZYGISK_OPTIN = `${DIR}/compat_zygisk_optin`
 const STATUS = `${DIR}/compat_status.json`
+const UTILITY = '/data/adb/modules/flux/system/bin/flux_utility'
+const ZYGISK_LIBS = ['arm64-v8a', 'armeabi-v7a'].map((a) => `/data/adb/modules/flux/zygisk/${a}.so`)
 
 // Package names are interpolated into a shell command: accept only what Android allows.
 const PACKAGE_RE = /^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z0-9_-]+)+$/
@@ -26,6 +28,8 @@ export const useGameRuntimeStore = defineStore('gameRuntime', () => {
   const analysis = ref(null)
   const analysisStatus = ref('idle') // idle | loading | ready | error
   const zygiskOptIn = ref(false)
+  // The provider library is only injected by Zygisk once it sits in zygisk/ (after enabling + a reboot).
+  const providerEnabled = ref(false)
   // Process-context snapshot written by fluxd (compat_status.json): what is actually active right now.
   const runtimeStatus = ref(null)
   const loaded = ref(false)
@@ -45,8 +49,12 @@ export const useGameRuntimeStore = defineStore('gameRuntime', () => {
     identities.value = lib.identities || {}
     try {
       zygiskOptIn.value = await KernelSU.fileExists(ZYGISK_OPTIN)
+      providerEnabled.value = (
+        await Promise.all(ZYGISK_LIBS.map((f) => KernelSU.fileExists(f)))
+      ).some(Boolean)
     } catch {
       zygiskOptIn.value = false
+      providerEnabled.value = false
     }
     loaded.value = true
   }
@@ -126,8 +134,13 @@ export const useGameRuntimeStore = defineStore('gameRuntime', () => {
   }
 
   async function setZygiskOptIn(enabled) {
+    // Enabling copies the library where Zygisk loads it from (takes a reboot); disabling removes it.
+    // Only then is the opt-in recorded, so a failed copy never leaves a half-enabled provider.
+    const { errno } = await exec(`${UTILITY} provider ${enabled ? 'enable' : 'disable'}`)
+    if (errno !== 0) throw new Error('provider switch failed')
     await exec(enabled ? `touch "${ZYGISK_OPTIN}"` : `rm -f "${ZYGISK_OPTIN}"`)
     zygiskOptIn.value = enabled
+    providerEnabled.value = enabled
     await armNow() // consent withdrawn => the daemon disarms every plan
   }
 
@@ -137,6 +150,7 @@ export const useGameRuntimeStore = defineStore('gameRuntime', () => {
     analysis,
     analysisStatus,
     zygiskOptIn,
+    providerEnabled,
     runtimeStatus,
     loaded,
     load,

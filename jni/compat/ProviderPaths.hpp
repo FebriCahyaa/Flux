@@ -9,5 +9,7 @@
 #define FLUX_PROVIDER_INFO_FILE FLUX_PROVIDER_STATE_DIR "/provider.json" /* written when the companion starts */
 /* Read by the module in preAppSpecialize through Api::getModuleDir(): "<package>\t<app_id>\t<tx>" lines. */
 #define FLUX_PROVIDER_ARMED_NAME "armed.list"
+/* While this file exists in the module dir the provider does nothing at all (manual recovery switch). */
+#define FLUX_PROVIDER_KILL_SWITCH "no_provider"
 #define FLUX_PROVIDER_ARMED_FILE "/data/adb/modules/flux/" FLUX_PROVIDER_ARMED_NAME
 #define FLUX_PACKAGES_LIST "/data/system/packages.list"

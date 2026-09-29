@@ -319,10 +319,20 @@ public:
         }
         const int uid = args->uid;
 
+        // Ordinary app processes only. Everything else is left completely alone, without a single
+        // file read or IPC: app/webview zygotes, isolated (sandboxed renderer) processes, system UIDs.
+        // WebViews of every app, including the root manager's module WebUIs, live in those.
+        if (args->is_child_zygote && *args->is_child_zygote) return leave();
+        const int app_id = uid % 100000;
+        if (app_id < 10000 || app_id > 19999) return leave();
         if (process.empty() || !candidate(process, uid)) return leave();
 
         int fd = api_->connectCompanion();
         if (fd < 0) return leave();
+        // Never let a slow or absent companion hold up an app launch: this runs before the app starts.
+        timeval tmo{1, 0};
+        setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tmo, sizeof tmo);
+        setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tmo, sizeof tmo);
         api_->exemptFd(fd); // keep the socket across specialization so the outcome can be reported
         std::string req = "{\"pid\":" + std::to_string(getpid()) + ",\"uid\":" + std::to_string(uid) +
                           ",\"process\":\"" + json_escape(process) + "\"}";
@@ -366,9 +376,15 @@ private:
     /// The cheap filter. One small read through the module dir; no IPC for ordinary apps.
     bool candidate(const std::string &process, int uid) {
         int dir = api_->getModuleDir();
-        if (dir < 0) return true; // cannot tell: let the companion decide rather than silently do nothing
+        if (dir < 0) return false; // cannot tell: do nothing. A provider that guesses is worse than one that is idle.
+        // Kill switch: while this file exists the provider is inert, whatever the daemon armed.
+        int off = openat(dir, FLUX_PROVIDER_KILL_SWITCH, O_RDONLY | O_CLOEXEC);
+        if (off >= 0) {
+            ::close(off);
+            return false;
+        }
         int fd = openat(dir, FLUX_PROVIDER_ARMED_NAME, O_RDONLY | O_CLOEXEC);
-        if (fd < 0) return errno != ENOENT; // no list = nothing armed; any other failure = unreadable, ask the companion
+        if (fd < 0) return false; // no list, or unreadable in this SELinux domain: nothing is asked of the companion
         std::string text;
         char buf[2048];
         ssize_t n;

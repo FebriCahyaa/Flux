@@ -208,19 +208,20 @@ extract "$ZIPFILE" "libs/$ARCH_TMP/fluxd" "$TMPDIR"
 cp "$TMPDIR"/libs/"$ARCH_TMP"/* "$MODPATH/system/bin"
 rm -rf "$TMPDIR/libs"
 
-# Optional Zygisk compatibility provider: zygisk/<abi>.so for every ABI this zip carries, so a
-# 64-bit device also gets the 32-bit library for its 32-bit apps. Loaded only if Zygisk is on and
-# the game has an armed profile; without Zygisk the module simply never loads it.
-mkdir -p "$MODPATH/zygisk"
+# Optional Zygisk compatibility provider. Shipped SWITCHED OFF: the libraries land in zygisk_provider/,
+# which Zygisk never looks at, so a default install injects nothing into any process. The WebUI toggle
+# ("Use Zygisk backend", or `flux_utility provider enable`) copies them into zygisk/ and asks for a reboot;
+# disabling removes that folder again.
+mkdir -p "$MODPATH/zygisk_provider"
 for zabi in arm64-v8a armeabi-v7a; do
 	if unzip -l "$ZIPFILE" "libs/$zabi/libflux_zygisk.so" >/dev/null 2>&1; then
 		extract "$ZIPFILE" "libs/$zabi/libflux_zygisk.so" "$TMPDIR"
-		cp "$TMPDIR/libs/$zabi/libflux_zygisk.so" "$MODPATH/zygisk/$zabi.so"
+		cp "$TMPDIR/libs/$zabi/libflux_zygisk.so" "$MODPATH/zygisk_provider/$zabi.so"
 		rm -rf "$TMPDIR/libs"
-		ui_print "- Zygisk compatibility provider: $zabi"
 	fi
 done
-set_perm_recursive "$MODPATH/zygisk" 0 0 0755 0644
+set_perm_recursive "$MODPATH/zygisk_provider" 0 0 0755 0644
+# A module update replaces the module folder, so an install always starts with the provider off.
 
 # Skip mountify
 touch "$MODPATH/skip_mountify"

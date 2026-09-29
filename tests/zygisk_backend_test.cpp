@@ -165,6 +165,16 @@ void test_states_installed_opted_in_and_loaded() {
     on.fs.files[kInfo] = provider_info_to_json(old);
     CHECK(on.arming->provider_state() == ProviderState::Installed);
 
+    // Shipped switched off (zygisk_provider/, not zygisk/): nothing is injected, so it is "not enabled", never "loaded".
+    Fixture shipped(false, true);
+    shipped.fs.files["/data/adb/modules/flux/zygisk_provider/arm64-v8a.so"] = "";
+    CHECK(shipped.arming->backend_state() == BackendState::NotConfigured);
+    CHECK(shipped.arming->provider_state() == ProviderState::NotConfigured);
+    CHECK(!shipped.arming->installed());
+    std::string err;
+    CHECK(shipped.arming->arm(shipped.resolution(kPkg, {Layer::Device}), shipped.lib, {}, "game", err).empty());
+    CHECK(shipped.fs.files.count(kPlan) == 0);              // nothing armed for a provider that is not enabled
+
     Fixture ancient(true, true, 21);
     CHECK(ancient.arming->backend_state() == BackendState::Unsupported);
 

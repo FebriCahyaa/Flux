@@ -7,7 +7,7 @@
   the resolver's Device/CPU/GPU identity plan inside a game's own process (Build fields, native property
   reads, GL/EGL strings, Vulkan device properties), reports Loaded/Matched/Applied/Verified back to Flux,
   and unloads itself from every other app. Plans are armed before launch (`fluxd compat_arm`; the WebUI Launch
-  button does it). Off unless the user opts in. Host tested; **not yet run on a device**, and no real-game
+  button does it). Shipped switched off (`zygisk_provider/`); the WebUI toggle installs it into `zygisk/` and needs a reboot. Only touches ordinary app processes and has a kill switch (`flux_utility provider off`). Host tested; **not yet run on a device**, and no real-game
   graphics unlock has been demonstrated. `tools/compat-testapp` + `scripts/flux_provider_validate.sh` are the
   device checks
 - **Flux Compatibility Engine (`jni/compat/`)**: per-game profile inheritance, a capability-based

@@ -772,7 +772,7 @@
     "real_cpu": "CPU asli",
     "real_gpu": "GPU asli",
     "zygisk_title": "Gunakan backend Zygisk",
-    "zygisk_hint": "Opsional. Menerapkan perubahan identitas hanya di dalam proses game ini, lewat provider Zygisk Flux. Perlu Zygisk aktif dan reboot setelah pemasangan.",
+    "zygisk_hint": "Opsional dan mati secara default. Menerapkan perubahan identitas hanya di dalam proses game ini, lewat provider Zygisk Flux. Mengaktifkannya memasang provider untuk Zygisk dan perlu reboot.",
     "risk_note": "Perubahan identitas berjalan di dalam proses game. Tidak disembunyikan dari anti-cheat dan bisa melanggar ketentuan game; gunakan dengan risiko sendiri.",
     "diag_title": "Analisis kompatibilitas",
     "analyze": "Analisis game ini",
@@ -864,6 +864,7 @@
     "override_state_applied": "Diterapkan (belum ditanyakan)",
     "override_state_verified": "Terverifikasi",
     "override_state_unsupported": "Tidak didukung",
-    "override_state_failed": "Gagal"
+    "override_state_failed": "Gagal",
+    "reboot_hint": "Provider baru dimuat setelah reboot. Mematikan toggle ini menghapusnya lagi (juga setelah reboot)."
   }
 }

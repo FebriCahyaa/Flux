@@ -769,7 +769,7 @@
     "real_cpu": "Real CPU",
     "real_gpu": "Real GPU",
     "zygisk_title": "Use Zygisk backend",
-    "zygisk_hint": "Optional. Applies identity changes inside this game's process only, through the Flux Zygisk provider. Needs Zygisk enabled and a reboot after installing.",
+    "zygisk_hint": "Optional and off by default. Applies identity changes inside this game's process only, through the Flux Zygisk provider. Turning it on installs the provider for Zygisk and needs a reboot.",
     "risk_note": "Identity changes run inside the game's process. They are not hidden from anti-cheat and may violate a game's terms; use at your own risk.",
     "diag_title": "Compatibility analysis",
     "analyze": "Analyze this game",
@@ -861,6 +861,7 @@
     "override_state_applied": "Applied (not yet queried)",
     "override_state_verified": "Verified",
     "override_state_unsupported": "Unsupported",
-    "override_state_failed": "Failed"
+    "override_state_failed": "Failed",
+    "reboot_hint": "The provider only loads after a reboot. Turning this off removes it again (also after a reboot)."
   }
 }

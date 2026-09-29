@@ -172,6 +172,24 @@ Public API only: `jni/zygisk/include/zygisk.hpp` is topjohnwu/zygisk-module-samp
 API v5, vendored unmodified (see NOTICE.md). No Magisk internals, no `system_server` code
 (`preServerSpecialize` is not implemented).
 
+### Off by default, and how to switch it off by hand
+
+The provider libraries ship in `<module>/zygisk_provider/`, which Zygisk never looks at, so a default
+install injects nothing anywhere. The WebUI toggle *Use Zygisk backend* (or
+`flux_utility provider enable`) copies them to `<module>/zygisk/<abi>.so` and needs a reboot; turning it
+off removes that folder (`flux_utility provider disable`, reboot). A module update starts switched off again.
+
+If anything misbehaves after enabling it, from a root shell / `adb` / a terminal app:
+
+```
+flux_utility provider off        # kill switch: touch /data/adb/modules/flux/no_provider (inert immediately for new processes)
+rm -rf /data/adb/modules/flux/zygisk   # or: flux_utility provider disable, then reboot: nothing is injected any more
+touch /data/adb/modules/flux/disable   # or disable the whole Flux module in the root manager, then reboot
+```
+
+If the device will not boot far enough for that, boot to safe mode (KernelSU: hold Volume Down at the logo) or
+remove the module from recovery.
+
 ### Why plans are armed *before* launch
 
 A process gets its identity when it is created, but Flux only sees a game once it is in the
@@ -215,8 +233,11 @@ really loaded in this boot), `proc/<pid>.json` (per-process status written by th
   `compatibility.processes`. `all`: the package's own `:sub` processes too. `com.x:remote`, `:engine`,
   `:service` are therefore untouched unless the profile says so. An empty `listed` scope is invalid.
 * Non-target apps: one small read, then the library unloads itself. No companion round trip unless the
-  app's UID or name is on `armed.list`. (If `armed.list` cannot be read at all the module asks the
-  companion instead of silently doing nothing.)
+  app's UID or name is on `armed.list`. If `armed.list` (or the module dir) cannot be read, the module
+  does nothing: it never guesses and never asks the companion on speculation.
+* Only ordinary app processes (app id 10000–19999) are considered. App/WebView zygotes, isolated
+  (sandboxed renderer) processes and system UIDs are left completely alone, with no file read and no IPC.
+  IPC to the companion has a 1 s timeout so an app launch can never wait on it.
 
 ### Supported identity fields (anything else is refused, not dropped)
 

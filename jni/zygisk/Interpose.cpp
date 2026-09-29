@@ -27,7 +27,6 @@ ObservedFn g_observed;
 Originals g_orig;
 Counters g_counters;
 GotHooker *g_hooker = nullptr;
-thread_local bool t_in_scan = false;
 
 // GL strings must stay valid for the life of the process: keep them in static storage.
 std::string g_gl_vendor, g_gl_renderer, g_gl_version, g_egl_vendor;
@@ -52,11 +51,10 @@ void patch_props(VkPropsPrefix &p) {
     }
 }
 
+// The scan never loads a library itself, so it cannot re-enter these wrappers; the hooker is
+// internally locked. No thread-local state: a module that Zygisk may dlclose should not carry a TLS segment.
 void after_scan() {
-    if (!g_hooker || t_in_scan) return;
-    t_in_scan = true;
-    g_hooker->scan_new_objects();
-    t_in_scan = false;
+    if (g_hooker) g_hooker->scan_new_objects();
 }
 
 } // namespace

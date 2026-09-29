@@ -28,6 +28,10 @@ struct ArmingConfig {
     /// Installed provider libraries (zygisk/<abi>.so). Any one present counts as installed.
     std::vector<std::string> provider_libs = {"/data/adb/modules/flux/zygisk/arm64-v8a.so",
                                               "/data/adb/modules/flux/zygisk/armeabi-v7a.so"};
+    /// Libraries shipped switched off (zygisk_provider/<abi>.so). Present but not yet copied into zygisk/
+    /// means "available, not enabled": the provider is not injected into anything.
+    std::vector<std::string> bundled_libs = {"/data/adb/modules/flux/zygisk_provider/arm64-v8a.so",
+                                             "/data/adb/modules/flux/zygisk_provider/armeabi-v7a.so"};
     /// If any of these exists the module is disabled/being removed and the provider will not load.
     std::vector<std::string> disabled_flags = {"/data/adb/modules/flux/disable", "/data/adb/modules/flux/remove"};
     int64_t lease_ms = 24LL * 3600 * 1000;
@@ -58,6 +62,8 @@ public:
     BackendState backend_state() const;
     ProviderState provider_state() const;
     bool installed() const;
+    /// Shipped with this build but not switched on (the default).
+    bool bundled() const;
     /// The provider's companion ran in this boot, i.e. Zygisk really loaded the module.
     bool loaded() const;
 
