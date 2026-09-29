@@ -117,7 +117,9 @@
     "device_mitigation": {
         "title": "Mitigação de Dispositivo",
         "toggle_title": "Ativar mitigação de dispositivo",
-        "brief": "A mitigação de dispositivo desativa ajustes potencialmente incompatíveis para dispositivos específicos. Mantenha-a desativada, a menos que você tenha problemas."
+        "brief": "A mitigação de dispositivo desativa ajustes potencialmente incompatíveis para dispositivos específicos. Mantenha-a desativada, a menos que você tenha problemas.",
+        "detected_as": "Detectado: {model} · {soc}",
+        "rules_read_failed": "Não foi possível ler as regras do chipset neste dispositivo, então não se sabe se alguma se aplica."
     },
     "cpu_governor": {
         "title": "Governador da CPU",

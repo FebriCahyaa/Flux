@@ -289,7 +289,9 @@
     },
     "rules_title": "Automatic rules for this chipset",
     "rules_none": "No chipset rule matches this device.",
-    "rules_note": "These apply on their own, with or without the switch above."
+    "rules_note": "These apply on their own, with or without the switch above.",
+    "detected_as": "Detected: {model} · {soc}",
+    "rules_read_failed": "Couldn't read the chipset rules on this device, so it's unknown whether any apply."
   },
   "cpu_governor": {
     "title": "CPU Governor",

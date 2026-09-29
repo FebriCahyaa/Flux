@@ -140,7 +140,9 @@
     "device_mitigation": {
         "title": "Cihazı hafifleştir",
         "toggle_title": "Cihaz hafifletmeyi etkinleştir",
-        "brief": "Cihaz hafifletme bazı cihazlardaki potansiyel ayarları devre dışı bırabakilir. Sorun yaşarsanız kapalı tutun."
+        "brief": "Cihaz hafifletme bazı cihazlardaki potansiyel ayarları devre dışı bırabakilir. Sorun yaşarsanız kapalı tutun.",
+        "detected_as": "Algılanan: {model} · {soc}",
+        "rules_read_failed": "Bu cihazdaki yonga seti kuralları okunamadı, bu yüzden herhangi birinin uygulanıp uygulanmadığı bilinmiyor."
     },
     "cpu_governor": {
         "title": "CPU yönetimi",

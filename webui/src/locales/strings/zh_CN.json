@@ -123,7 +123,9 @@
     "device_mitigation": {
         "title": "设备兼容模式",
         "toggle_title": "开启设备兼容模式",
-        "brief": "设备兼容模式会针对特定设备禁用可能导致冲突的优化项。除非遇到运行异常，否则建议保持关闭。"
+        "brief": "设备兼容模式会针对特定设备禁用可能导致冲突的优化项。除非遇到运行异常，否则建议保持关闭。",
+        "detected_as": "检测到：{model} · {soc}",
+        "rules_read_failed": "无法读取此设备的芯片组规则，因此无法确定是否有规则生效。"
     },
     "cpu_governor": {
         "title": "CPU 调速器",

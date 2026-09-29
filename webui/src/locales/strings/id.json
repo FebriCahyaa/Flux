@@ -264,7 +264,9 @@
     },
     "rules_title": "Aturan otomatis untuk chipset ini",
     "rules_none": "Tidak ada aturan chipset yang cocok dengan perangkat ini.",
-    "rules_note": "Aturan ini berlaku sendiri, dengan atau tanpa sakelar di atas."
+    "rules_note": "Aturan ini berlaku sendiri, dengan atau tanpa sakelar di atas.",
+    "detected_as": "Terdeteksi: {model} · {soc}",
+    "rules_read_failed": "Gagal membaca aturan chipset di perangkat ini, jadi tidak diketahui apakah ada yang diterapkan."
   },
   "cpu_governor": {
     "title": "Governor CPU",
