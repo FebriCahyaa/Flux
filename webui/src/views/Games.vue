@@ -18,8 +18,10 @@
           <button
             v-for="t in tabs"
             :key="t"
+            :id="`games-tab-${t}`"
             role="tab"
             :aria-selected="tab === t"
+            :aria-controls="`games-panel-${t}`"
             class="tab m3-press"
             :class="{ on: tab === t }"
             @click="tab = t"
@@ -71,7 +73,7 @@
         </div>
 
         <!-- My games -->
-        <div v-else-if="tab === 'mine'" class="pb-4">
+        <div v-else-if="tab === 'mine'" id="games-panel-mine" role="tabpanel" aria-labelledby="games-tab-mine" class="pb-4">
           <div v-if="!shownMine.length" class="empty m3-card">
             <span
               class="empty-badge shape-clover4 bg-secondary-container text-on-secondary-container"
@@ -145,7 +147,7 @@
         </div>
 
         <!-- All apps: add or remove with one tap -->
-        <div v-else class="pb-4">
+        <div v-else id="games-panel-all" role="tabpanel" aria-labelledby="games-tab-all" class="pb-4">
           <p class="text-xs text-on-surface-variant px-2 mb-3">{{ $t('games_page.all_hint') }}</p>
           <div v-if="!shownAll.length" class="text-center py-8 text-sm text-on-surface-variant">
             {{ gamesStore.searchQuery ? $t('games_page.no_apps_found') : $t('games_page.no_apps_installed') }}
