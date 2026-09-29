@@ -129,3 +129,12 @@ target_compile_options(flux_session PRIVATE ${FLUX_WARNINGS})
 
 flux_add_test(session_manager_test tests/session_manager_test.cpp)
 target_link_libraries(session_manager_test PRIVATE flux_session)
+
+# -- observatory event model (additive; no producers wired yet) ------------------
+add_library(flux_observatory STATIC jni/observatory/Event.cpp jni/observatory/EventStore.cpp)
+target_include_directories(flux_observatory PUBLIC jni/observatory)
+target_include_directories(flux_observatory SYSTEM PRIVATE "${RAPIDJSON_INCLUDE}")
+target_compile_options(flux_observatory PRIVATE ${FLUX_WARNINGS})
+
+flux_add_test(observatory_test tests/observatory_test.cpp)
+target_link_libraries(observatory_test PRIVATE flux_observatory)
