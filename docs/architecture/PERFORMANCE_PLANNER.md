@@ -5,6 +5,15 @@ Code: `jni/perf/PerformancePlanner.{hpp,cpp}` (`flux::perf`) · Tests: `tests/pe
 Status: **Step 2 IN PROGRESS** — implemented and host-tested; linked into `fluxd` as `FluxPerf`;
 **no daemon call path** (needs Session, Step 5); not device-tested.
 
+## Step 2 status (owner-confirmed, 2026-09-29)
+
+| IMPLEMENTED | NOT_IMPLEMENTED |
+|---|---|
+| PerformancePlanner | daemon lifecycle invocation |
+| RuntimePlan generation | device capability probe runtime |
+| LaunchBoost planning | refresh executor connection (`flux_refresh`) |
+| Transaction integration | real device validation |
+
 ## Responsibility split
 
 ```
