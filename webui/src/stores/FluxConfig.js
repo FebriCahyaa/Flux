@@ -87,6 +87,21 @@ export const useFluxConfigStore = defineStore('fluxConfig', () => {
     }
   }
 
+  // Applies `mutate` and writes config.json. The setters change the in-memory
+  // config before the write, so on failure it is restored from a snapshot:
+  // otherwise every view reading this store keeps showing the unsaved value.
+  async function commit(mutate) {
+    if (!config.value) await loadConfig()
+    const snapshot = JSON.parse(JSON.stringify(config.value))
+    try {
+      mutate()
+      await saveConfig()
+    } catch (error) {
+      config.value = snapshot
+      throw error
+    }
+  }
+
   function ensureConfigStructure() {
     if (!config.value) {
       throw new Error('Config not loaded')
@@ -276,6 +291,7 @@ export const useFluxConfigStore = defineStore('fluxConfig', () => {
 
     loadConfig,
     saveConfig,
+    commit,
     setLiteMode,
     setLogLevel,
     setDeviceMitigation,

@@ -103,7 +103,8 @@
     },
     "language_selection": {
         "title": "Idioma",
-        "follow_system": "Usar padrão do sistema"
+        "follow_system": "Usar padrão do sistema",
+        "load_failed": "Não foi possível carregar este idioma. O idioma anterior continua em uso."
     },
     "log_level_selection": {
         "title": "Nível de registro"
@@ -154,7 +155,8 @@
         "disabled": "Desativado",
         "cancel": "Cancelar",
         "warning": "Aviso",
-        "ok": "OK"
+        "ok": "OK",
+        "back": "Voltar"
     },
     "monitor_page": {
         "title": "Monitor ao Vivo",
@@ -222,5 +224,8 @@
             "unavailable": "Indisponível",
             "synthesis_version": "Protocolo SynthesisCore"
         }
+    },
+    "notify": {
+        "read_failed": "Não foi possível ler as configurações atuais, então os valores exibidos podem ser os padrões. Verifique se o acesso root foi concedido."
     }
 }

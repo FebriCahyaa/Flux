@@ -91,7 +91,8 @@
     },
     "language_selection": {
         "title": "言語",
-        "follow_system": "システム言語を使用"
+        "follow_system": "システム言語を使用",
+        "load_failed": "この言語を読み込めませんでした。以前の言語のままです。"
     },
     "games_page": {
         "badges": {
@@ -154,7 +155,8 @@
         "disabled": "無効",
         "cancel": "キャンセル",
         "warning": "警告",
-        "ok": "OK"
+        "ok": "OK",
+        "back": "戻る"
     },
     "monitor_page": {
         "title": "ライブモニター",
@@ -222,5 +224,8 @@
             "unavailable": "利用不可",
             "synthesis_version": "SynthesisCoreプロトコル"
         }
+    },
+    "notify": {
+        "read_failed": "現在の設定を読み込めなかったため、表示されている値は既定値の可能性があります。root権限が許可されているか確認してください。"
     }
 }

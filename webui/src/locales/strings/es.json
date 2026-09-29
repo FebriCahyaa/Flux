@@ -109,7 +109,8 @@
     },
     "language_selection": {
         "title": "Idioma",
-        "follow_system": "Idioma del sistema"
+        "follow_system": "Idioma del sistema",
+        "load_failed": "No se pudo cargar este idioma. Se sigue usando el idioma anterior."
     },
     "log_level_selection": {
         "title": "Nivel de Registro"
@@ -160,7 +161,8 @@
         "disabled": "Desactivado",
         "cancel": "Cancelar",
         "warning": "Advertencia",
-        "ok": "OK"
+        "ok": "OK",
+        "back": "Atrás"
     },
     "disable_tweaks": {
         "title": "Desactivar Tweaks",
@@ -239,5 +241,8 @@
             "unavailable": "No disponible",
             "synthesis_version": "Protocolo SynthesisCore"
         }
+    },
+    "notify": {
+        "read_failed": "No se pudo leer la configuración actual, así que los valores mostrados pueden ser los predeterminados. Comprueba que se haya concedido acceso root."
     }
 }

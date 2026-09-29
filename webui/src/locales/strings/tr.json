@@ -109,7 +109,8 @@
         "disabled": "Devre dışı",
         "cancel": "İptal",
         "warning": "Uyarı",
-        "ok": "Tamam"
+        "ok": "Tamam",
+        "back": "Geri"
     },
     "game_settings": {
         "title": "Oyun ayarları",
@@ -125,7 +126,8 @@
     },
     "language_selection": {
         "title": "Dil",
-        "follow_system": "Sistemi takip et"
+        "follow_system": "Sistemi takip et",
+        "load_failed": "Bu dil yüklenemedi. Önceki dil kullanılmaya devam ediyor."
     },
     "log_level_selection": {
         "title": "Log seviyesi"
@@ -222,5 +224,8 @@
             "unavailable": "Kullanılamaz",
             "synthesis_version": "SynthesisCore Protokolü"
         }
+    },
+    "notify": {
+        "read_failed": "Mevcut ayarlar okunamadı, bu yüzden gösterilen değerler varsayılan olabilir. Root erişiminin verildiğini kontrol edin."
     }
 }

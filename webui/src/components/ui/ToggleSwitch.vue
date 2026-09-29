@@ -6,7 +6,7 @@
   -->
   <label
     class="m3-switch relative inline-flex cursor-pointer items-center align-middle select-none"
-    :class="{ 'is-on': modelValue, 'is-pressed': pressed, 'is-disabled': disabled }"
+    :class="{ 'is-on': modelValue, 'is-pressed': pressed, 'is-disabled': disabled, 'is-busy': busy }"
     @pointerdown="pressed = true"
     @pointerup="pressed = false"
     @pointerleave="pressed = false"
@@ -19,8 +19,11 @@
       class="peer sr-only"
       :checked="modelValue"
       :aria-checked="modelValue"
+      :aria-labelledby="labelledby || undefined"
+      :aria-describedby="describedby || undefined"
+      :aria-busy="busy || undefined"
       @change="handleChange"
-      :disabled="disabled"
+      :disabled="disabled || busy"
     />
     <span class="track">
       <span class="handle">
@@ -37,6 +40,12 @@
   </label>
 </template>
 
+<script>
+// Module scope: one counter for every instance. Inside <script setup> it reset
+// per instance, so every switch without an explicit id shared the same one.
+let nextId = 0
+</script>
+
 <script setup>
 import { ref } from 'vue'
 
@@ -49,7 +58,21 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  // A write is in flight: the switch ignores input until it settles.
+  busy: {
+    type: Boolean,
+    default: false,
+  },
   id: {
+    type: String,
+    default: '',
+  },
+  // ids of the row's visible title / description, so the switch has a name.
+  labelledby: {
+    type: String,
+    default: '',
+  },
+  describedby: {
     type: String,
     default: '',
   },
@@ -57,8 +80,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
-let defaultId = 0
-const switchId = props.id || `toggle-switch-${++defaultId}`
+const switchId = props.id || `toggle-switch-${++nextId}`
 const pressed = ref(false)
 
 // The switch only shows modelValue: the native checkbox is put back until the
@@ -94,6 +116,13 @@ function handleChange(event) {
 
 .m3-switch.is-disabled {
   opacity: 0.38;
+  pointer-events: none;
+}
+
+/* Saving: blocked like disabled, but only lightly dimmed so it doesn't read
+   as "unavailable". */
+.m3-switch.is-busy:not(.is-disabled) {
+  opacity: 0.7;
   pointer-events: none;
 }
 

@@ -160,7 +160,8 @@
   },
   "language_selection": {
     "title": "Bahasa",
-    "follow_system": "Ikuti sistem"
+    "follow_system": "Ikuti sistem",
+    "load_failed": "Gagal memuat bahasa ini. Bahasa sebelumnya masih digunakan."
   },
   "log_level_selection": {
     "title": "Log Level",
@@ -325,7 +326,8 @@
     "close": "Tutup",
     "apply": "Terapkan",
     "enable": "Aktifkan",
-    "on": "Aktif"
+    "on": "Aktif",
+    "back": "Kembali"
   },
   "disable_tweaks": {
     "title": "Matikan Tweak",
@@ -501,7 +503,8 @@
   },
   "notify": {
     "dont_ask_again": "Jangan tanya lagi",
-    "save_failed": "Gagal menyimpan pengaturan. Pastikan akses root sudah diberikan."
+    "save_failed": "Gagal menyimpan pengaturan. Pastikan akses root sudah diberikan.",
+    "read_failed": "Gagal membaca pengaturan saat ini, jadi nilai yang tampil mungkin nilai bawaan. Pastikan akses root sudah diberikan."
   },
   "gpu_governor": {
     "title": "Governor GPU",

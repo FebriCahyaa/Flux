@@ -101,7 +101,8 @@
     },
     "language_selection": {
         "title": "Мова",
-        "follow_system": "Як у системі"
+        "follow_system": "Як у системі",
+        "load_failed": "Не вдалося завантажити цю мову. Використовується попередня мова."
     },
     "log_level_selection": {
         "title": "Рівень журналу"
@@ -160,7 +161,8 @@
         "disabled": "Вимкнено",
         "cancel": "Скасувати",
         "warning": "Попередження",
-        "ok": "Добре"
+        "ok": "Добре",
+        "back": "Назад"
     },
     "disable_tweaks": {
         "title": "Вимкнути Tweaks",
@@ -239,5 +241,8 @@
             "unavailable": "Недоступний",
             "synthesis_version": "Протокол SynthesisCore"
         }
+    },
+    "notify": {
+        "read_failed": "Не вдалося прочитати поточні налаштування, тому показані значення можуть бути типовими. Перевірте, чи надано root-доступ."
     }
 }

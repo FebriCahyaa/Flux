@@ -103,7 +103,8 @@
     },
     "language_selection": {
         "title": "اللغة",
-        "follow_system": "اتبع النظام"
+        "follow_system": "اتبع النظام",
+        "load_failed": "تعذّر تحميل هذه اللغة. لا تزال اللغة السابقة قيد الاستخدام."
     },
     "log_level_selection": {
         "title": "مستوى السجل"
@@ -154,7 +155,8 @@
         "disabled": "مُعطَّل",
         "cancel": "إلغاء",
         "warning": "تحذير",
-        "ok": "تمام"
+        "ok": "تمام",
+        "back": "رجوع"
     },
     "monitor_page": {
         "title": "المراقبة المباشرة",
@@ -222,5 +224,8 @@
             "unavailable": "غير متاحة",
             "synthesis_version": "بروتوكول SynthesisCore"
         }
+    },
+    "notify": {
+        "read_failed": "تعذّرت قراءة الإعدادات الحالية، لذا قد تكون القيم المعروضة افتراضية. تأكد من منح صلاحية الروت."
     }
 }

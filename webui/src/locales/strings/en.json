@@ -160,7 +160,8 @@
   },
   "language_selection": {
     "title": "Language",
-    "follow_system": "Follow system"
+    "follow_system": "Follow system",
+    "load_failed": "Couldn't load this language. The previous language is still in use."
   },
   "log_level_selection": {
     "title": "Log Level",
@@ -353,7 +354,8 @@
     "close": "Close",
     "apply": "Apply",
     "enable": "Enable",
-    "on": "On"
+    "on": "On",
+    "back": "Back"
   },
   "monitor_page": {
     "title": "Live Monitor",
@@ -498,7 +500,8 @@
   },
   "notify": {
     "dont_ask_again": "Don't ask again",
-    "save_failed": "Couldn't save the setting. Check that root access is granted."
+    "save_failed": "Couldn't save the setting. Check that root access is granted.",
+    "read_failed": "Couldn't read the current settings, so the values shown may be defaults. Check that root access is granted."
   },
   "gpu_governor": {
     "title": "GPU Governor",
