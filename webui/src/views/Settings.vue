@@ -38,20 +38,21 @@
                       </p>
                     </div>
                   </div>
-                  <span
-                    v-if="item.status && item.status()"
-                    class="status ms-3"
-                    :class="item.status().tone"
-                    >{{ item.status().label }}</span
-                  >
-                  <div
-                    v-else
-                    class="w-7 h-7 rounded-full bg-surface-dim flex items-center justify-center shrink-0 ms-3"
-                  >
-                    <ChevronRightIcon
-                      class="text-on-surface-variant shrink-0 rtl:rotate-180"
-                      :size="22"
-                    />
+                  <div class="flex items-center gap-2 shrink-0 ms-3">
+                    <span
+                      v-if="item.status && item.status()"
+                      class="status"
+                      :class="item.status().tone"
+                      >{{ item.status().label }}</span
+                    >
+                    <div
+                      class="w-7 h-7 rounded-full bg-surface-dim flex items-center justify-center shrink-0"
+                    >
+                      <ChevronRightIcon
+                        class="text-on-surface-variant shrink-0 rtl:rotate-180"
+                        :size="22"
+                      />
+                    </div>
                   </div>
                 </div>
               </RippleComponent>
