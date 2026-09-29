@@ -64,14 +64,31 @@ active.
 
 Compatibility fields in legacy documents are reported in `warnings()` and never resolved.
 
+## Daemon wiring (`dd86b7c`)
+
+| fluxd point | Call |
+|---|---|
+| `flux_main_daemon` start, before `run_perfcommon()` | `host().on_daemon_start()` → recover journals |
+| `apply_game_profile`, before the profile script | `set_enabled(!disable_tweaks)`, `on_game_active(pkg, tracked_pid)` |
+| after `apply_performance[_lite]_profile` | `on_profile_applied()` (re-apply) |
+| main `poll` | 1 s timeout only while a launch boost is running; `tick(now)` |
+| PID death / focus loss / abort / daemon stop | `stop_session_workers(reason)` → `on_game_end(reason)` |
+| `set_profiler_env_vars` | `FLUX_REFRESH_TARGET_HZ` + `FLUX_REFRESH_ENABLED` from `refresh_request()` |
+
+Device adapters (`jni/perf/RuntimeHost.cpp`): node `Io` (no create, bounded reads), `FileStore`
+(temp + fsync + rename, refuses symlink/dir targets), read-only probe (readable nodes, internal
+block queues excluding loop/ram/zram/dm/md/sr/nbd/boot/rpmb/removable), `dumpsys display` rate
+parser (119.99 → 120). Glue: `jni/GameRuntimeHost.{hpp,cpp}`; paths in `Flux.hpp`.
+
 ## Status
 
 | IMPLEMENTED | NOT_IMPLEMENTED |
 |---|---|
-| performance lifecycle owner (`jni/perf/GamePerformanceRuntime.*`) | call from `fluxd` `Main.cpp` (game start/exit hooks, boot `recover()`) |
-| profile loading from injected paths, gamelist lite fallback | real-file `FileStore` / `Io` adapters on device, paths in `Flux.hpp` |
-| transaction apply/verify/restore, journals, crash recovery, legacy journal recovery | device capability probe filling `PerfCapabilities` |
-| launch boost start/deadline/cancel | refresh target passed to `flux_refresh` |
-| host tests (`tests/game_runtime_test.cpp`) | device validation |
+| lifecycle owner + daemon wiring (start/recover/active/reapply/tick/end) | Session model (Step 5) |
+| real adapters + capability probe | device validation |
+| refresh bridge → `flux_refresh` (per-game target, unsupported ignored) | WebUI for per-game profiles |
+| host tests: daemon lifecycle, refresh bridge, adapters, shell refresh test | |
+
+CI: https://github.com/FebriCahyaa/Flux/actions/runs/36623380177 (host 13/13, ndk-build arm64+arm, packaging).
 
 Session model, compatibility identity, Resolver and Zygisk are not part of this step.
