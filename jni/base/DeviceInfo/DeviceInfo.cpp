@@ -48,7 +48,31 @@ std::string DeviceInfo::fetch_kernel_uname() {
     return std::string(buffer.release);
 }
 
+namespace {
+
+std::string get_system_property(const char *name) {
+    char prop_value[PROP_VALUE_MAX];
+    int len = __system_property_get(name, prop_value);
+    if (len <= 0) return {};
+    std::string result(prop_value, len);
+    size_t end = result.find_last_not_of(" \t\r\n");
+    return end == std::string::npos ? std::string{} : result.substr(0, end + 1);
+}
+
+} // namespace
+
 std::string DeviceInfo::fetch_soc_model() {
+    // ro.board.platform / ro.soc.model / ro.hardware carry the chip codename
+    // (e.g. "sdm660") on every ROM, stock or custom, and are what device
+    // mitigation rules below are written against. /proc/device-tree/model is
+    // the board string instead — it varies far more (sometimes blank or a
+    // device codename on custom kernels) and previously left device rules
+    // for older Snapdragon chips silently unmatched on many real devices.
+    for (const char *prop : {"ro.board.platform", "ro.soc.model", "ro.hardware"}) {
+        std::string value = get_system_property(prop);
+        if (!value.empty()) return value;
+    }
+
     std::ifstream file("/proc/device-tree/model");
     if (!file.is_open()) {
         return "Unknown";
@@ -67,18 +91,6 @@ std::string DeviceInfo::fetch_soc_model() {
 }
 
 std::string DeviceInfo::fetch_device_model() {
-    char prop_value[PROP_VALUE_MAX];
-    int len = __system_property_get("ro.product.model", prop_value);
-
-    if (len <= 0) {
-        return "Unknown";
-    }
-
-    std::string result(prop_value, len);
-    size_t end = result.find_last_not_of(" \t\r\n");
-    if (end != std::string::npos) {
-        result = result.substr(0, end + 1);
-    }
-
+    std::string result = get_system_property("ro.product.model");
     return result.empty() ? "Unknown" : result;
 }

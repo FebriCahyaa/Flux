@@ -31,6 +31,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "include/Exec.hpp"
+
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
@@ -141,38 +143,7 @@ float fps_from_fpsgo(const std::vector<pid_t> &pids) {
     return best;
 }
 
-/// Output of a program run directly (no shell, so arguments are never re-parsed), at most @p max bytes.
-std::string capture(const std::vector<std::string> &argv, size_t max = 64 * 1024) {
-    int fds[2];
-    if (pipe(fds) != 0) return {};
-    const pid_t pid = fork();
-    if (pid < 0) {
-        close(fds[0]);
-        close(fds[1]);
-        return {};
-    }
-    if (pid == 0) {
-        dup2(fds[1], STDOUT_FILENO);
-        close(fds[0]);
-        close(fds[1]);
-        std::vector<char *> args;
-        for (const auto &a : argv) args.push_back(const_cast<char *>(a.c_str()));
-        args.push_back(nullptr);
-        execv(args[0], args.data());
-        _exit(127);
-    }
-    close(fds[1]);
-    std::string out;
-    char buf[4096];
-    ssize_t n;
-    while ((n = read(fds[0], buf, sizeof(buf))) > 0) {
-        if (out.size() < max) out.append(buf, static_cast<size_t>(std::min<ssize_t>(n, static_cast<ssize_t>(max - out.size()))));
-    }
-    close(fds[0]);
-    int status = 0;
-    waitpid(pid, &status, 0);
-    return out;
-}
+using flux::capture;
 
 /**
  * The game's own frame rate from SurfaceFlinger: frames of the game's layer presented in the

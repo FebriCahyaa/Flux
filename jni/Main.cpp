@@ -29,6 +29,7 @@
 #include "FluxConfigStore.hpp"
 #include "InotifyHandler.hpp"
 #include "Profiler.hpp"
+#include "RefreshHold.hpp"
 
 #include <Flux.hpp>
 #include <FluxLog.hpp>
@@ -661,6 +662,14 @@ static void flux_main_daemon() {
                 }
             }
 
+            // Adaptive refresh: keep the peak rate on the launcher / shade (no mode-switch hitch per swipe).
+            {
+                const auto prefs = config_store.get_preferences();
+                RefreshHold::get_instance().update(state.synthesis_core.focused_app, state.synthesis_core.screen_awake,
+                                                   state.in_game_session,
+                                                   prefs.adaptive_refresh && !prefs.disable_tweaks);
+            }
+
             if (state.active_package.empty()) {
                 const auto bs_state = get_battery_saver_state();
                 if (bs_state.has_value()) {
@@ -690,6 +699,7 @@ static void flux_main_daemon() {
 
     // Keep the running session when the daemon stops.
     stop_session_workers();
+    RefreshHold::get_instance().release_now();
 }
 
 // ---------------------------------------------------------------------------

@@ -793,6 +793,17 @@ flux_boost_save() {
 	done
 }
 
+# Like flux_boost_save, but for a queue/scheduler node: stores the active value only
+# ("[mq-deadline] kyber bfq none" -> "mq-deadline"). The raw file content is the whole offered
+# list, not something the node accepts as input, so replaying it verbatim on restore (as
+# flux_boost_restore always does) would just fail to write.
+flux_boost_save_scheduler() { # <group> <node>
+	[ -f "$2" ] || return 0
+	grep -q "^$1 $2 " "$FLUX_BOOST_BACKUP" 2>/dev/null && return 0
+	current=$(sed -n 's/.*\[\([^]]*\)\].*/\1/p' "$2")
+	[ -n "$current" ] && echo "$1 $2 $(stat -c %a "$2") $current" >>"$FLUX_BOOST_BACKUP"
+}
+
 # flux_boost_restore <group> : put back every saved node of the group
 flux_boost_restore() {
 	[ -f "$FLUX_BOOST_BACKUP" ] || return 0
@@ -819,6 +830,49 @@ flux_block_queues() {
 	done
 }
 
+# Storage class of a /sys/block/<dev> directory, so tuning matches what the hardware can
+# actually use: ufs/nvme have a real multi-queue command protocol (NVMe: queue depth in the
+# thousands; UFS 2.x/3.x/4.0: native command queuing, typically 32 deep), while eMMC has a
+# single, much shallower queue (Command Queuing per the eMMC 5.1 spec, in practice often
+# effectively 1-8 deep on budget controllers) — pushing eMMC as hard as UFS just adds queuing
+# latency without the throughput to back it up. Removable SD (mmcblk* with removable=1) is left
+# out entirely: it is often the slowest, least predictable storage in the phone and not something
+# to tune aggressively.
+flux_storage_class() { # <dir> -> ufs|emmc|sd|other, on stdout
+	case "${1##*/}" in
+	sd* | nvme*) echo ufs ;;
+	mmcblk*)
+		if [ -f "$1/removable" ] && [ "$(cat "$1/removable" 2>/dev/null)" = 1 ]; then
+			echo sd
+		else
+			echo emmc
+		fi
+		;;
+	*) echo other ;;
+	esac
+}
+
+# nr_requests and scheduler nodes for internal UFS/eMMC storage (never removable SD, never the
+# small rpmb/boot partitions, which do not benefit from either and some vendors lock down).
+flux_block_storage_nodes() {
+	for dir in /sys/block/sd* /sys/block/mmcblk* /sys/block/nvme*; do
+		case "$dir" in *rpmb | *boot[0-9]) continue ;; esac
+		[ "$(flux_storage_class "$dir")" = sd ] && continue
+		for node in nr_requests scheduler; do
+			[ -f "$dir/queue/$node" ] && echo "$dir/queue/$node"
+		done
+	done
+}
+
+# Sets queue/scheduler to $2 when the device actually offers it (bracketed active-value format,
+# like a cpufreq governor file: "[mq-deadline] kyber bfq none").
+flux_set_scheduler() { # <node> <wanted>
+	[ -f "$1" ] || return 0
+	current=$(sed -n 's/.*\[\([^]]*\)\].*/\1/p' "$1")
+	[ "$current" = "$2" ] && return 0
+	grep -qw -- "$2" "$1" 2>/dev/null && apply "$2" "$1"
+}
+
 flux_vm() {
 	nodes="/proc/sys/vm/watermark_scale_factor /proc/sys/vm/dirty_ratio /proc/sys/vm/dirty_background_ratio \
 /sys/kernel/mm/ksm/run"
@@ -832,6 +886,200 @@ flux_vm() {
 	# Pause KSM page merging (ksmd scans memory in the background;
 	# Documentation/admin-guide/mm/ksm.rst: 0 stops it, merged pages stay merged)
 	apply 0 /sys/kernel/mm/ksm/run
+}
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RAM Optimizer: read the device's actual RAM tier, then apply scaled memory
+# management settings so a 3 GB phone is tuned differently from a 16 GB one.
+#
+# Tier table (matches the zram tier table in flux_zram_size_for):
+#   ≤ 3.5 GB  →  tier "3"   aggressive reclaim, high swappiness
+#   ≤ 4.5 GB  →  tier "4"
+#   ≤ 6.5 GB  →  tier "6"
+#   ≤ 8.5 GB  →  tier "8"
+#   ≤ 12.5 GB →  tier "12"
+#   > 12.5 GB →  tier "16"  conservative: plenty of RAM, keep more pages hot
+#
+# Every write uses flux_boost_save / flux_boost_restore so the original kernel
+# values are put back when the game ends.  FLUX_RAM_OPT_DISABLED skips the
+# boost path without skipping the restore.
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Returns the RAM tier ("3" / "4" / "6" / "8" / "12" / "16") based on
+# /proc/meminfo MemTotal.
+flux_ram_tier() {
+	# MemTotal is in kB; integer arithmetic only, no awk needed.
+	mem_kb=$(awk '/^MemTotal:/{print $2;exit}' /proc/meminfo 2>/dev/null)
+	case "$mem_kb" in '' | *[!0-9]*) echo 4; return ;; esac
+	# Convert to MB (round down)
+	mem_mb=$((mem_kb / 1024))
+	if   [ "$mem_mb" -le 3584  ]; then echo 3
+	elif [ "$mem_mb" -le 4608  ]; then echo 4
+	elif [ "$mem_mb" -le 6656  ]; then echo 6
+	elif [ "$mem_mb" -le 8704  ]; then echo 8
+	elif [ "$mem_mb" -le 12800 ]; then echo 12
+	else echo 16
+	fi
+}
+
+flux_ram_optimizer() {
+	ram_nodes="/proc/sys/vm/swappiness /proc/sys/vm/min_free_kbytes \
+/proc/sys/vm/extra_free_kbytes /proc/sys/vm/vfs_cache_pressure \
+/proc/sys/vm/dirty_expire_centisecs /proc/sys/vm/dirty_writeback_centisecs \
+/proc/sys/vm/watermark_boost_factor /proc/sys/vm/page-cluster \
+/sys/kernel/mm/ksm/sleep_millisecs /sys/kernel/mm/ksm/pages_to_scan"
+	# shellcheck disable=SC2086
+	flux_boost_save ram_opt $ram_nodes
+	flux_boost_restore ram_opt
+	[ "$1" = boost ] && [ -z "$FLUX_RAM_OPT_DISABLED" ] || return 0
+
+	tier=$(flux_ram_tier)
+
+	# ── swappiness ──────────────────────────────────────────────────────────
+	# Lower = keep pages in RAM longer; higher = swap out aggressively to free
+	# memory for the game.  Small-RAM phones benefit from aggressive swapping
+	# (less OOM pressure); large-RAM phones don't need to swap at all.
+	case "$tier" in
+	3)  swap=100 ;;
+	4)  swap=80  ;;
+	6)  swap=60  ;;
+	8)  swap=40  ;;
+	12) swap=25  ;;
+	16) swap=15  ;;
+	*)  swap=60  ;;
+	esac
+	apply "$swap" /proc/sys/vm/swappiness
+
+	# ── min_free_kbytes ─────────────────────────────────────────────────────
+	# Larger reserve → kswapd wakes earlier and reclaims before the game has
+	# to wait on the direct reclaim path.  Scale with RAM so the reserve is
+	# not a big fraction of a 3 GB phone's already-thin free pool.
+	case "$tier" in
+	3)  minfree=16384  ;;
+	4)  minfree=24576  ;;
+	6)  minfree=32768  ;;
+	8)  minfree=49152  ;;
+	12) minfree=65536  ;;
+	16) minfree=98304  ;;
+	*)  minfree=32768  ;;
+	esac
+	raise_to "$minfree" /proc/sys/vm/min_free_kbytes
+
+	# extra_free_kbytes: second watermark layer (Android-specific).
+	# Half of min_free_kbytes keeps the gap without over-reserving.
+	raise_to $((minfree / 2)) /proc/sys/vm/extra_free_kbytes
+
+	# ── vfs_cache_pressure ───────────────────────────────────────────────────
+	# > 100 → reclaim dentries/inodes faster, freeing RAM for the game;
+	# < 100 → keep the cache hot for launcher / background processes.
+	# Small-RAM phones: reclaim aggressively (150); large: be conservative (60).
+	case "$tier" in
+	3)  vfs=150 ;;
+	4)  vfs=130 ;;
+	6)  vfs=110 ;;
+	8)  vfs=90  ;;
+	12) vfs=75  ;;
+	16) vfs=60  ;;
+	*)  vfs=110 ;;
+	esac
+	apply "$vfs" /proc/sys/vm/vfs_cache_pressure
+
+	# ── dirty page writeback ─────────────────────────────────────────────────
+	# Longer intervals → fewer interruptions by the kernel's pdflush/writeback
+	# threads during a game; the tradeoff is slightly more data at risk if the
+	# phone crashes.  5 s / 50 s are safe values that most OEMs use.
+	raise_to 500  /proc/sys/vm/dirty_expire_centisecs
+	raise_to 5000 /proc/sys/vm/dirty_writeback_centisecs
+
+	# ── watermark_boost_factor ───────────────────────────────────────────────
+	# 0 disables async kswapd wakeups triggered by watermark boosts (kernel
+	# 5.x+) — on gaming workloads the burst-of-latency from a surprise kswapd
+	# run is worse than waiting for the normal watermark threshold.
+	apply 0 /proc/sys/vm/watermark_boost_factor
+
+	# ── page-cluster ─────────────────────────────────────────────────────────
+	# 0 = read one swap page at a time (no speculative read-ahead into swap).
+	# Games rarely benefit from swap read-ahead; it just wastes I/O bandwidth.
+	apply 0 /proc/sys/vm/page-cluster
+
+	# ── KSM tuning ───────────────────────────────────────────────────────────
+	# When KSM is running (run=1), keep its scan rate low so it doesn't steal
+	# cycles from the game.  flux_vm already pauses it (run=0) during gaming;
+	# these only matter when KSM is later re-enabled by someone else.
+	raise_to 2000 /sys/kernel/mm/ksm/sleep_millisecs
+	apply 64      /sys/kernel/mm/ksm/pages_to_scan
+}
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Performance Boost: additional micro-tunings that go beyond the stock
+# performance profile.  Each tweak is a small, reversible sysfs or procfs
+# write targeting latency, scheduler responsiveness and memory bandwidth.
+# FLUX_PERF_BOOST_DISABLED: restore only (WebUI toggle off).
+# ──────────────────────────────────────────────────────────────────────────────
+
+flux_perf_boost() {
+	perf_nodes="/proc/sys/kernel/sched_nr_migrate \
+/proc/sys/kernel/sched_migration_cost_ns \
+/proc/sys/kernel/sched_wakeup_granularity_ns \
+/proc/sys/kernel/sched_min_granularity_ns \
+/proc/sys/kernel/perf_cpu_time_max_percent \
+/proc/sys/kernel/sched_autogroup_enabled \
+/proc/sys/kernel/sched_child_runs_first \
+/proc/sys/vm/stat_interval \
+/proc/sys/vm/compaction_proactiveness"
+	# shellcheck disable=SC2086
+	flux_boost_save perf_boost $perf_nodes
+	flux_boost_restore perf_boost
+	[ "$1" = boost ] && [ -z "$FLUX_PERF_BOOST_DISABLED" ] || return 0
+
+	# Reduce inter-core task migrations — keeps hot data in each core's L1/L2.
+	apply 32  /proc/sys/kernel/sched_nr_migrate
+
+	# Cost of migrating a task: higher = scheduler avoids migrations more.
+	raise_to 500000 /proc/sys/kernel/sched_migration_cost_ns
+
+	# CFS wakeup granularity: a task must run this long before being preempted.
+	raise_to 1000000 /proc/sys/kernel/sched_wakeup_granularity_ns
+	raise_to 500000  /proc/sys/kernel/sched_min_granularity_ns
+
+	# Cap perf-counter CPU overhead so the game does not share its CPU budget
+	# with hardware performance monitoring.
+	apply 3 /proc/sys/kernel/perf_cpu_time_max_percent
+
+	# Task autogroup places processes in separate CPU cgroups based on session;
+	# games fill multiple threads / processes that benefit from being grouped.
+	apply 0 /proc/sys/kernel/sched_autogroup_enabled
+
+	# Newly forked child runs before the parent — cuts one context switch in the
+	# typical "fork → exec → run" path that game engines use for worker threads.
+	apply 1 /proc/sys/kernel/sched_child_runs_first
+
+	# /proc/stat updated every 15 s instead of every tick (reduces jitter from
+	# stat file lock contention on high-core-count devices).
+	raise_to 15 /proc/sys/vm/stat_interval
+
+	# Proactive compaction steals cycles looking for contiguous pages; games
+	# benefit more from stable latency than from occasionally getting huge pages.
+	apply 0 /proc/sys/vm/compaction_proactiveness
+
+	# GKI 5.13+ tunables live in debugfs (same values as above).
+	if [ "$IS_GKI" -eq 1 ] && [ -d /sys/kernel/debug/sched ]; then
+		sched_dbg=/sys/kernel/debug/sched
+		apply 32     $sched_dbg/nr_migrate
+		raise_to 500000  $sched_dbg/migration_cost_ns
+		raise_to 1000000 $sched_dbg/wakeup_granularity_ns
+		raise_to 500000  $sched_dbg/min_granularity_ns
+	fi
+
+	# Qualcomm DCVS bus votes: cap_ceil for L3/DDR/LLCC so the game gets high
+	# memory bandwidth without waiting for the DCVS to ramp up.
+	for component in LLCC DDR L3; do
+		raise_to 40 /sys/devices/system/cpu/bus_dcvs/$component/ipm_ceil 2>/dev/null || true
+	done
+
+	# Xiaomi/MIUI kernel booster: keep it enabled for the game session.
+	apply 1 /sys/module/migt/parameters/migt_enable 2>/dev/null || true
+	apply 0 /sys/module/migt/parameters/glk_disable 2>/dev/null || true
 }
 
 # UFS (sd*), eMMC / SD (mmcblk*) and the dm devices on top of them (userdata is
@@ -848,8 +1096,17 @@ flux_block_prefetch() {
 flux_io() {
 	queues=$(flux_block_queues)
 	prefetch=$(flux_block_prefetch)
+	storage_requests=""
+	storage_sched=""
+	for node in $(flux_block_storage_nodes); do
+		case "$node" in
+		*/scheduler) storage_sched="$storage_sched $node" ;;
+		*) storage_requests="$storage_requests $node" ;;
+		esac
+	done
 	# shellcheck disable=SC2086
-	flux_boost_save io $queues $prefetch
+	flux_boost_save io $queues $prefetch $storage_requests
+	for node in $storage_sched; do flux_boost_save_scheduler io "$node"; done
 	flux_boost_restore io
 	[ "$1" = boost ] && [ -z "$FLUX_IO_DISABLED" ] || return 0
 	for node in $queues; do
@@ -862,6 +1119,24 @@ flux_io() {
 		case "$node" in
 		*/read_ahead_kb) raise_to 512 "$node" ;;
 		*/iostats) apply 0 "$node" ;;
+		esac
+	done
+	# UFS/NVMe: a real multi-queue device, deep queue, and its own command reordering makes
+	# the kernel's own scheduler redundant work ("none" is the standard recommendation for
+	# multi-queue block devices with native command queuing). eMMC: shallower queue, kept
+	# modest, and mq-deadline still bounds worst-case latency on a single command queue.
+	for node in $storage_requests $storage_sched; do
+		dir=${node%/queue/*}
+		class=$(flux_storage_class "$dir")
+		case "$node" in
+		*/nr_requests)
+			[ "$class" = ufs ] && raise_to 256 "$node"
+			[ "$class" = emmc ] && raise_to 64 "$node"
+			;;
+		*/scheduler)
+			[ "$class" = ufs ] && { flux_set_scheduler "$node" none || flux_set_scheduler "$node" mq-deadline; }
+			[ "$class" = emmc ] && flux_set_scheduler "$node" mq-deadline
+			;;
 		esac
 	done
 }
@@ -913,6 +1188,8 @@ flux_boost() {
 	flux_vm "$1"
 	flux_io "$1"
 	flux_priority "$1"
+	flux_ram_optimizer "$1"
+	flux_perf_boost "$1"
 }
 
 ###################################
@@ -934,12 +1211,22 @@ flux_net() {
 		flux_boost_restore net
 		return 0
 	fi
-	for algo in bbr3 bbr2 bbrplus bbr westwood cubic; do
-		if grep -q "$algo" /proc/sys/net/ipv4/tcp_available_congestion_control; then
-			apply "$algo" /proc/sys/net/ipv4/tcp_congestion_control
-			break
-		fi
-	done
+	# FLUX_CONGESTION_CONTROL: a specific algorithm chosen in the WebUI, applied only when
+	# this kernel actually offers it (grep -w: tcp_available_congestion_control is a plain
+	# space-separated list, not the bracketed current-value format some sysfs nodes use).
+	# Unset/empty, or a choice this kernel doesn't have, falls back to the recommended
+	# priority order below.
+	if [ -n "$FLUX_CONGESTION_CONTROL" ] &&
+		grep -qw -- "$FLUX_CONGESTION_CONTROL" /proc/sys/net/ipv4/tcp_available_congestion_control; then
+		apply "$FLUX_CONGESTION_CONTROL" /proc/sys/net/ipv4/tcp_congestion_control
+	else
+		for algo in bbr3 bbr2 bbrplus bbr westwood cubic; do
+			if grep -qw -- "$algo" /proc/sys/net/ipv4/tcp_available_congestion_control; then
+				apply "$algo" /proc/sys/net/ipv4/tcp_congestion_control
+				break
+			fi
+		done
+	fi
 	apply 1 /proc/sys/net/ipv4/tcp_low_latency
 	apply 1 /proc/sys/net/ipv4/tcp_ecn
 	apply 3 /proc/sys/net/ipv4/tcp_fastopen
@@ -1730,10 +2017,24 @@ flux_reflex_props() {
 # Graphics pipeline: threaded RenderEngine, HWUI performance hints, composition prediction.
 flux_graphics_props() {
 	[ -n "$FLUX_GRAPHICS" ] || return 0
-	# SurfaceFlinger's RenderEngine on its own thread; a ROM that already picked a
-	# (Vulkan or threaded) backend keeps it
+	# SurfaceFlinger's RenderEngine backend upgrade path:
+	#   skiagl (legacy SW)  → skiaglthreaded (threaded GL, Android 12+)
+	#                       → skiavk (Skia Vulkan, lowest latency on devices
+	#                         with solid Vulkan 1.1+ drivers)
+	# Detection: ro.hardware.vulkan set by vendor OR /dev/kgsl-3d0 present
+	# (Adreno 500+/600+/700 all ship proper Vulkan; Mali GXX/GTX do too).
+	# A ROM that already chose a Vulkan backend is never downgraded.
 	case "$(flux_prop_orig debug.renderengine.backend)" in
-	'' | skiagl) flux_prop debug.renderengine.backend skiaglthreaded ;;
+	'' | skiagl | skiaglthreaded)
+		if getprop ro.hardware.vulkan 2>/dev/null | grep -q . \
+		   || [ -c /dev/kgsl-3d0 ]; then
+			flux_prop debug.renderengine.backend skiavk
+			# Also tell HWUI to use its Vulkan renderer (app-level drawing)
+			flux_prop debug.hwui.renderer skiavk
+		else
+			flux_prop debug.renderengine.backend skiaglthreaded
+		fi
+		;;
 	esac
 	# HWUI reports frame timing to the power HAL (ADPF hint sessions, Android 12+):
 	# the CPU ramps up for UI frames before they are late
@@ -1742,16 +2043,116 @@ flux_graphics_props() {
 	flux_prop debug.sf.predict_hwc_composition_strategy 1
 }
 
+# Touch calibration: low-latency geometric/amplitude model for more precise and
+# responsive touch coordinates.  These props are read by InputReader at boot;
+# a reboot is needed for them to take effect, which is why they live in
+# flux_system() (applied at module boot via service.d, not per-game).
+flux_touch_calibration() {
+	flux_prop touch.size.calibration geometric
+	flux_prop touch.pressure.calibration amplitude
+	# Scale factor for pressure values reported by the digitiser.  0.001 maps
+	# raw ADC counts (typically 0-1000) to a 0.0-1.0 normalised float.
+	flux_prop touch.pressure.scale 0.001
+}
+
+# System-service power reduction: disables background radio scanning and the
+# perfetto tracing daemon that adds ~2 MB RSS and occasional CPU wakeups even
+# when no trace is active.  Frozen cached apps keep their memory pages warm
+# instead of being killed, so re-launching them is near-instant.
+flux_system_services() {
+	# Disable always-on WiFi scanning (location/network); re-enabled by the
+	# Settings UI when the user turns it back on manually.
+	flux_prop wifi_scan_always_enabled 0
+	# Disable BLE always-on scanning (used only for nearby-devices features)
+	flux_prop ble_scan_always_enabled 0
+	# Disable the 5G icon overhead group polling (cosmetic status bar work)
+	flux_prop 5g_icon_group_mode 0
+	# Perfetto system-wide trace daemon — only useful during profiling sessions
+	flux_prop persist.traced.enable 0
+	# Cached-apps freezer: freeze app process images in memory rather than
+	# killing them; reduces re-launch latency at zero extra RAM cost
+	flux_prop cached_apps_freezer enabled
+}
+
 FLUX_ADAPTIVE_ORIG="$MODULE_CONFIG/refresh_adaptive_orig"
+FLUX_ADAPTIVE_STATUS="$MODULE_CONFIG/refresh_adaptive_status"
+
+# Display modes of the built-in panel, one per line: "<width>x<height> <fps> <alt,alt,...>"
+# (alternativeRefreshRates = rates reachable with a seamless switch, Android 12+;
+# "none" when the list is empty, nothing when the ROM does not report it)
+flux_refresh_modes() {
+	dumpsys display 2>/dev/null | awk '
+		!done && /[sS]upportedModes/ {
+			n = split($0, part, "[{]id=")
+			for (i = 2; i <= n; i++) {
+				m = part[i]; sub(/}.*/, "", m)
+				w = m; sub(/.*width=/, "", w); sub(/[^0-9].*/, "", w)
+				h = m; sub(/.*height=/, "", h); sub(/[^0-9].*/, "", h)
+				f = m; sub(/.*fps=/, "", f); sub(/[^0-9.].*/, "", f)
+				a = ""
+				if (m ~ /alternativeRefreshRates=\[/) {
+					a = m; sub(/.*alternativeRefreshRates=\[/, "", a); sub(/\].*/, "", a); gsub(/ /, "", a)
+					if (a == "") a = "none"
+				}
+				if (w != "" && h != "" && f != "") printf "%sx%s %d %s\n", w, h, f + 0.5, a
+			}
+			done = 1
+		}'
+}
 
 # Refresh rates the display supports, ascending, one per line
 flux_refresh_rates() {
 	dumpsys display 2>/dev/null | grep -oE 'fps=[0-9]+(\.[0-9]+)?' | cut -d= -f2 | cut -d. -f1 | sort -un
 }
 
-# Adaptive refresh: the panel may drop to its lowest rate (>= 60 Hz) when the
+# Lowest rate >= 60 the panel can reach from its peak without a mode-set
+# ("low peak seamless"), or the plain lowest rate when the ROM does not
+# report alternatives ("low peak unknown"). Empty when there is no range.
+flux_adaptive_range() {
+	modes=$(flux_refresh_modes)
+	if [ -z "$modes" ]; then
+		rates=$(flux_refresh_rates)
+		low=""
+		for rate in $rates; do
+			[ "$rate" -ge 60 ] && low=$rate && break
+		done
+		high=$(echo "$rates" | tail -n 1)
+		echo "${low:--} ${high:--} unknown"
+		return 0
+	fi
+	# Peak mode: highest rate at the largest resolution (the one the user runs)
+	peak_line=$(echo "$modes" | awk '{ split($1, r, "x"); print r[1] * r[2], $2, $0 }' |
+		sort -n -k1,1 -k2,2 | tail -n 1 | cut -d' ' -f3-)
+	res=${peak_line%% *}
+	rest=${peak_line#* }
+	high=${rest%% *}
+	alts=${rest#"$high"}
+	alts=${alts# }
+	low=""
+	if [ "$alts" = none ]; then
+		echo "- $high none"
+		return 0
+	fi
+	if [ -n "$alts" ]; then
+		for rate in $(echo "$alts" | tr ',' '\n' | cut -d. -f1 | sort -un); do
+			[ "$rate" -ge 60 ] && [ "$rate" -lt "$high" ] && low=$rate && break
+		done
+		echo "${low:--} $high seamless"
+		return 0
+	fi
+	for rate in $(echo "$modes" | awk -v r="$res" '$1 == r { print $2 }' | sort -un); do
+		[ "$rate" -ge 60 ] && low=$rate && break
+	done
+	echo "${low:--} ${high:--} unknown"
+}
+
+# Adaptive refresh: the panel may drop to a lower rate (>= 60 Hz) when the
 # content allows it; the peak stays at the highest. Vendors that pin
 # min_refresh_rate to the peak keep the panel at 120/144 Hz all the time.
+# Only a rate the panel reaches seamlessly is used: a full mode-set on every
+# idle/touch transition stutters. fluxd keeps the peak while the launcher or
+# the notification shade has focus (RefreshHold), where those transitions
+# happen at the start of every swipe.
 flux_adaptive_refresh() {
 	if [ -n "$FLUX_ADAPTIVE_REFRESH" ]; then
 		# Frame rate override: apps and games get their own rate (60 fps game on a 120 Hz panel)
@@ -1764,26 +2165,37 @@ flux_adaptive_refresh() {
 
 		# During a game the game's refresh handling owns these settings.
 		[ -f "$FLUX_REFRESH_BACKUP" ] && return 0
-		rates=$(flux_refresh_rates)
-		low=""
-		for rate in $rates; do
-			if [ "$rate" -ge 60 ]; then
-				low=$rate
-				break
-			fi
-		done
-		high=$(echo "$rates" | tail -n 1)
-		case "$low$high" in '' | *[!0-9]*) return 0 ;; esac
-		[ "$high" -gt "$low" ] || return 0
+		read -r low high kind <<EOF_RANGE
+$(flux_adaptive_range)
+EOF_RANGE
+		case "$high" in '' | *[!0-9]*) high="" ;; esac
+		case "$low" in '' | *[!0-9]*) low="" ;; esac
+		if [ -z "$high" ]; then
+			echo "state=unavailable reason=no-display-modes" >"$FLUX_ADAPTIVE_STATUS"
+			return 0
+		fi
+		if [ -z "$low" ] || [ "$high" -le "$low" ]; then
+			# No lower rate reachable without a mode-set: widening the range would only add stutter.
+			flux_adaptive_restore
+			echo "state=skipped reason=no-seamless-lower-rate peak=$high switch=$kind" >"$FLUX_ADAPTIVE_STATUS"
+			return 0
+		fi
 		[ -f "$FLUX_ADAPTIVE_ORIG" ] ||
 			echo "$(settings get system peak_refresh_rate) $(settings get system min_refresh_rate)" >"$FLUX_ADAPTIVE_ORIG"
 		settings put system min_refresh_rate "$low"
 		settings put system peak_refresh_rate "$high"
+		echo "state=applied min=$low peak=$high switch=$kind" >"$FLUX_ADAPTIVE_STATUS"
 		return 0
 	fi
 
-	[ -f "$FLUX_ADAPTIVE_ORIG" ] || return 0
+	rm -f "$FLUX_ADAPTIVE_STATUS"
 	[ -f "$FLUX_REFRESH_BACKUP" ] && return 0
+	flux_adaptive_restore
+}
+
+# Put back the refresh settings saved before adaptive refresh widened them
+flux_adaptive_restore() {
+	[ -f "$FLUX_ADAPTIVE_ORIG" ] || return 0
 	read -r peak min <"$FLUX_ADAPTIVE_ORIG"
 	for pair in "peak_refresh_rate:$peak" "min_refresh_rate:$min"; do
 		key=${pair%%:*}
@@ -1823,9 +2235,36 @@ zram_resize() {
 	swapon "$dev" >/dev/null 2>&1
 }
 
-# Zram sized to the RAM: 3/4 of it up to 4 GB, half above, at most 6 GB; lz4
-# (fastest to decompress: pages a game touches again come back quickest).
+# Zram sized to the device's RAM tier (3/4/6/8/12/16 GB); lz4 preferred (fastest to
+# decompress: pages a game touches again come back quickest).
+#
+# The ratio to RAM shrinks as RAM grows: a 3-4 GB phone leans on zram heavily because
+# LMKD otherwise kills background apps almost immediately under any pressure, while a
+# 16 GB phone already has enough headroom that a smaller relative share is enough — and
+# a zram device larger than it needs to be just means more CPU spent compressing pages
+# that would never have been reclaimed anyway. /proc/meminfo's MemTotal always reads a
+# little under the advertised size (radio/vendor reserved regions), so tiers are picked
+# by the nearest advertised size rather than an exact match.
 # Sizes in MB, the shell's arithmetic may be 32-bit.
+flux_zram_size_for() { # <mem_mb> -> zram size in MB, on stdout
+	mem_mb=$1
+	if [ "$mem_mb" -le 3584 ]; then
+		echo 4096 # 3 GB tier: ~133%, most memory-constrained
+	elif [ "$mem_mb" -le 5120 ]; then
+		echo 4096 # 4 GB tier: 100%
+	elif [ "$mem_mb" -le 7168 ]; then
+		echo 4096 # 6 GB tier: ~67%
+	elif [ "$mem_mb" -le 10240 ]; then
+		echo 6144 # 8 GB tier: 75%
+	elif [ "$mem_mb" -le 14336 ]; then
+		echo 8192 # 12 GB tier: ~67%
+	elif [ "$mem_mb" -le 18432 ]; then
+		echo 10240 # 16 GB tier: 62%
+	else
+		echo 12288 # future-proofing past 16 GB
+	fi
+}
+
 flux_zram() {
 	zram=/sys/block/zram0
 	[ -f $zram/disksize ] || return 0
@@ -1853,12 +2292,7 @@ flux_zram() {
 	case "$mem_kb" in '' | *[!0-9]*) return 0 ;; esac
 	mem_mb=$((mem_kb / 1024))
 	[ "$mem_mb" -gt 0 ] || return 0
-	if [ "$mem_mb" -le 4096 ]; then
-		size_mb=$((mem_mb * 3 / 4))
-	else
-		size_mb=$((mem_mb / 2))
-	fi
-	[ "$size_mb" -gt 6144 ] && size_mb=6144
+	size_mb=$(flux_zram_size_for "$mem_mb")
 	[ "$size_mb" -ge 256 ] || return 0
 
 	algo=$(zram_algo $zram)
@@ -1881,6 +2315,8 @@ flux_system() {
 	rm -f "$FLUX_PROPS_STAGE"
 	flux_reflex_props
 	flux_graphics_props
+	flux_touch_calibration
+	flux_system_services
 	flux_adaptive_refresh
 	flux_props_commit
 	flux_zram

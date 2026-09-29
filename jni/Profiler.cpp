@@ -78,6 +78,8 @@ void set_profiler_env_vars() {
 
     // Game tweaks
     if (!prefs.net_tweaks) setenv("FLUX_NET_DISABLED", "1", 1);
+    // Empty means "let flux_net pick the best one this kernel offers" (its own priority list).
+    setenv("FLUX_CONGESTION_CONTROL", prefs.congestion_control.c_str(), 1);
     if (!prefs.touch_tweaks) setenv("FLUX_TOUCH_DISABLED", "1", 1);
     if (prefs.game_refresh_rate) setenv("FLUX_REFRESH_ENABLED", "1", 1);
     if (!prefs.drop_caches) setenv("FLUX_DROP_CACHES_DISABLED", "1", 1);
@@ -91,6 +93,10 @@ void set_profiler_env_vars() {
     if (prefs.graphics_tweaks && !prefs.disable_tweaks) setenv("FLUX_GRAPHICS", "1", 1);
     if (prefs.adaptive_refresh && !prefs.disable_tweaks) setenv("FLUX_ADAPTIVE_REFRESH", "1", 1);
     if (prefs.zram_tune && !prefs.disable_tweaks) setenv("FLUX_ZRAM", "1", 1);
+
+    // RAM optimizer and performance boost (on by default; disabled flag restores stock values).
+    if (!prefs.ram_optimizer) setenv("FLUX_RAM_OPT_DISABLED", "1", 1);
+    if (!prefs.perf_boost) setenv("FLUX_PERF_BOOST_DISABLED", "1", 1);
 
     // Set CPU Governor variables
     FluxConfigStore::CPUGovernor cpu_governor_preference = config_store.get_cpu_governor();
