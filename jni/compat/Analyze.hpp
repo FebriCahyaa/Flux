@@ -16,6 +16,7 @@ struct AnalyzeInputs {
     std::string library_json;      ///< presets + identities; empty = built-in defaults only
     std::string known_games_json;  ///< curated requirements; empty = none
     std::string profiles_json;     ///< {"<package>": <profile>, ...}; empty = none
+    BackendState zygisk_state = BackendState::Unavailable; ///< reported, never acted on here
 };
 
 /// Always returns a JSON object: {"ok":bool,"error":"","effective":{..},"resolution":{..}}.

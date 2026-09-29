@@ -122,6 +122,9 @@
           </div>
         </div>
 
+        <!-- Per-game performance profile + compatibility analysis -->
+        <GameRuntimeSection v-if="currentApp.packageName && settings.isEnabled" :pkg="currentApp.packageName" />
+
         <!-- Play statistics from recorded sessions -->
         <h2 class="text-sm font-semibold text-primary px-4 pt-5 pb-2">
           {{ $t('game_settings.stats_title') }}
@@ -199,6 +202,7 @@ import { useNotifyStore } from '@/stores/Notify'
 import * as KernelSU from '@/helpers/KernelSU'
 
 import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
+import GameRuntimeSection from '@/components/GameRuntimeSection.vue'
 import RippleComponent from '@/components/ui/Ripple.vue'
 import ArrowLeftIcon from '@/components/icons/ArrowLeft.vue'
 import ChevronRightIcon from '@/components/icons/ChevronRight.vue'

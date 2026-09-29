@@ -27,6 +27,8 @@
 #include <GameRegistry.hpp>
 
 #include <Analyze.hpp>
+#include <Runtime.hpp>
+#include <unistd.h>
 #include <CapabilityCollector.hpp>
 #include <PlatformProbe.hpp>
 #include <VulkanProbe.hpp>
@@ -116,7 +118,7 @@ int daemon_handler(const std::vector<std::string> &args) {
  * hosts the probe itself. Later phases consume the model, and no part of this
  * build interprets it.
  */
-int capabilities_handler(const std::vector<std::string> &args) {
+flux::gfx::CapabilityModel collect_capabilities() {
     using namespace flux::gfx;
 
     const SystemQuery query = default_system_query();
@@ -132,6 +134,11 @@ int capabilities_handler(const std::vector<std::string> &args) {
             std::make_shared<RuntimeCollector>(query),
         },
         model);
+    return model;
+}
+
+int capabilities_handler(const std::vector<std::string> &args) {
+    const flux::gfx::CapabilityModel model = collect_capabilities();
 
     std::cout << model.to_json() << std::endl;
 
@@ -147,6 +154,13 @@ int capabilities_handler(const std::vector<std::string> &args) {
     return EXIT_SUCCESS;
 }
 
+
+static int64_t sdk_from_capabilities(const std::string &json) {
+    flux::gfx::CapabilityModel m;
+    std::string err;
+    if (!flux::gfx::CapabilityModel::from_json(json, m, err)) return 0;
+    return m.get_int(flux::gfx::schema::domain::kRuntime, flux::gfx::schema::runtime::kAndroidSdk).value_or(0);
+}
 
 /**
  * Read-only compatibility analysis for one package: what the game gates on, what
@@ -170,8 +184,21 @@ int compat_analyze_handler(const std::vector<std::string> &args) {
             return EXIT_FAILURE;
         }
     }
-    flux::compat::AnalyzeInputs in{slurp(CAPABILITY_FILE), slurp(COMPAT_LIBRARY_FILE), slurp(COMPAT_GAMES_FILE),
+    // capabilities.json is only a cache someone may have written with `fluxd capabilities <file>`;
+    // without it, probe live (this process is short-lived, see capabilities_handler).
+    std::string caps = slurp(CAPABILITY_FILE);
+    if (caps.empty()) caps = collect_capabilities().to_json(false);
+
+    flux::compat::AnalyzeInputs in{caps, slurp(COMPAT_LIBRARY_FILE), slurp(COMPAT_GAMES_FILE),
                                    slurp(COMPAT_PROFILES_FILE)};
+
+    // Zygisk is opt-in: a provider being installed is not consent. The WebUI creates
+    // the marker file; nothing here ever installs or enables a provider.
+    flux::compat::Io io;
+    io.exists = [](const std::string &p) { return access(p.c_str(), F_OK) == 0; };
+    flux::compat::ZygiskBackend::Config zcfg;
+    zcfg.user_enabled = access(COMPAT_ZYGISK_OPTIN_FILE, F_OK) == 0;
+    in.zygisk_state = flux::compat::ZygiskBackend(io, zcfg, sdk_from_capabilities(caps)).available();
     std::cout << flux::compat::analyze_package(args[0], mode, in) << std::endl;
     return EXIT_SUCCESS;
 }

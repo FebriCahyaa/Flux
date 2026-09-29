@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Added
+- **Flux Compatibility Engine (`jni/compat/`)**: per-game profile inheritance, a capability-based
+  resolver that computes the *minimum* compatibility override (or none) for known and unknown
+  games, transactional apply/verify/restore with crash-recovery journal, optional Zygisk backend
+  contract, and per-game memory/storage/touch/launch-boost planning. `fluxd compat_analyze <pkg>`
+  prints the read-only analysis; Game Settings gets a Game Runtime section (English + Indonesian
+  strings). Daemon activation is not wired yet — see `docs/GAME_RUNTIME.md` for exactly what is and
+  is not implemented
+
 ### Fixed
 - **`flux_utility logcat`/`save_logs` were not portable to every `/system/bin/sh`**: the log
   viewer used `echo -e`/`echo -ne` for its colors and screen-clear sequences, which only some

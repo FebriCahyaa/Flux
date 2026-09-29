@@ -47,6 +47,8 @@
 #define COMPAT_LIBRARY_FILE CONFIG_DIR "/compat_library.json"
 #define COMPAT_GAMES_FILE CONFIG_DIR "/compat_games.json"
 #define COMPAT_PROFILES_FILE CONFIG_DIR "/game_profiles.json"
+/// Presence = the user opted in to the optional Zygisk compatibility backend.
+#define COMPAT_ZYGISK_OPTIN_FILE CONFIG_DIR "/compat_zygisk_optin"
 /// Minimum SynthesisCore synthesis_version (PROTOCOL_VERSION) this build expects.
 /// Keep in sync with SYNTHESIS_MIN_VERSION in module/service.sh and the WebUI monitor store.
 #define SYNTHESIS_CORE_MIN_VERSION 2

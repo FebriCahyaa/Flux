@@ -91,6 +91,10 @@ std::string analyze_package(const std::string &package, std::optional<Mode> mode
     real.AddMember("peak_refresh_hz", hw.peak_hz(), al);
     real.AddMember("sdk", hw.sdk, al);
     out.AddMember("real_hardware", real, al);
+    rapidjson::Value backends(rapidjson::kObjectType);
+    backends.AddMember("native", "available", al);
+    backends.AddMember("zygisk", rapidjson::Value(to_string(in.zygisk_state), al), al);
+    out.AddMember("backends", backends, al);
     rapidjson::StringBuffer sb;
     rapidjson::Writer<rapidjson::StringBuffer> w(sb);
     out.Accept(w);
