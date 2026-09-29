@@ -37,13 +37,18 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   `tests/session_manager_test.cpp`, `docs/architecture/SESSION_MODEL.md`. Main.cpp reports events only;
   SessionManager orders GameRuntime → SessionRecorder (end in reverse). `sessions.json` unchanged.
   Host 14/14; CI 36630954964 green. Device: NOT_TESTED.
-- **Step 6 (Zairenkai Observatory foundation): IN PROGRESS.**
+- **Step 6 (Zairenkai Observatory foundation): IMPLEMENTED — architecture approved (owner).**
   `integration/game-runtime-clean` @ `b82761e`: `jni/observatory/{Event,EventStore}.*`,
   `tests/observatory_test.cpp`, `docs/architecture/{OBSERVATORY,EVENT_MODEL}.md`. Schema v1, registry
   (SESSION/RUNTIME/PERFORMANCE/TRANSACTION/RECOVERY), validation, JSONL, write/query/ordering interfaces +
   bounded memory store. Additive: **no producers wired**, SessionRecorder/sessions.json untouched, no device
   storage/retention. Host 15/15; CI 36632946443 green.
-- **Next:** owner review of Step 6.
+- **Step 6.5 (Observatory event integration bridge): IN PROGRESS.**
+  `integration/game-runtime-clean` @ `aa88ce2`: neutral observers in Transaction / GamePerformanceRuntime /
+  SessionManager (called after transitions, exceptions swallowed), `jni/bridge/ObservatoryBridge.*`,
+  `jni/ObservatoryHost.*` (fluxd: bounded in-memory store, no persistence). Registry renamed to the Step 6.5
+  event list. Host 16/16; CI 36634896135 green. flux.log / sessions.json / session_live.json unchanged. Device: NOT_TESTED.
+- **Next:** owner review of Step 6.5.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 
 ## Repositories and branches

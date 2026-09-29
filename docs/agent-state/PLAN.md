@@ -98,10 +98,16 @@ Proposed Step 5 scope (for owner approval):
 
 Owner decision: keep `sessions.json` unchanged until Phase 5 (applied in `7e35fba`).
 
-## Step 6 — Zairenkai Observatory foundation (IN PROGRESS)
+## Step 6 — Zairenkai Observatory foundation (IMPLEMENTED, approved)
 
 Done (`b82761e`): event schema v1, registry, validation, serialisation, storage interfaces, memory store,
 host tests, docs. Not in scope: producers, device storage, retention, timeline, WebUI, KERNEL/GRAPHICS/THERMAL
 categories. Integration points listed in `docs/architecture/OBSERVATORY.md`.
 Suggested next: wire producers (SessionManager, GamePerformanceRuntime, Transaction, recovery) to an
 `EventSink`, then Phase 5 storage + 7-day retention under `/data/adb/.config/zairenkai/telemetry/`.
+
+## Step 6.5 — Observatory event integration bridge (IN PROGRESS)
+
+Done (`aa88ce2`): observers + bridge + fluxd in-memory store; 16 event types emitted; failure isolation
+tested. Not in scope: persistence/retention (Phase 5), reading events out of fluxd (CLI/export), WebUI,
+GPU/Thermal events. Open finding B-27 (rollback of a node whose write failed is reported incomplete).

@@ -135,3 +135,22 @@ Step 5: **IMPLEMENTED**, architecture approved by owner (2026-09-29). Device val
 | CI https://github.com/FebriCahyaa/Flux/actions/runs/36632946443 (ndk-build incl. FluxObservatory) | success |
 | sessions.json / session_live.json | unchanged |
 | Producers / device | none wired / NOT_TESTED |
+
+## Step 6.5 Observatory integration bridge — 2026-09-29 (`integration/game-runtime-clean` @ `aa88ce2`)
+| Check | Result |
+|---|---|
+| Tests written first; CMake configure failed without bridge implementation (red) | observed |
+| event on session start (+ runtime/transaction events carry session id, ordering BEGIN<APPLY<VERIFY<PROFILE_APPLIED<RUNTIME_ACTIVATE<SESSION_START, switch) | PASS |
+| event on restore (TRANSACTION_RESTORE before/after evidence, PROFILE_RESTORED, RUNTIME_RESTORE, SESSION_END process_death, context cleared) | PASS |
+| transaction failure event (TRANSACTION_APPLY failed, TRANSACTION_ROLLBACK, RUNTIME_FAILURE, no PROFILE_APPLIED) | PASS |
+| recovery events (START<SUCCESS, FAILED with journal kept, SUCCESS when none) | PASS |
+| Observatory unavailable (null / throwing / rejecting sink; throwing observers): node values, journals, states identical to a working Observatory | PASS |
+| emission after transition (PROFILE_APPLIED observed with node already applied); no event rejected by validation | PASS |
+| Existing tests unchanged and passing (transaction, planner, profile, runtime, host, session) | PASS |
+| Test bug found and fixed: dangling reference to a temporary query result in CHECK_EQ | noted |
+| Engine finding B-27 (rollback reported incomplete for a node whose write failed) | recorded, not changed |
+| Host ctest | PASS 16/16 |
+| Forbidden-symbol check | clean |
+| CI https://github.com/FebriCahyaa/Flux/actions/runs/36634896135 (ndk-build incl. FluxBridge, ObservatoryHost) | success |
+| flux.log / sessions.json / session_live.json | unchanged |
+| Device | NOT_TESTED |
