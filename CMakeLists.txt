@@ -11,7 +11,7 @@
 #   cmake --build build -j"$(nproc)"
 #   ctest --test-dir build --output-on-failure
 cmake_minimum_required(VERSION 3.20)
-project(flux_host_tests CXX)
+project(flux_host_tests C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -62,6 +62,7 @@ add_library(flux_compat STATIC
   jni/compat/GameRuntime.cpp
   jni/compat/Analyze.cpp
   jni/compat/Session.cpp
+  jni/compat/ProviderPlan.cpp
 )
 target_include_directories(flux_compat PUBLIC jni/compat)
 target_link_libraries(flux_compat PUBLIC flux_gfx)
@@ -123,3 +124,31 @@ if(FLUX_SH)
     COMMAND ${FLUX_SH} ${CMAKE_CURRENT_SOURCE_DIR}/tests/refresh_script_test.sh
             ${CMAKE_CURRENT_SOURCE_DIR}/scripts/flux_profiler.sh)
 endif()
+
+# -- Zygisk provider decision logic (plan contract, validation, matching) -------
+flux_add_test(provider_test tests/provider_test.cpp)
+target_link_libraries(provider_test PRIVATE flux_compat)
+
+# -- GOT patcher used by the Zygisk provider, against real ELF fixtures ------------
+enable_language(C)
+add_library(got_provider SHARED tests/got_provider.c)
+foreach(x a b c)
+  add_library(got_target_${x} SHARED tests/got_target.c)
+  set_target_properties(got_target_${x} PROPERTIES OUTPUT_NAME got_target_${x})
+  target_link_options(got_target_${x} PRIVATE -Wl,-z,now -Wl,-z,relro)   # read-only GOT, as on Android
+endforeach()
+add_library(flux_gothook STATIC jni/zygisk/GotHook.cpp jni/zygisk/Interpose.cpp)
+target_include_directories(flux_gothook PUBLIC jni/zygisk jni/compat)
+target_link_libraries(flux_gothook PUBLIC flux_compat)
+target_compile_options(flux_gothook PRIVATE ${FLUX_WARNINGS})
+flux_add_test(got_hook_test tests/got_hook_test.cpp)
+target_link_libraries(got_hook_test PRIVATE flux_gothook ${CMAKE_DL_LIBS})
+target_compile_definitions(got_hook_test PRIVATE
+  FLUX_GOT_PROVIDER="$<TARGET_FILE:got_provider>"
+  FLUX_GOT_TARGET_A="$<TARGET_FILE:got_target_a>"
+  FLUX_GOT_TARGET_B="$<TARGET_FILE:got_target_b>"
+  FLUX_GOT_TARGET_C="$<TARGET_FILE:got_target_c>")
+add_dependencies(got_hook_test got_provider got_target_a got_target_b got_target_c)
+
+flux_add_test(interpose_test tests/interpose_test.cpp)
+target_link_libraries(interpose_test PRIVATE flux_gothook flux_compat ${CMAKE_DL_LIBS})
