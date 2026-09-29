@@ -32,6 +32,8 @@ struct ProcessScope {
 
 /// Fields the provider can honour, per layer. Anything else is rejected, not dropped silently.
 const std::vector<std::string> &supported_fields(Layer layer);
+/// Which layer owns an identity field name (device / cpu / gpu), if any.
+std::optional<Layer> layer_of_field(const std::string &field);
 
 struct Plan {
     int version = 0;

@@ -507,89 +507,6 @@ void test_native_backend_refuses_identity() {
     CHECK(fs.writes.empty()); // nothing system-wide, ever
 }
 
-void test_zygisk_states() {
-    FakeFs fs;
-    ZygiskBackend::Config cfg;
-    CHECK(ZygiskBackend(fs.io(), cfg, 34).available() == BackendState::Unavailable);   // no provider
-    // A Zygisk implementation alone never reads the spool: still unavailable, opted in or not.
-    fs.files["/data/adb/modules/rezygisk"] = "";
-    fs.files["/data/adb/modules/zygisksu"] = "";
-    cfg.user_enabled = true;
-    CHECK(ZygiskBackend(fs.io(), cfg, 34).available() == BackendState::Unavailable);
-    cfg.user_enabled = false;
-    fs.files.erase("/data/adb/modules/rezygisk");
-    fs.files.erase("/data/adb/modules/zygisksu");
-    fs.files["/data/adb/modules/flux_compat_provider"] = "";
-    CHECK(ZygiskBackend(fs.io(), cfg, 34).available() == BackendState::NotConfigured); // present, not opted in
-    cfg.user_enabled = true;
-    CHECK(ZygiskBackend(fs.io(), cfg, 34).available() == BackendState::Available);
-    CHECK(ZygiskBackend(fs.io(), cfg, 21).available() == BackendState::Unsupported);   // too old
-}
-
-void test_zygisk_apply_verify_restore() {
-    FakeFs fs;
-    fs.files["/data/adb/modules/flux_compat_provider"] = "";
-    ZygiskBackend::Config cfg;
-    cfg.user_enabled = true;
-    ZygiskBackend zb(fs.io(), cfg, 34);
-    auto lib = library();
-    NativeBackend nb;
-    GameRuntime rt(deps(fs, lib, nb, &zb));
-
-    auto e = eff(Mode::Advanced);
-    e.device_profile = "flagship_device";
-    auto a = rt.activate(e, std::nullopt, capable_hw());
-    CHECK(a.context == ContextState::Active);
-    CHECK_EQ(a.backend, "zygisk");
-    CHECK(a.resolution.decision(Layer::Device).state == LayerState::Verified);
-    const std::string spool = "/data/adb/flux/compat/zygisk/com.example.game.json";
-    CHECK(fs.files[spool].find("FlagshipX") != std::string::npos);
-    // Two views: real hardware stays real, the game gets the profile.
-    CHECK_EQ(a.effective_identity["device"], "flagship_device");
-
-    CHECK(rt.deactivate());
-    CHECK_EQ(fs.files[spool], "{\"active\":false}");
-}
-
-void test_zygisk_only_scoped_to_target_package() {
-    FakeFs fs;
-    fs.files["/data/adb/modules/flux_compat_provider"] = "";
-    ZygiskBackend::Config cfg;
-    cfg.user_enabled = true;
-    ZygiskBackend zb(fs.io(), cfg, 34);
-    auto lib = library();
-    NativeBackend nb;
-    GameRuntime rt(deps(fs, lib, nb, &zb));
-    auto e = eff(Mode::Advanced);
-    e.device_profile = "flagship_device";
-    rt.activate(e, std::nullopt, capable_hw());
-    for (const auto &w : fs.writes) CHECK(w.find("com.example.game") != std::string::npos);
-    CHECK(!zb.supports("../etc/x"));
-    CHECK(!zb.supports(""));
-    rt.deactivate();
-}
-
-void test_backend_failure_keeps_performance() {
-    FakeFs fs;
-    seed_perf_nodes(fs);
-    fs.files["/data/adb/modules/flux_compat_provider"] = "";
-    fs.fail_writes.insert("/data/adb/flux/compat/zygisk/com.example.game.json");
-    ZygiskBackend::Config cfg;
-    cfg.user_enabled = true;
-    ZygiskBackend zb(fs.io(), cfg, 34);
-    auto lib = library();
-    NativeBackend nb;
-    GameRuntime rt(deps(fs, lib, nb, &zb));
-    auto e = eff(Mode::Advanced);
-    e.device_profile = "flagship_device";
-    e.memory = "gaming";
-    auto a = rt.activate(e, std::nullopt, capable_hw());
-    CHECK(a.context == ContextState::Failed);
-    CHECK(a.perf_context == ContextState::Active);           // performance is independent
-    CHECK_EQ(fs.files["/proc/sys/vm/swappiness"], "60");
-    CHECK(rt.deactivate());
-}
-
 // -- refresh ---------------------------------------------------------------------
 
 void test_refresh_request_is_honest() {
@@ -789,10 +706,6 @@ int main() {
     test_mitigation_blocks_category();
     test_scheduler_snapshot_view();
     test_native_backend_refuses_identity();
-    test_zygisk_states();
-    test_zygisk_apply_verify_restore();
-    test_zygisk_only_scoped_to_target_package();
-    test_backend_failure_keeps_performance();
     test_refresh_request_is_honest();
     test_launch_boost_bounded_and_cancelable();
     test_launch_boost_cancel_on_main_active();

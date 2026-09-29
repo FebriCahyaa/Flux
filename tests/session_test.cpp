@@ -246,23 +246,6 @@ void test_backend_unavailable_keeps_performance() {
     CHECK_EQ(h.fs.files["/proc/sys/vm/swappiness"], "100");
 }
 
-void test_zygisk_without_provider_is_not_active() {
-    Harness h;
-    h.fs.files["/data/adb/modules/zygisksu"] = ""; // Zygisk itself, but no Flux provider
-    ZygiskBackend::Config cfg;
-    cfg.user_enabled = true;
-    ZygiskBackend zb(h.fs.io(), cfg, 34);
-    h.zygisk = &zb;
-    auto &e = h.game("a.game");
-    e.mode = Mode::Advanced;
-    e.device_profile = "fx";
-    h.build();
-    h.rt->begin({"a.game", 1, 1});
-    CHECK(h.rt->context() == ContextState::Failed);
-    CHECK(h.fs.files.count("/data/adb/flux/compat/zygisk/a.game.json") == 0);
-    CHECK(h.rt->last().effective_identity.at("device") != "fx"); // never reported as active
-}
-
 void test_input_failure_falls_back() {
     Harness h;
     h.inputs_fail = true;
@@ -540,7 +523,6 @@ int main() {
     test_process_restart_is_a_new_session();
     test_process_death_restores();
     test_backend_unavailable_keeps_performance();
-    test_zygisk_without_provider_is_not_active();
     test_input_failure_falls_back();
     test_perf_apply_failure_rolls_back();
     test_restore_failure_keeps_journal();

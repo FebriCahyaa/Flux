@@ -28,6 +28,10 @@ struct PerfSettings {
 struct CompatSettings {
     std::optional<std::string> mode;     ///< real | auto | compatibility | advanced | custom
     std::optional<std::string> device_profile, cpu_profile, gpu_profile, display_profile; ///< identity library names; "real_*" = real
+    /// Which processes of the package receive the identity: main (default, exactly the package name),
+    /// listed (exact names in `processes`) or all (the package's own :sub processes too).
+    std::optional<std::string> process_scope;
+    std::optional<std::vector<std::string>> processes;
 };
 
 /// One layer of the inheritance chain.
@@ -47,6 +51,8 @@ struct EffectiveProfile {
     Mode mode = Mode::Real;
     std::string device_profile = "real_device", cpu_profile = "real_cpu", gpu_profile = "real_gpu",
                 display_profile = "real_display";
+    std::string process_scope = "main";
+    std::vector<std::string> processes;
     std::vector<std::string> chain; ///< layers that contributed, for diagnostics
 };
 

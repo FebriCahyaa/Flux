@@ -63,6 +63,8 @@ add_library(flux_compat STATIC
   jni/compat/Analyze.cpp
   jni/compat/Session.cpp
   jni/compat/ProviderPlan.cpp
+  jni/compat/Arming.cpp
+  jni/compat/ZygiskBackend.cpp
 )
 target_include_directories(flux_compat PUBLIC jni/compat)
 target_link_libraries(flux_compat PUBLIC flux_gfx)
@@ -152,3 +154,23 @@ add_dependencies(got_hook_test got_provider got_target_a got_target_b got_target
 
 flux_add_test(interpose_test tests/interpose_test.cpp)
 target_link_libraries(interpose_test PRIVATE flux_gothook flux_compat ${CMAKE_DL_LIBS})
+
+# -- the provider's root companion, run for real over a socketpair (needs a JDK for jni.h) ---
+find_package(JNI QUIET)
+if(JNI_FOUND)
+  add_library(flux_zygisk_host STATIC jni/zygisk/FluxCompatModule.cpp)
+  target_include_directories(flux_zygisk_host PUBLIC jni/zygisk PRIVATE ${JNI_INCLUDE_DIRS})
+  target_include_directories(flux_zygisk_host SYSTEM PRIVATE jni/zygisk/include)
+  target_include_directories(flux_zygisk_host SYSTEM PRIVATE "${RAPIDJSON_INCLUDE}")
+  target_compile_definitions(flux_zygisk_host PUBLIC FLUX_HOST_TEST=1)
+  target_compile_options(flux_zygisk_host PRIVATE ${FLUX_WARNINGS})
+  target_link_libraries(flux_zygisk_host PUBLIC flux_gothook flux_compat)
+  flux_add_test(fluxd_companion_test tests/fluxd_companion_test.cpp)
+  target_link_libraries(fluxd_companion_test PRIVATE flux_zygisk_host)
+else()
+  message(STATUS "JNI headers not found: fluxd_companion_test skipped")
+endif()
+
+# -- Arming + ZygiskBackend + GameRuntime against a simulated provider ----------
+flux_add_test(zygisk_backend_test tests/zygisk_backend_test.cpp)
+target_link_libraries(zygisk_backend_test PRIVATE flux_compat)

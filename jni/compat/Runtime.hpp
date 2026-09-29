@@ -78,9 +78,23 @@ private:
 
 /// Execution backend for the process-scoped part (Device/CPU/GPU identity).
 /// The engine decides; the backend only carries the decision out.
+struct EffectiveProfile;
+
+/// What a backend can tell the UI about the process-level context (only the Zygisk backend has one).
+struct ProviderReport {
+    std::string state = "unavailable"; ///< unavailable | not_configured | unsupported | installed | loaded | matched | applied | verified | failed
+    std::string transaction_id;
+    std::string reason;
+    std::vector<std::pair<std::string, std::string>> layers; ///< "device" -> "verified", ...
+};
+
 class Backend {
 public:
     virtual ~Backend() = default;
+    /// Called before prepare(): the profile being activated and the process it is for.
+    virtual void configure(const EffectiveProfile &, int /*pid*/, int /*uid*/) {}
+    virtual std::string last_error() const { return {}; }
+    virtual ProviderReport provider_report() const { return {}; }
     virtual const char *name() const = 0;
     virtual BackendState available() const = 0;
     virtual bool supports(const std::string &package) const = 0;
@@ -106,40 +120,6 @@ public:
     bool restore(const Resolution &) override { return true; }
     /// Layers this backend cannot carry out for @p plan.
     static std::vector<Layer> unsupported_layers(const Resolution &plan);
-};
-
-/// Zygisk backend. Flux never installs or bundles a Zygisk provider: it detects one
-/// and hands the plan to it through a spool file the provider is expected to read.
-/// Until a provider that reads this contract exists, apply() can only stage the plan.
-class ZygiskBackend final : public Backend {
-public:
-    struct Config {
-        std::string spool_dir = "/data/adb/flux/compat/zygisk";
-        /// Marker paths of a *Flux compatibility provider*: a module that consumes the spool
-        /// file inside game processes. A Zygisk implementation on its own is not enough (it
-        /// would never read the spool), so it is deliberately not listed. No provider ships
-        /// with Flux yet, hence this backend reports Unavailable on every device today.
-        std::vector<std::string> provider_markers = {"/data/adb/modules/flux_compat_provider"};
-        bool user_enabled = false; ///< explicit opt-in; never on by default
-        int64_t min_sdk = 26;
-    };
-    ZygiskBackend(Io io, Config cfg, int64_t sdk) : io_(std::move(io)), cfg_(std::move(cfg)), sdk_(sdk) {}
-
-    const char *name() const override { return "zygisk"; }
-    BackendState available() const override;
-    bool supports(const std::string &package) const override { return !package.empty() && package.find('/') == std::string::npos; }
-    bool prepare(const Resolution &plan, const ProfileLibrary &lib) override;
-    bool apply(const Resolution &plan) override;
-    bool verify(const Resolution &plan) override;
-    bool restore(const Resolution &plan) override;
-    std::string recovery_line(const Resolution &plan) const override;
-
-private:
-    std::string spool_path(const std::string &package) const { return cfg_.spool_dir + "/" + package + ".json"; }
-    Io io_;
-    Config cfg_;
-    int64_t sdk_;
-    std::string staged_;
 };
 
 /// Adapts a Backend to the Action interface so identity work is part of the same

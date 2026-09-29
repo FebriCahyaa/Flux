@@ -47,6 +47,10 @@ for abi in arm64-v8a armeabi-v7a; do
 		echo "::error::libs/$abi/fluxd is missing (run ndk-build first)" >&2
 		exit 1
 	}
+	[ -f "libs/$abi/libflux_zygisk.so" ] || {
+		echo "::error::libs/$abi/libflux_zygisk.so is missing (the Zygisk provider is part of the ndk-build)" >&2
+		exit 1
+	}
 done
 
 # Three flavors, each with its own update channel so a root manager keeps a

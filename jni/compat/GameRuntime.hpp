@@ -28,6 +28,8 @@ struct Activation {
     std::string refresh_note;
     /// Real hardware next to the identity the game will see, for the two-view UI.
     std::map<std::string, std::string> effective_identity;
+    /// Process-level context as the provider reports it (empty state when there is no provider).
+    ProviderReport provider;
     std::string to_json() const;
 };
 
@@ -47,7 +49,7 @@ public:
     /// Compatibility first: resolve, pick the backend, apply and verify the compatibility
     /// context, compute the refresh request. Touches no memory/touch/storage node.
     Activation activate_compat(const EffectiveProfile &profile, const std::optional<GameRequirement> &known,
-                               const RealHardware &hw);
+                               const RealHardware &hw, int pid = 0, int uid = 0);
     /// Per-game memory/touch/storage overrides. Called after Flux has applied its own
     /// performance profile, so the game's explicit choice wins over the profile script.
     void activate_perf(Activation &a);

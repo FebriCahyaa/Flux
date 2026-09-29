@@ -208,6 +208,20 @@ extract "$ZIPFILE" "libs/$ARCH_TMP/fluxd" "$TMPDIR"
 cp "$TMPDIR"/libs/"$ARCH_TMP"/* "$MODPATH/system/bin"
 rm -rf "$TMPDIR/libs"
 
+# Optional Zygisk compatibility provider: zygisk/<abi>.so for every ABI this zip carries, so a
+# 64-bit device also gets the 32-bit library for its 32-bit apps. Loaded only if Zygisk is on and
+# the game has an armed profile; without Zygisk the module simply never loads it.
+mkdir -p "$MODPATH/zygisk"
+for zabi in arm64-v8a armeabi-v7a; do
+	if unzip -l "$ZIPFILE" "libs/$zabi/libflux_zygisk.so" >/dev/null 2>&1; then
+		extract "$ZIPFILE" "libs/$zabi/libflux_zygisk.so" "$TMPDIR"
+		cp "$TMPDIR/libs/$zabi/libflux_zygisk.so" "$MODPATH/zygisk/$zabi.so"
+		rm -rf "$TMPDIR/libs"
+		ui_print "- Zygisk compatibility provider: $zabi"
+	fi
+done
+set_perm_recursive "$MODPATH/zygisk" 0 0 0755 0644
+
 # Skip mountify
 touch "$MODPATH/skip_mountify"
 

@@ -98,58 +98,6 @@ bool NativeBackend::prepare(const Resolution &plan, const ProfileLibrary &) {
     return unsupported_layers(plan).empty();
 }
 
-BackendState ZygiskBackend::available() const {
-    if (sdk_ < cfg_.min_sdk) return BackendState::Unsupported;
-    bool provider = false;
-    if (io_.exists)
-        for (const auto &m : cfg_.provider_markers) provider = provider || io_.exists(m);
-    if (!provider) return BackendState::Unavailable;
-    if (!cfg_.user_enabled) return BackendState::NotConfigured;
-    return BackendState::Available;
-}
-
-bool ZygiskBackend::prepare(const Resolution &plan, const ProfileLibrary &lib) {
-    if (available() != BackendState::Available || !supports(plan.package)) return false;
-    rapidjson::StringBuffer sb;
-    rapidjson::Writer<rapidjson::StringBuffer> w(sb);
-    w.StartObject();
-    w.Key("active"); w.Bool(true);
-    w.Key("package"); w.String(plan.package.c_str());
-    w.Key("identities");
-    w.StartObject();
-    for (const auto &d : plan.layers) {
-        if (!d.required || d.layer == Layer::Display) continue;
-        auto it = lib.identities.find(d.identity);
-        if (it == lib.identities.end()) return false;
-        w.Key(to_string(d.layer));
-        w.StartObject();
-        for (const auto &[k, v] : it->second.fields) { w.Key(k.c_str()); w.String(v.c_str()); }
-        w.EndObject();
-    }
-    w.EndObject();
-    w.EndObject();
-    staged_ = sb.GetString();
-    return true;
-}
-
-bool ZygiskBackend::apply(const Resolution &plan) {
-    return !staged_.empty() && io_.write(spool_path(plan.package), staged_);
-}
-
-bool ZygiskBackend::verify(const Resolution &plan) {
-    auto cur = io_.read(spool_path(plan.package));
-    return cur && trim(*cur) == staged_;
-}
-
-bool ZygiskBackend::restore(const Resolution &plan) {
-    return io_.write(spool_path(plan.package), "{\"active\":false}");
-}
-
-std::string ZygiskBackend::recovery_line(const Resolution &plan) const {
-    if (staged_.empty()) return {};
-    return Watchdog::encode(spool_path(plan.package), "{\"active\":false}");
-}
-
 // -- Transaction --------------------------------------------------------------
 
 bool Transaction::start() {

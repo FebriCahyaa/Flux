@@ -51,4 +51,4 @@ LOCAL_LDFLAGS += $(FLUX_LINK_FLAGS)
 
 include $(BUILD_EXECUTABLE)
 
-include $(LOCAL_PATH)/external/Android.mk $(LOCAL_PATH)/base/Android.mk $(LOCAL_PATH)/gfx/Android.mk $(LOCAL_PATH)/compat/Android.mk
+include $(LOCAL_PATH)/external/Android.mk $(LOCAL_PATH)/base/Android.mk $(LOCAL_PATH)/gfx/Android.mk $(LOCAL_PATH)/compat/Android.mk $(LOCAL_PATH)/zygisk/Android.mk

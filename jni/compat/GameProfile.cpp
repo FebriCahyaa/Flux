@@ -85,6 +85,29 @@ bool parse_value(const rapidjson::Value &o, GameProfile &out, std::string &error
         if (!read_name(c, "cpu_profile", out.compat.cpu_profile, error)) return false;
         if (!read_name(c, "gpu_profile", out.compat.gpu_profile, error)) return false;
         if (!read_name(c, "display_profile", out.compat.display_profile, error)) return false;
+        if (c.HasMember("process_scope")) {
+            const std::set<std::string> scopes = {"main", "listed", "all"};
+            if (!c["process_scope"].IsString() || !scopes.count(c["process_scope"].GetString())) {
+                error = "process_scope must be main, listed or all";
+                return false;
+            }
+            out.compat.process_scope = std::string(c["process_scope"].GetString());
+        }
+        if (c.HasMember("processes")) {
+            if (!c["processes"].IsArray() || c["processes"].Size() > 16) {
+                error = "processes must be an array of at most 16 names";
+                return false;
+            }
+            std::vector<std::string> names;
+            for (const auto &v : c["processes"].GetArray()) {
+                if (!v.IsString() || v.GetStringLength() == 0 || v.GetStringLength() > 128) {
+                    error = "processes entries must be non-empty strings";
+                    return false;
+                }
+                names.push_back(v.GetString());
+            }
+            out.compat.processes = std::move(names);
+        }
     }
     return true;
 }
@@ -107,6 +130,8 @@ void apply_layer(const GameProfile &l, EffectiveProfile &e) {
     overlay(l.compat.cpu_profile, e.cpu_profile);
     overlay(l.compat.gpu_profile, e.gpu_profile);
     overlay(l.compat.display_profile, e.display_profile);
+    overlay(l.compat.process_scope, e.process_scope);
+    if (l.compat.processes) e.processes = *l.compat.processes;
 }
 
 void put_opt(rapidjson::Writer<rapidjson::StringBuffer> &w, const char *k, const std::optional<std::string> &v) {
@@ -135,6 +160,13 @@ void write_profile(rapidjson::Writer<rapidjson::StringBuffer> &w, const GameProf
     put_opt(w, "cpu_profile", p.compat.cpu_profile);
     put_opt(w, "gpu_profile", p.compat.gpu_profile);
     put_opt(w, "display_profile", p.compat.display_profile);
+    put_opt(w, "process_scope", p.compat.process_scope);
+    if (p.compat.processes) {
+        w.Key("processes");
+        w.StartArray();
+        for (const auto &n : *p.compat.processes) w.String(n.c_str());
+        w.EndArray();
+    }
     w.EndObject();
     w.EndObject();
 }

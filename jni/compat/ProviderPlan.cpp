@@ -105,6 +105,14 @@ const std::vector<std::string> &supported_fields(Layer layer) {
     return none;
 }
 
+std::optional<Layer> layer_of_field(const std::string &field) {
+    for (Layer l : {Layer::Device, Layer::Cpu, Layer::Gpu}) {
+        const auto &f = supported_fields(l);
+        if (std::find(f.begin(), f.end(), field) != f.end()) return l;
+    }
+    return std::nullopt;
+}
+
 const char *to_string(Reject r) {
     switch (r) {
     case Reject::None: return "none";

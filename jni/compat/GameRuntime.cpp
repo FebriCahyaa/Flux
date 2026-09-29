@@ -25,7 +25,7 @@ Activation GameRuntime::activate(const EffectiveProfile &p, const std::optional<
 }
 
 Activation GameRuntime::activate_compat(const EffectiveProfile &p, const std::optional<GameRequirement> &known,
-                                        const RealHardware &hw) {
+                                        const RealHardware &hw, int pid, int uid) {
     // A second activation without a deactivate would strand the first snapshot.
     if (active()) deactivate();
 
@@ -48,6 +48,8 @@ Activation GameRuntime::activate_compat(const EffectiveProfile &p, const std::op
         } else {
             a.log.push_back("[FCE] apply skipped: identity layers need the zygisk backend (" +
                             std::string(to_string(a.backend_state)) + ")");
+            a.provider.state = to_string(a.backend_state);
+            a.provider.reason = "identity layers need the Zygisk provider";
             for (Layer l : identity_layers) {
                 auto &d = a.resolution.layers[static_cast<size_t>(l)];
                 d.state = LayerState::Failed;
@@ -63,17 +65,34 @@ Activation GameRuntime::activate_compat(const EffectiveProfile &p, const std::op
     }
 
     if (backend_) {
+        backend_->configure(p, pid, uid);
         compat_ = std::make_unique<Transaction>(p.package);
         compat_->add(std::make_unique<BackendAction>(*backend_, *plan_, lib));
-        if (compat_->start()) {
+        // A backend whose prepare() could not even arm the plan is skipped by the transaction (state
+        // Inactive), which for a required identity layer is a failure, not "nothing to do".
+        if (compat_->start() && compat_->state() == ContextState::Active) {
             a.context = compat_->state();
+            a.provider = backend_->provider_report();
             for (Layer l : {Layer::Device, Layer::Cpu, Layer::Gpu}) {
                 auto &d = a.resolution.layers[static_cast<size_t>(l)];
-                if (d.required && compat_->state() == ContextState::Active) d.state = LayerState::Verified;
+                if (!d.required || compat_->state() != ContextState::Active) continue;
+                // A backend that reports per-layer results is believed over the default: a hook
+                // that is merely installed is Applied; only read-back or an observed query is Verified.
+                d.state = LayerState::Verified;
+                for (const auto &[name, st] : a.provider.layers) {
+                    if (name != to_string(l)) continue;
+                    d.state = st == "verified" || st == "observed" ? LayerState::Verified
+                              : st == "installed" || st == "armed" || st == "applied" ? LayerState::Applied
+                              : st == "unsupported" ? LayerState::Unsupported
+                              : LayerState::Failed;
+                    d.reason = "provider: " + st;
+                }
             }
         } else {
+            a.provider = backend_->provider_report();
+            const std::string why = backend_->last_error();
             a.context = ContextState::Failed;
-            a.log.push_back("[FCE] apply failed backend=" + a.backend + " rollback=PASS");
+            a.log.push_back("[FCE] apply failed backend=" + a.backend + (why.empty() ? "" : " reason=" + why) + " rollback=PASS");
             for (auto &d : a.resolution.layers)
                 if (d.required) d.state = LayerState::Failed;
             a.resolution.should_apply = false;
@@ -190,6 +209,14 @@ std::string Activation::to_json() const {
     rapidjson::Value ident(rapidjson::kObjectType);
     for (const auto &[k, v] : effective_identity) ident.AddMember(S(k), S(v), al);
     d.AddMember("effective_identity", ident, al);
+    rapidjson::Value pv(rapidjson::kObjectType);
+    pv.AddMember("state", S(provider.state), al);
+    pv.AddMember("transaction_id", S(provider.transaction_id), al);
+    pv.AddMember("reason", S(provider.reason), al);
+    rapidjson::Value pl(rapidjson::kObjectType);
+    for (const auto &[k, v] : provider.layers) pl.AddMember(S(k), S(v), al);
+    pv.AddMember("layers", pl, al);
+    d.AddMember("provider", pv, al);
     rapidjson::Value sk(rapidjson::kArrayType);
     for (const auto &s : skipped) sk.PushBack(S(s), al);
     d.AddMember("skipped", sk, al);

@@ -107,7 +107,7 @@ bool SessionRuntime::begin(const SessionKey &key) {
                      " mode=" + to_string(in.profile.mode) + " memory=" + in.profile.memory +
                      " touch=" + in.profile.touch + " storage=" + in.profile.storage + " refresh=" + in.profile.refresh);
 
-    last_ = rt_.activate_compat(in.profile, in.known, in.hw);
+    last_ = rt_.activate_compat(in.profile, in.known, in.hw, key.pid, key.uid);
     key_ = key;
     active_ = true;
     perf_started_ = false;
@@ -121,6 +121,10 @@ bool SessionRuntime::begin(const SessionKey &key) {
         say(d_.info, "[GameRuntime] refresh not requested: " + last_.refresh_note);
 
     const bool asked = last_.resolution.should_apply || last_.context != ContextState::Inactive;
+    if (!last_.provider.state.empty() && last_.provider.state != "unavailable")
+        say(d_.info, "[GameRuntime] provider=" + last_.provider.state +
+                         (last_.provider.transaction_id.empty() ? "" : " transaction=" + last_.provider.transaction_id) +
+                         (last_.provider.reason.empty() ? "" : " reason=" + last_.provider.reason));
     if (last_.context == ContextState::Active) {
         say(d_.info, "[GameRuntime] compatibility=ACTIVE backend=" + last_.backend + " verification=PASS");
     } else if (last_.context == ContextState::Failed) {
@@ -210,6 +214,16 @@ void SessionRuntime::persist_status() {
     w.Key("backend"); w.String(last_.backend.c_str());
     w.Key("backend_state"); w.String(to_string(last_.backend_state));
     w.Key("refresh_request_hz"); w.Int(static_cast<int>(last_.refresh_request_hz));
+    w.Key("provider");
+    w.StartObject();
+    w.Key("state"); w.String(last_.provider.state.c_str());
+    w.Key("transaction_id"); w.String(last_.provider.transaction_id.c_str());
+    w.Key("reason"); w.String(last_.provider.reason.c_str());
+    w.Key("layers");
+    w.StartObject();
+    for (const auto &[k, v] : last_.provider.layers) { w.Key(k.c_str()); w.String(v.c_str()); }
+    w.EndObject();
+    w.EndObject();
     w.Key("sustained"); w.String("unknown"); // only the FPS monitor can establish this
     w.EndObject();
     write_state(d_.runtime.io, d_.status_path, sb.GetString());
