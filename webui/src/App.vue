@@ -1,6 +1,9 @@
 <template>
   <div id="app" class="copy-protected min-h-screen flex flex-col bg-background text-on-background overflow-hidden">
-    <main class="main-content flex-1 md:ml-20 overflow-hidden relative">
+    <!-- md:ml-24 matches Navigation.vue's md:w-24 rail wrapper exactly; the
+         previous md:ml-20 left a 16px strip of content hidden behind the rail
+         on tablet/desktop widths. -->
+    <main class="main-content flex-1 md:ml-24 overflow-hidden relative">
       <router-view v-slot="{ Component, route }">
         <transition :name="transitionName" @after-enter="onAfterEnter">
           <keep-alive>
