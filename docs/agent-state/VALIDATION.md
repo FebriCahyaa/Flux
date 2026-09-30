@@ -182,3 +182,15 @@ Step 5: **IMPLEMENTED**, architecture approved by owner (2026-09-29). Device val
 | Forbidden-symbol check | clean |
 | CI https://github.com/FebriCahyaa/Flux/actions/runs/36667540789 | success (host, forbidden-symbol gate, ndk-build arm64+arm, WebUI, zips) |
 | Device | NOT_TESTED |
+
+## Step 7.5 — Capability context bridge (`468cf39`)
+
+| Check | Result |
+|---|---|
+| Tests first; CMake configure failed without `CapabilityContext.cpp` (red) | confirmed |
+| Host ctest (gcc, -Werror) | PASS 18/18 |
+| clang-18 -Werror syntax check (context, kernel, test) | PASS |
+| Planner plan identical with and without context | PASS |
+| Forbidden-symbol check | clean |
+| CI | PENDING |
+| Device | NOT_TESTED |

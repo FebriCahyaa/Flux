@@ -118,7 +118,7 @@ Done (`a121b2c`): Transaction Engine only (+ bridge result mapping). Restored �
 journal kept when unverifiable or different; SUCCESS/PARTIAL/FAILED outcome in events.
 Known limitation: `recover()` compares raw read-back against view-normalised snapshots (no current user).
 
-## Step 7 — Zairenkai Kernel Intelligence foundation (IN PROGRESS)
+## Step 7 — Zairenkai Kernel Intelligence foundation (APPROVED)
 
 Done (`9e19e1a`): kernel identity + two-axis classification with confidence (B-05 in the model), capability record,
 read-only probes (CPUFreq, policy, governor, uclamp, scheduler, cpuset, cgroup, DevFreq, GPU, thermal, ZRAM, swap,
@@ -126,3 +126,10 @@ I/O scheduler, input boost, display refresh), adapters generic/Qualcomm/MediaTek
 patterns, B-07). Not in scope: writes/verification, tweak contracts, policy, daemon call path, KERNEL events, export,
 WebUI, retiring `kernel_type`/`is_gki` writers. Next candidates: call path + Observatory KERNEL snapshot; B-28 in the
 adapter write phase.
+
+## Step 7.5 — Capability context integration bridge (IN PROGRESS)
+
+Done (`468cf39`): shared `CapabilityContext` (publish snapshot per publisher, resolve by confidence, Unknown preserved,
+conflicts visible, no field merging); kernel export 1:1; planner receives the context (no policy change, tested);
+Observatory observer interface only. Not in scope: kernel writes, policy, thermal, GameRuntime lifecycle, fluxd call
+path, KERNEL/CAPABILITY events or storage, graphics/Synrei producers, SynthesisCore schema v4 (D-11).

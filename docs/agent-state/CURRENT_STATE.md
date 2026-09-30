@@ -52,12 +52,17 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   `integration/game-runtime-clean` @ `a121b2c`: restore and boot recovery decide by read-back == snapshot (write
   result ignored); only verified entries leave the journal; rollback/restore notices carry restored/failed counts;
   TRANSACTION_ROLLBACK/RESTORE report ok/partial/failed. Resolves B-27. Host 16/16; CI 36665746650 green. Device: NOT_TESTED.
-- **Step 7 (Zairenkai Kernel Intelligence foundation): IN PROGRESS.**
+- **Step 7 (Zairenkai Kernel Intelligence foundation): APPROVED (owner). Kernel probing implemented; kernel writes remain disabled.**
   `integration/game-runtime-clean` @ `9e19e1a`: `jni/kernel/KernelIntelligence.*` (FluxKernel, linked, no call path),
   `tests/kernel_intelligence_test.cpp`, `docs/architecture/{KERNEL_INTELLIGENCE,CAPABILITY_MODEL}.md`. Observation only:
   Integration × Generation classification with confidence, read-only probes (15 domains), generic/Qualcomm/MediaTek
   adapters + registry. No writes, no policy. Host 17/17 PASS (gcc; clang-18 -Werror syntax OK). CI 36667540789 green. Device: NOT_TESTED.
-- **Next:** owner review of Step 7.
+- **Step 7.5 (capability context integration bridge): IN PROGRESS.**
+  `integration/game-runtime-clean` @ `468cf39`: `jni/context/CapabilityContext.*` (FluxContext), kernel
+  `export_facts`/`publish`, `PerfCapabilities::context` (carried, no decision reads it), observer interface for the
+  Observatory (not wired, no storage). Unknown stays Unknown; conflicts resolve Unknown at equal confidence.
+  Host 18/18 PASS; clang-18 -Werror OK. CI: see VALIDATION. Still no fluxd call path for observe(). Device: NOT_TESTED.
+- **Next:** owner review of Step 7.5.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 
 ## Repositories and branches
