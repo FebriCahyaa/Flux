@@ -78,7 +78,7 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
 - **Step 8.5 (display and rendering capability foundation): IN PROGRESS.**
   `integration/game-runtime-clean` @ `365c8df`: `jni/display/DisplayIntelligence.*` (FluxDisplay); domains `display` and
   `rendering` published by fluxd after graphics (dumpsys display, wm size, service list, properties, kernel DRM facts).
-  Refresh capability != FPS (no fps facts). Host 21/21 PASS; clang-18 -Werror OK. CI: see VALIDATION. Device: NOT_TESTED.
+  Refresh capability != FPS (no fps facts). Host 21/21 PASS; clang-18 -Werror OK. CI 36670838946 green. Device: NOT_TESTED.
 - **Next:** owner review of Step 8.5.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 

@@ -228,5 +228,5 @@ Step 5: **IMPLEMENTED**, architecture approved by owner (2026-09-29). Device val
 | clang-18 -Werror syntax (module + test) | PASS |
 | Daemon glue (`CapabilityHost.cpp`) | CI ndk-build only |
 | Forbidden-symbol check | clean |
-| CI | PENDING |
+| CI https://github.com/FebriCahyaa/Flux/actions/runs/36670838946 | success |
 | Device | NOT_TESTED |
