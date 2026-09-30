@@ -75,11 +75,16 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   GPU vendor/model/driver, Vulkan, GLES/EGL, interfaces, GPU freq/load interfaces (from kernel facts). Confidence
   HIGH/MEDIUM/LOW/UNKNOWN (`Confidence::None` now prints `unknown`). Host 20/20 PASS; clang-18 -Werror OK.
   CI 36669963849 green. Device: NOT_TESTED.
-- **Step 8.5 (display and rendering capability foundation): IN PROGRESS.**
+- **Step 8.5 (display and rendering capability foundation): APPROVED (owner).**
   `integration/game-runtime-clean` @ `365c8df`: `jni/display/DisplayIntelligence.*` (FluxDisplay); domains `display` and
   `rendering` published by fluxd after graphics (dumpsys display, wm size, service list, properties, kernel DRM facts).
   Refresh capability != FPS (no fps facts). Host 21/21 PASS; clang-18 -Werror OK. CI 36670838946 green. Device: NOT_TESTED.
-- **Next:** owner review of Step 8.5.
+- **Step 8.6 (runtime bottleneck observation foundation): IN PROGRESS.**
+  `integration/game-runtime-clean` @ `920cb88`: `jni/bottleneck/BottleneckModel.*` (FluxBottleneck, linked, **no call path**:
+  no runtime sampler exists yet). CPU/GPU/thermal/memory/storage/display, states CONFIRMED/LIKELY/POSSIBLE/UNKNOWN, evidence
+  + confidence + source + timestamp on every observation, Synrei `ThermalContext` interface. Host 22/22 PASS; clang-18
+  -Werror OK. CI: see VALIDATION. Device: NOT_TESTED.
+- **Next:** owner review of Step 8.6.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 
 ## Repositories and branches

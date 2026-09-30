@@ -147,9 +147,15 @@ published in fluxd after the kernel bootstrap. Capability separate from policy. 
 driver changes, render injection, upscaling, thermal, WebUI, a Vulkan instance inside fluxd, feeding CLI Vulkan probes into
 the context, SynthesisCore schema v4 mapping (B-29).
 
-## Step 8.5 — Display and rendering capability foundation (IN PROGRESS)
+## Step 8.5 — Display and rendering capability foundation (APPROVED)
 
 Done (`365c8df`): display (refresh modes/current/min/max/adaptive, resolution, HDR) and rendering (SurfaceFlinger,
 composer, RenderEngine, frame-timing availability, pipeline) capability facts, conflict handling, fluxd start publish.
 Not in scope: graphics policy, refresh forcing, frame boosting, injection, upscaling, SurfaceFlinger changes; moving
 `RefreshMatcher`/`flux_refresh` onto these facts (B-12 remains).
+
+## Step 8.6 — Runtime bottleneck observation foundation (IN PROGRESS)
+
+Done (`920cb88`): evidence-based assessment model + thermal context interface + facts export (domain `bottleneck`, not
+published). Not in scope: optimisation actions, policy engine, WebUI, profile/GPU/thermal changes, a runtime sampler
+(CPU/GPU utilisation, PSI), a Synrei adapter, Observatory events (B-33).

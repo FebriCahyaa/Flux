@@ -230,3 +230,14 @@ Step 5: **IMPLEMENTED**, architecture approved by owner (2026-09-29). Device val
 | Forbidden-symbol check | clean |
 | CI https://github.com/FebriCahyaa/Flux/actions/runs/36670838946 | success |
 | Device | NOT_TESTED |
+
+## Step 8.6 — Bottleneck observation (`920cb88`)
+
+| Check | Result |
+|---|---|
+| Tests first; CMake configure failed without `BottleneckModel.cpp` (red) | confirmed |
+| Host ctest (gcc, -Werror) | PASS 22/22 |
+| clang-18 -Werror syntax (module + test) | PASS |
+| Forbidden-symbol check | clean |
+| CI | PENDING |
+| Device | NOT_TESTED (no call path) |
