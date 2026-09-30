@@ -87,3 +87,9 @@ Panel refresh, resolution, HDR, compositor and frame-timing availability are cov
 `DISPLAY_INTELLIGENCE.md` (domains `display` and `rendering`). `rendering.pipeline` reads
 `graphics.interfaces` from this module. GPU capability, display capability and rendering capability
 are three separate publishers, and none of them contains policy.
+
+## Relation to bottleneck observation (Step 8.6)
+
+The GPU-bound observation (`BOTTLENECK_MODEL.md`) uses GPU busy and frequency samples. When those are
+missing and `graphics.gpu.load_interface` is No, the GPU observation stays UNKNOWN with that reason.
+The context is never used to guess a load value.

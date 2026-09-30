@@ -102,3 +102,10 @@ never a capability fact.
 Publisher and domain order at fluxd start: `kernel` → `graphics` → `display` + `rendering`. Every
 publisher follows the same rules: Unknown for missing evidence, conflicts resolved by confidence, and a
 snapshot replace on each publish.
+
+## Bottleneck observations (Step 8.6)
+
+`flux::bottleneck` *reads* the context (`display.refresh.*`, `graphics.gpu.load_interface`) together with
+session samples, performance state and a future Synrei thermal interface. It produces evidence-based
+observations. `to_facts()` can express them in domain `bottleneck`, but they describe runtime
+observations, not capabilities, and nothing publishes them yet. Details are in `BOTTLENECK_MODEL.md`.

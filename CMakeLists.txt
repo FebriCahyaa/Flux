@@ -185,3 +185,12 @@ target_compile_options(flux_display PRIVATE ${FLUX_WARNINGS})
 
 flux_add_test(display_intelligence_test tests/display_intelligence_test.cpp)
 target_link_libraries(display_intelligence_test PRIVATE flux_display)
+
+# -- bottleneck observation (read-only; no actions) ------------------------------
+add_library(flux_bottleneck STATIC jni/bottleneck/BottleneckModel.cpp)
+target_include_directories(flux_bottleneck PUBLIC jni/bottleneck)
+target_link_libraries(flux_bottleneck PUBLIC flux_context)
+target_compile_options(flux_bottleneck PRIVATE ${FLUX_WARNINGS})
+
+flux_add_test(bottleneck_model_test tests/bottleneck_model_test.cpp)
+target_link_libraries(bottleneck_model_test PRIVATE flux_bottleneck)
