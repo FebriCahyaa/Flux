@@ -80,3 +80,10 @@ until then fluxd reports Vulkan from declarative evidence at Medium or Low confi
   an unknown EGL name is ignored;
 - publishing: two publishers, snapshot replace, no duplicates;
 - `ro.opengles.version` parsing.
+
+## Relation to display & rendering (Step 8.5)
+
+Panel refresh, resolution, HDR, compositor and frame-timing availability are covered in
+`DISPLAY_INTELLIGENCE.md` (domains `display` and `rendering`). `rendering.pipeline` reads
+`graphics.interfaces` from this module. GPU capability, display capability and rendering capability
+are three separate publishers, and none of them contains policy.

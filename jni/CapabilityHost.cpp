@@ -18,8 +18,10 @@
 
 #include <sys/system_properties.h>
 
+#include "DisplayIntelligence.hpp"
 #include "GraphicsIntelligence.hpp"
 
+#include <Exec.hpp>
 #include <FluxLog.hpp>
 
 namespace flux_capability {
@@ -64,6 +66,31 @@ void publish_graphics() {
     }
 }
 
+std::optional<std::string> collect(const std::vector<std::string> &argv) {
+    auto out = flux::capture(argv, 512 * 1024);
+    if (out.empty()) return std::nullopt; // not collected -> Unknown, never "absent"
+    return out;
+}
+
+/// Display and rendering capability facts (Step 8.5). Reads `dumpsys display`, `wm size` and
+/// `service list`; changes nothing. A failure logs and leaves the facts Unknown.
+void publish_display() {
+    try {
+        flux::display::publish({collect({"/system/bin/dumpsys", "display"}), collect({"/system/bin/wm", "size"}),
+                                collect({"/system/bin/service", "list"}),
+                                [](const std::string &k) { return property(k.c_str()); }, shared().get()},
+                               *shared());
+        const auto modes = shared()->resolve("display.refresh.modes");
+        const auto sf = shared()->resolve("rendering.surfaceflinger");
+        LOGI_TAG("Capability", "display capabilities published: refresh modes [{}], surfaceflinger {}",
+                 modes.fact ? modes.fact->value : "unknown", flux::context::to_string(sf.support));
+    } catch (const std::exception &e) {
+        LOGW_TAG("Capability", "display capability probe failed ({}); display facts stay unknown", e.what());
+    } catch (...) {
+        LOGW_TAG("Capability", "display capability probe failed; display facts stay unknown");
+    }
+}
+
 } // namespace
 
 std::shared_ptr<const flux::context::CapabilityContext> context() { return shared(); }
@@ -80,6 +107,7 @@ const flux::kernel::BootstrapResult &bootstrap() {
                  integ.fact ? integ.fact->value : "unknown", adapter.fact ? adapter.fact->value : "unknown");
     }
     publish_graphics();
+    publish_display();
     return bootstrapper().last();
 }
 

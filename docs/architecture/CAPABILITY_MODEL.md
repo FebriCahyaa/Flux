@@ -92,3 +92,13 @@ The confidence scale is HIGH / MEDIUM / LOW / UNKNOWN. `Confidence::None` is UNK
 
 Capability and policy stay separate: the context holds only capability. Graphics, performance and
 thermal policies are consumers and never publish capability facts.
+
+## Display and rendering facts (Step 8.5)
+
+Publishers `display` (domain `display`) and `rendering` (domain `rendering`), published after graphics.
+Details are in `DISPLAY_INTELLIGENCE.md`. Refresh facts describe panel capability, **not** FPS, and FPS is
+never a capability fact.
+
+Publisher and domain order at fluxd start: `kernel` → `graphics` → `display` + `rendering`. Every
+publisher follows the same rules: Unknown for missing evidence, conflicts resolved by confidence, and a
+snapshot replace on each publish.

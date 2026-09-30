@@ -176,3 +176,12 @@ target_compile_options(flux_graphics PRIVATE ${FLUX_WARNINGS})
 
 flux_add_test(graphics_intelligence_test tests/graphics_intelligence_test.cpp)
 target_link_libraries(graphics_intelligence_test PRIVATE flux_graphics)
+
+# -- display & rendering capability (read-only; no policy) -----------------------
+add_library(flux_display STATIC jni/display/DisplayIntelligence.cpp)
+target_include_directories(flux_display PUBLIC jni/display)
+target_link_libraries(flux_display PUBLIC flux_context)
+target_compile_options(flux_display PRIVATE ${FLUX_WARNINGS})
+
+flux_add_test(display_intelligence_test tests/display_intelligence_test.cpp)
+target_link_libraries(display_intelligence_test PRIVATE flux_display)
