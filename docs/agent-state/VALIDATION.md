@@ -218,3 +218,15 @@ Step 5: **IMPLEMENTED**, architecture approved by owner (2026-09-29). Device val
 | Forbidden-symbol check | clean |
 | CI https://github.com/FebriCahyaa/Flux/actions/runs/36669963849 | success |
 | Device | NOT_TESTED |
+
+## Step 8.5 — Display & rendering capability (`365c8df`)
+
+| Check | Result |
+|---|---|
+| Tests first; CMake configure failed without `DisplayIntelligence.cpp` (red) | confirmed |
+| Host ctest (gcc, -Werror) | PASS 21/21 |
+| clang-18 -Werror syntax (module + test) | PASS |
+| Daemon glue (`CapabilityHost.cpp`) | CI ndk-build only |
+| Forbidden-symbol check | clean |
+| CI | PENDING |
+| Device | NOT_TESTED |

@@ -140,9 +140,16 @@ Done (`0b5a7e4`): fluxd start -> Kernel Intelligence probe -> CapabilityContext 
 Failure never stops the daemon; unavailable stays Unknown; repeat replaces the snapshot, failed repeat keeps the last good.
 Not in scope: writes, performance/thermal decisions, periodic re-probe, Observatory events/persistence, SynthesisCore schema.
 
-## Step 8 — Zairenkai Graphics Intelligence foundation (IN PROGRESS)
+## Step 8 — Zairenkai Graphics Intelligence foundation (APPROVED)
 
 Done (`3af9cc0`): read-only graphics capability facts (domain `graphics`), per-source GPU claims with conflict handling,
 published in fluxd after the kernel bootstrap. Capability separate from policy. Not in scope: GPU policy/tuning/overclock,
 driver changes, render injection, upscaling, thermal, WebUI, a Vulkan instance inside fluxd, feeding CLI Vulkan probes into
 the context, SynthesisCore schema v4 mapping (B-29).
+
+## Step 8.5 — Display and rendering capability foundation (IN PROGRESS)
+
+Done (`365c8df`): display (refresh modes/current/min/max/adaptive, resolution, HDR) and rendering (SurfaceFlinger,
+composer, RenderEngine, frame-timing availability, pipeline) capability facts, conflict handling, fluxd start publish.
+Not in scope: graphics policy, refresh forcing, frame boosting, injection, upscaling, SurfaceFlinger changes; moving
+`RefreshMatcher`/`flux_refresh` onto these facts (B-12 remains).

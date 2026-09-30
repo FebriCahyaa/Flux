@@ -68,14 +68,18 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   Failed probe: daemon continues, capabilities Unknown, one log warning. Observer hook only; no telemetry. Host 19/19 PASS;
   clang-18 -Werror OK (daemon glue checked only by CI ndk-build: spdlog submodule absent locally). CI 36669240984 green.
   **Device: NOT_TESTED** (first step whose code runs in fluxd on device: read-only sysfs/procfs probe at start).
-- **Step 8 (Zairenkai Graphics Intelligence foundation): IN PROGRESS.** (Owner step numbering; corresponds to the
+- **Step 8 (Zairenkai Graphics Intelligence foundation): APPROVED (owner).** (Owner step numbering; corresponds to the
   capability part of master-plan Phase 7 "Graphics intelligence" — not master-plan Phase 8 Game Runtime integration.)
   `integration/game-runtime-clean` @ `3af9cc0`: `jni/graphics/GraphicsIntelligence.*` (FluxGraphics), domain `graphics`
   published by fluxd after the kernel bootstrap, **no Vulkan instance in fluxd** (declarative evidence, Medium/Low).
   GPU vendor/model/driver, Vulkan, GLES/EGL, interfaces, GPU freq/load interfaces (from kernel facts). Confidence
   HIGH/MEDIUM/LOW/UNKNOWN (`Confidence::None` now prints `unknown`). Host 20/20 PASS; clang-18 -Werror OK.
   CI 36669963849 green. Device: NOT_TESTED.
-- **Next:** owner review of Step 8.
+- **Step 8.5 (display and rendering capability foundation): IN PROGRESS.**
+  `integration/game-runtime-clean` @ `365c8df`: `jni/display/DisplayIntelligence.*` (FluxDisplay); domains `display` and
+  `rendering` published by fluxd after graphics (dumpsys display, wm size, service list, properties, kernel DRM facts).
+  Refresh capability != FPS (no fps facts). Host 21/21 PASS; clang-18 -Werror OK. CI: see VALIDATION. Device: NOT_TESTED.
+- **Next:** owner review of Step 8.5.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 
 ## Repositories and branches
