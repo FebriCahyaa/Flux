@@ -127,9 +127,15 @@ patterns, B-07). Not in scope: writes/verification, tweak contracts, policy, dae
 WebUI, retiring `kernel_type`/`is_gki` writers. Next candidates: call path + Observatory KERNEL snapshot; B-28 in the
 adapter write phase.
 
-## Step 7.5 — Capability context integration bridge (IN PROGRESS)
+## Step 7.5 — Capability context integration bridge (APPROVED)
 
 Done (`468cf39`): shared `CapabilityContext` (publish snapshot per publisher, resolve by confidence, Unknown preserved,
 conflicts visible, no field merging); kernel export 1:1; planner receives the context (no policy change, tested);
 Observatory observer interface only. Not in scope: kernel writes, policy, thermal, GameRuntime lifecycle, fluxd call
 path, KERNEL/CAPABILITY events or storage, graphics/Synrei producers, SynthesisCore schema v4 (D-11).
+
+## Step 7.6 — Runtime capability bootstrap (IN PROGRESS)
+
+Done (`0b5a7e4`): fluxd start -> Kernel Intelligence probe -> CapabilityContext publish -> engines query (const view).
+Failure never stops the daemon; unavailable stays Unknown; repeat replaces the snapshot, failed repeat keeps the last good.
+Not in scope: writes, performance/thermal decisions, periodic re-probe, Observatory events/persistence, SynthesisCore schema.

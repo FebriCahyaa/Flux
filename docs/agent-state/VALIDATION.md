@@ -194,3 +194,15 @@ Step 5: **IMPLEMENTED**, architecture approved by owner (2026-09-29). Device val
 | Forbidden-symbol check | clean |
 | CI https://github.com/FebriCahyaa/Flux/actions/runs/36668216151 | success |
 | Device | NOT_TESTED |
+
+## Step 7.6 — Runtime capability bootstrap (`0b5a7e4`)
+
+| Check | Result |
+|---|---|
+| Tests first; CMake configure failed without `CapabilityBootstrap.cpp` (red) | confirmed |
+| Host ctest (gcc, -Werror) | PASS 19/19 |
+| clang-18 -Werror syntax (bootstrap + test) | PASS |
+| Daemon glue (`CapabilityHost.cpp`, Main.cpp, GameRuntimeHost.cpp) | CI ndk-build only (spdlog submodule not present locally) |
+| Forbidden-symbol check | clean |
+| CI | PENDING |
+| Device | NOT_TESTED |

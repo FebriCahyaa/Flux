@@ -57,12 +57,18 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   `tests/kernel_intelligence_test.cpp`, `docs/architecture/{KERNEL_INTELLIGENCE,CAPABILITY_MODEL}.md`. Observation only:
   Integration × Generation classification with confidence, read-only probes (15 domains), generic/Qualcomm/MediaTek
   adapters + registry. No writes, no policy. Host 17/17 PASS (gcc; clang-18 -Werror syntax OK). CI 36667540789 green. Device: NOT_TESTED.
-- **Step 7.5 (capability context integration bridge): IN PROGRESS.**
+- **Step 7.5 (capability context integration bridge): APPROVED (owner). Capability Context foundation complete.**
   `integration/game-runtime-clean` @ `468cf39`: `jni/context/CapabilityContext.*` (FluxContext), kernel
   `export_facts`/`publish`, `PerfCapabilities::context` (carried, no decision reads it), observer interface for the
   Observatory (not wired, no storage). Unknown stays Unknown; conflicts resolve Unknown at equal confidence.
   Host 18/18 PASS; clang-18 -Werror OK. CI 36668216151 green. Still no fluxd call path for observe(). Device: NOT_TESTED.
-- **Next:** owner review of Step 7.5.
+- **Step 7.6 (runtime capability bootstrap): IN PROGRESS.**
+  `integration/game-runtime-clean` @ `0b5a7e4`: `jni/kernel/CapabilityBootstrap.*`, `jni/CapabilityHost.*`; Main.cpp calls
+  `flux_capability::bootstrap()` once at start before boot recovery; GameRuntime planner carries `flux_capability::context()`.
+  Failed probe: daemon continues, capabilities Unknown, one log warning. Observer hook only; no telemetry. Host 19/19 PASS;
+  clang-18 -Werror OK (daemon glue checked only by CI ndk-build: spdlog submodule absent locally). CI: see VALIDATION.
+  **Device: NOT_TESTED** (first step whose code runs in fluxd on device: read-only sysfs/procfs probe at start).
+- **Next:** owner review of Step 7.6.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 
 ## Repositories and branches
