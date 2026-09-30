@@ -85,3 +85,42 @@ Unknown. Rules and conflict handling are in `CAPABILITY_MODEL.md`.
 Still nothing calls `observe()` inside `fluxd`, and writes remain disabled. The Performance Planner can
 receive the context through `PerfCapabilities::context`, but none of its decisions read it yet, and a
 test shows its plans are identical with and without the context.
+
+## Step 7.6 — Runtime capability bootstrap
+
+### Ownership
+
+| Component | Owns | Does not |
+|---|---|---|
+| Kernel Intelligence (`observe`, adapters) | collecting kernel facts (read-only) | store state or decide anything |
+| `CapabilityContext` | the normalised runtime capability state for the daemon's lifetime | probe, write, infer |
+| `CapabilityBootstrap` (`jni/kernel/CapabilityBootstrap.*`) | moving one probe result into the context | keep its own copy or interpret facts |
+| SynthesisCore / Aeyrin | future schema adaptation (schema v4, D-11) | — unchanged in this step |
+
+### Lifecycle in fluxd
+
+```
+fluxd start
+  -> flux_capability::bootstrap()        (jni/CapabilityHost.*, Main.cpp before boot recovery)
+       -> make_device_probe("/", ro.board.platform / ro.hardware / ro.soc.manufacturer)
+       -> observe() -> export_facts() -> context.publish("kernel", ...)
+  -> flux_session::manager().recover()   (unchanged)
+  -> engines read flux_capability::context()  (GameRuntime planner: PerfCapabilities::context)
+```
+
+The probe runs once at daemon start, on the main thread, before any profile script. It is not re-run on
+a timer. `CapabilityBootstrap::run()` can be repeated (for example by a future refresh trigger), and each
+run replaces the kernel snapshot.
+
+### Failure behaviour
+
+| Case | Status | Context | Daemon |
+|---|---|---|---|
+| probe OK, ≥1 capability supported | `ok` | kernel snapshot published | continues |
+| probe OK, nothing supported | `empty` | absences published as No, identity Unknown | continues |
+| probe throws (any type), no probe, no context | `failed` | nothing new published; on the first run every capability stays **Unknown** | continues; one warning in `flux.log` |
+| later run fails after a good run | `failed` | last good snapshot kept, generation unchanged | continues |
+
+`run()` never throws. The bootstrap observer (a hook for the future Observatory) receives the
+`BootstrapResult`, and its exceptions are swallowed. It is not wired to anything: there is no kernel
+event type, no persistence and no telemetry. `flux.log` gets one line per run.

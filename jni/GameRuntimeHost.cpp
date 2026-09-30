@@ -20,6 +20,7 @@
 #include <cctype>
 #include <chrono>
 
+#include "CapabilityHost.hpp"
 #include "DeviceMitigationStore.hpp"
 #include "FluxConfigStore.hpp"
 #include "ObservatoryHost.hpp"
@@ -43,6 +44,8 @@ flux::perf::RuntimeDeps make_deps() {
     d.caps = flux::perf::probe_capabilities("", [] {
         return flux::perf::parse_panel_rates(flux::capture({"/system/bin/dumpsys", "display"}, 512 * 1024));
     });
+    // Shared capability context (Step 7.6), carried to the planner; no decision reads it yet.
+    d.caps.context = flux_capability::context();
     // Device mitigation rules may opt a device out per category (NO_GAME_MEMORY_OVERRIDE, ...).
     d.mitigation_allows = [](const std::string &category) {
         std::string key = "NO_GAME_" + category + "_OVERRIDE";

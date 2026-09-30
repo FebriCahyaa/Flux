@@ -41,6 +41,7 @@
 #include "RenderBooster.hpp"
 #include "SessionRecorder.hpp"
 #include "GameRuntimeHost.hpp"
+#include "CapabilityHost.hpp"
 #include "SessionHost.hpp"
 #include <ShellUtility.hpp>
 #include <SignalHandler.hpp>
@@ -594,6 +595,9 @@ static void select_profile(DaemonState &state) {
 static void flux_main_daemon() {
     DaemonState state;
     pthread_setname_np(pthread_self(), "MainThread");
+
+    // Kernel capability facts for the runtime engines (read-only probe; a failure only logs).
+    flux_capability::bootstrap();
 
     // Undo per-game values a previous fluxd left behind, before any profile script writes.
     flux_session::manager().recover();

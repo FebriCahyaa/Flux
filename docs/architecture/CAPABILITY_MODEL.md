@@ -64,3 +64,19 @@ Rules:
 - **Observatory:** interface only. `set_observer(ContextNotice)` reports generation, publisher, and
   counts for supported, unsupported, unknown and conflicts after each publish. Observer exceptions are
   swallowed. Nothing is wired to the Observatory bridge, and no kernel event type or storage exists yet.
+
+## Runtime availability (Step 7.6)
+
+fluxd holds one context for its lifetime (`flux_capability::context()`, `jni/CapabilityHost.*`), filled
+by the Kernel Intelligence bootstrap at daemon start. For engines this means:
+
+- Before the bootstrap, or when it failed, every query answers **Unknown**. That is never read as "no".
+- After the bootstrap, kernel facts are available under the publisher `kernel`. Only the bootstrap
+  publishes; engines get a `const` view.
+- A repeated bootstrap replaces the kernel snapshot, and a failed repeat keeps the last good one.
+- The Performance Planner receives the view through `PerfCapabilities::context`. Its decisions still
+  do not read it.
+- SynthesisCore/Aeyrin owns future schema adaptation. The context is not the schema v4 graph, and
+  mapping between them is future work (B-29).
+
+Lifecycle and failure table: `KERNEL_INTELLIGENCE.md` §Step 7.6.
