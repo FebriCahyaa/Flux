@@ -83,7 +83,7 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   `integration/game-runtime-clean` @ `920cb88`: `jni/bottleneck/BottleneckModel.*` (FluxBottleneck, linked, **no call path**:
   no runtime sampler exists yet). CPU/GPU/thermal/memory/storage/display, states CONFIRMED/LIKELY/POSSIBLE/UNKNOWN, evidence
   + confidence + source + timestamp on every observation, Synrei `ThermalContext` interface. Host 22/22 PASS; clang-18
-  -Werror OK. CI: see VALIDATION. Device: NOT_TESTED.
+  -Werror OK. CI 36674890357 green. Device: NOT_TESTED.
 - **Next:** owner review of Step 8.6.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 
