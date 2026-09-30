@@ -61,7 +61,7 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   `integration/game-runtime-clean` @ `468cf39`: `jni/context/CapabilityContext.*` (FluxContext), kernel
   `export_facts`/`publish`, `PerfCapabilities::context` (carried, no decision reads it), observer interface for the
   Observatory (not wired, no storage). Unknown stays Unknown; conflicts resolve Unknown at equal confidence.
-  Host 18/18 PASS; clang-18 -Werror OK. CI: see VALIDATION. Still no fluxd call path for observe(). Device: NOT_TESTED.
+  Host 18/18 PASS; clang-18 -Werror OK. CI 36668216151 green. Still no fluxd call path for observe(). Device: NOT_TESTED.
 - **Next:** owner review of Step 7.5.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 
