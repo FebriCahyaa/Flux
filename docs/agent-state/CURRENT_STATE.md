@@ -66,7 +66,7 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   `integration/game-runtime-clean` @ `0b5a7e4`: `jni/kernel/CapabilityBootstrap.*`, `jni/CapabilityHost.*`; Main.cpp calls
   `flux_capability::bootstrap()` once at start before boot recovery; GameRuntime planner carries `flux_capability::context()`.
   Failed probe: daemon continues, capabilities Unknown, one log warning. Observer hook only; no telemetry. Host 19/19 PASS;
-  clang-18 -Werror OK (daemon glue checked only by CI ndk-build: spdlog submodule absent locally). CI: see VALIDATION.
+  clang-18 -Werror OK (daemon glue checked only by CI ndk-build: spdlog submodule absent locally). CI 36669240984 green.
   **Device: NOT_TESTED** (first step whose code runs in fluxd on device: read-only sysfs/procfs probe at start).
 - **Next:** owner review of Step 7.6.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).

@@ -204,5 +204,5 @@ Step 5: **IMPLEMENTED**, architecture approved by owner (2026-09-29). Device val
 | clang-18 -Werror syntax (bootstrap + test) | PASS |
 | Daemon glue (`CapabilityHost.cpp`, Main.cpp, GameRuntimeHost.cpp) | CI ndk-build only (spdlog submodule not present locally) |
 | Forbidden-symbol check | clean |
-| CI | PENDING |
+| CI https://github.com/FebriCahyaa/Flux/actions/runs/36669240984 (incl. ndk-build of the daemon glue) | success |
 | Device | NOT_TESTED |
