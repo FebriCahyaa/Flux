@@ -98,12 +98,17 @@ target_compile_options(flux_runtime PRIVATE ${FLUX_WARNINGS})
 flux_add_test(transaction_test tests/transaction_test.cpp)
 target_link_libraries(transaction_test PRIVATE flux_runtime)
 
+# -- shared capability context (no probing, no writes) ---------------------------
+add_library(flux_context STATIC jni/context/CapabilityContext.cpp)
+target_include_directories(flux_context PUBLIC jni/context)
+target_compile_options(flux_context PRIVATE ${FLUX_WARNINGS})
+
 # -- performance planner (on top of the transaction engine) --------------------
 add_library(flux_perf STATIC jni/perf/PerformancePlanner.cpp jni/perf/ProfileModel.cpp
   jni/perf/GamePerformanceRuntime.cpp jni/perf/RuntimeHost.cpp)
 target_include_directories(flux_perf PUBLIC jni/perf)
 target_include_directories(flux_perf SYSTEM PRIVATE "${RAPIDJSON_INCLUDE}")
-target_link_libraries(flux_perf PUBLIC flux_runtime)
+target_link_libraries(flux_perf PUBLIC flux_runtime flux_context)
 target_compile_options(flux_perf PRIVATE ${FLUX_WARNINGS})
 
 flux_add_test(performance_planner_test tests/performance_planner_test.cpp)
@@ -151,7 +156,11 @@ target_link_libraries(observatory_bridge_test PRIVATE flux_bridge)
 # -- kernel intelligence (observation only; no writes) ---------------------------
 add_library(flux_kernel STATIC jni/kernel/KernelIntelligence.cpp)
 target_include_directories(flux_kernel PUBLIC jni/kernel)
+target_link_libraries(flux_kernel PUBLIC flux_context)
 target_compile_options(flux_kernel PRIVATE ${FLUX_WARNINGS})
 
 flux_add_test(kernel_intelligence_test tests/kernel_intelligence_test.cpp)
 target_link_libraries(kernel_intelligence_test PRIVATE flux_kernel)
+
+flux_add_test(capability_context_test tests/capability_context_test.cpp)
+target_link_libraries(capability_context_test PRIVATE flux_kernel flux_perf)

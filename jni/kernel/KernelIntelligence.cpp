@@ -589,3 +589,83 @@ KernelReport observe(const ReadOnlyFs &fs, const PlatformHint &hint, const Adapt
 }
 
 } // namespace flux::kernel
+
+// ---------------------------------------------------------------------------
+// Capability context export (Step 7.5)
+// ---------------------------------------------------------------------------
+
+namespace flux::kernel {
+
+namespace {
+
+namespace cx = flux::context;
+
+cx::Confidence map(Confidence c) { return static_cast<cx::Confidence>(static_cast<int>(c)); }
+
+cx::Risk map(Risk r) {
+    switch (r) {
+    case Risk::Low: return cx::Risk::Low;
+    case Risk::Medium: return cx::Risk::Medium;
+    case Risk::High: return cx::Risk::High;
+    }
+    return cx::Risk::Unknown;
+}
+
+cx::CapabilityFact identity_fact(const std::string &id, const std::string &value, bool known, Confidence c,
+                                 const std::string &note) {
+    cx::CapabilityFact f;
+    f.id = id;
+    f.domain = "kernel";
+    f.source = "classifier";
+    f.support = known ? cx::Support::Yes : cx::Support::Unknown;
+    f.readable = known;
+    f.confidence = map(c);
+    f.risk = cx::Risk::Unknown;
+    f.value = value;
+    f.note = note;
+    return f;
+}
+
+} // namespace
+
+std::vector<cx::CapabilityFact> export_facts(const KernelReport &report) {
+    std::vector<cx::CapabilityFact> out;
+    out.reserve(report.capabilities.size() + 3);
+    for (const auto &c : report.capabilities) {
+        cx::CapabilityFact f;
+        f.id = c.id;
+        f.domain = to_string(c.domain);
+        f.source = c.source;
+        f.support = c.supported ? cx::Support::Yes : cx::Support::No;
+        f.readable = c.readable;
+        f.writable = c.writable;
+        f.verified = c.verified;
+        f.confidence = map(c.confidence);
+        f.risk = map(c.risk);
+        f.rollback = c.rollback;
+        f.requires_adapter = c.requires_adapter;
+        f.interface = c.interface;
+        f.value = c.value;
+        f.range = c.range;
+        f.note = c.note;
+        out.push_back(std::move(f));
+    }
+    const auto &id = report.identity;
+    out.push_back(identity_fact("kernel.integration", to_string(id.integration),
+                                id.integration != Integration::Unknown, id.integration_confidence,
+                                id.integration_reason));
+    out.push_back(identity_fact("kernel.generation", to_string(id.generation), id.generation != Generation::Unknown,
+                                id.generation_confidence, id.generation_reason));
+    auto adapter = identity_fact("kernel.adapter", report.adapter, true,
+                                 report.adapter == "generic" ? Confidence::High : report.adapter_confidence,
+                                 "vendor adapter selection");
+    adapter.source = "adapter_registry";
+    out.push_back(std::move(adapter));
+    return out;
+}
+
+void publish(const KernelReport &report, cx::CapabilityContext &context) {
+    context.publish(kContextPublisher, export_facts(report));
+}
+
+} // namespace flux::kernel

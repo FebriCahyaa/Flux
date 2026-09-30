@@ -10,6 +10,8 @@
 // knowledge lives only in adapters that name interfaces.
 #pragma once
 
+#include "CapabilityContext.hpp"
+
 #include <memory>
 #include <optional>
 #include <string>
@@ -207,5 +209,21 @@ struct KernelReport {
 /// classifies, selects adapters and probes. Read-only end to end.
 KernelReport observe(const ReadOnlyFs &fs, const PlatformHint &hint,
                      const AdapterRegistry &registry);
+
+// ---------------------------------------------------------------------------
+// Capability context export (Step 7.5)
+// ---------------------------------------------------------------------------
+
+/// Publisher name used for kernel facts in the shared capability context.
+inline constexpr const char *kContextPublisher = "kernel";
+
+/// Kernel report -> context facts, one per capability plus kernel.integration,
+/// kernel.generation and kernel.adapter. Mapping is 1:1: supported=false becomes No (an
+/// observed absence), an Unknown axis stays Unknown, and readable/writable/verified/risk/
+/// confidence/source are copied, never upgraded.
+std::vector<flux::context::CapabilityFact> export_facts(const KernelReport &report);
+
+/// Convenience: export_facts + publish under kContextPublisher.
+void publish(const KernelReport &report, flux::context::CapabilityContext &context);
 
 } // namespace flux::kernel

@@ -22,6 +22,7 @@
 // probed capabilities into a RuntimePlan(domain="performance"). It never writes a node itself;
 // the Runtime Transaction Engine applies, verifies and restores the plan.
 
+#include "CapabilityContext.hpp"
 #include "Transaction.hpp"
 
 #include <functional>
@@ -40,6 +41,9 @@ struct PerfCapabilities {
     std::vector<std::string> block_queues;
     /// Refresh rates the panel reports (Hz). Empty = unknown.
     std::vector<int> panel_refresh_hz;
+    /// Shared capability context (Step 7.5). Carried for consumers; the planner's decisions do
+    /// not read it yet (no policy change). Null = not provided.
+    std::shared_ptr<const flux::context::CapabilityContext> context;
 };
 
 /// Per-game selections. "default" / "real" means: leave the existing Flux profile alone.
@@ -89,6 +93,9 @@ public:
 
     /// Interface check: only these kernel interfaces may ever be planned.
     static bool interface_allowed(const std::string &path);
+
+    /// The capability context this planner was given (null when none).
+    const flux::context::CapabilityContext *capability_context() const { return caps_.context.get(); }
 
 private:
     struct Write {

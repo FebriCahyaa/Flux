@@ -31,3 +31,36 @@ States a consumer must distinguish:
 | false | false | interface absent → adapter or kernel lacks it |
 | true | false | present but unreadable or invalid → see `note`; never guess a value |
 | true | true | observed value; `writable` is still only a hint |
+
+## Shared capability context (Step 7.5)
+
+`jni/context/CapabilityContext.*` (`flux::context`, NDK `FluxContext`, host `flux_context`) is where
+capability facts are published and read. Producers publish; consumers resolve. The context itself does
+not probe, write, or infer anything.
+
+| Role | Who |
+|---|---|
+| Publisher | Kernel Intelligence (`kernel`), today. Future graphics and Synrei thermal producers use the same API |
+| Consumer | Performance Planner (`PerfCapabilities::context`, carried only — no decision reads it yet). Future Graphics Engine and Synrei Thermal Engine |
+
+`CapabilityFact` carries these fields unchanged: `source` (what determined it, e.g. the adapter),
+`publisher` (set by the context), `support` (Yes / No / **Unknown**), `readable`, `writable`,
+`verified`, `confidence`, `risk` (including Unknown), `rollback`, `requires_adapter`, `interface`,
+`value`, `range`, `note`.
+
+Rules:
+- **Unknown stays Unknown.** An id nobody published, or a fact that states Unknown, resolves to
+  Unknown with no deciding fact. Nothing is inferred from a neighbour, a domain, or a vendor.
+- **Publishing is a snapshot.** Publishing replaces every fact that publisher gave before.
+- **Conflicts.** The answer comes from the highest-confidence fact that states Yes or No. If equally
+  confident publishers disagree, the result is Unknown and `conflict=true`. If a weaker publisher
+  disagrees, the stronger fact answers and `conflict=true` stays visible. Fields are never merged, so a
+  `writable=true` from a weaker source cannot leak into the answer.
+- **Kernel mapping** (`flux::kernel::export_facts`):
+  - `supported=false` becomes No, keeping the prober's confidence (Medium for an observed absence).
+  - A present but invalid node becomes Yes with `readable=false` and Low confidence.
+  - `kernel.integration` and `kernel.generation` are Unknown when the classifier says Unknown.
+  - `kernel.adapter` names the selected adapter.
+- **Observatory:** interface only. `set_observer(ContextNotice)` reports generation, publisher, and
+  counts for supported, unsupported, unknown and conflicts after each publish. Observer exceptions are
+  swallowed. Nothing is wired to the Observatory bridge, and no kernel event type or storage exists yet.

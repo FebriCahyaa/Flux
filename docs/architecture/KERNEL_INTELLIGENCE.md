@@ -73,3 +73,15 @@ confidence from single or disagreeing signals; `/proc/version` fallback; capabil
 tree (values, ranges, selectors, observe-only thermal, all 15 domains present); missing interfaces;
 invalid nodes; a real temp tree (directory as node, dangling symlink) with an unchanged-content/mtime
 check; adapter selection incl. substring non-matches; a registered third-party adapter.
+
+## Step 7.5 — Export to the shared capability context
+
+`flux::kernel::export_facts(report)` / `publish(report, context)` put every capability, plus
+`kernel.integration`, `kernel.generation` and `kernel.adapter`, into the shared capability context
+under the publisher `kernel`. The export is 1:1 and nothing is upgraded: confidence, readable, writable,
+verified (still always false), risk and source are copied, and an Unknown classification stays
+Unknown. Rules and conflict handling are in `CAPABILITY_MODEL.md`.
+
+Still nothing calls `observe()` inside `fluxd`, and writes remain disabled. The Performance Planner can
+receive the context through `PerfCapabilities::context`, but none of its decisions read it yet, and a
+test shows its plans are identical with and without the context.
