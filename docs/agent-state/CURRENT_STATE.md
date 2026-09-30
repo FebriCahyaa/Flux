@@ -56,7 +56,7 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   `integration/game-runtime-clean` @ `9e19e1a`: `jni/kernel/KernelIntelligence.*` (FluxKernel, linked, no call path),
   `tests/kernel_intelligence_test.cpp`, `docs/architecture/{KERNEL_INTELLIGENCE,CAPABILITY_MODEL}.md`. Observation only:
   Integration × Generation classification with confidence, read-only probes (15 domains), generic/Qualcomm/MediaTek
-  adapters + registry. No writes, no policy. Host 17/17 PASS (gcc; clang-18 -Werror syntax OK). CI: see VALIDATION. Device: NOT_TESTED.
+  adapters + registry. No writes, no policy. Host 17/17 PASS (gcc; clang-18 -Werror syntax OK). CI 36667540789 green. Device: NOT_TESTED.
 - **Next:** owner review of Step 7.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 

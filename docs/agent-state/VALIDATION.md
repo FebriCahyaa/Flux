@@ -180,5 +180,5 @@ Step 5: **IMPLEMENTED**, architecture approved by owner (2026-09-29). Device val
 | clang-18 `-Wall -Wextra -Wpedantic -Werror` syntax check of module + test | PASS |
 | Read-only: real temp tree content and mtime unchanged after probing; `ReadOnlyFs` has no write API | PASS |
 | Forbidden-symbol check | clean |
-| CI https://github.com/FebriCahyaa/Flux/actions/runs/36667540789 | PENDING |
+| CI https://github.com/FebriCahyaa/Flux/actions/runs/36667540789 | success (host, forbidden-symbol gate, ndk-build arm64+arm, WebUI, zips) |
 | Device | NOT_TESTED |
