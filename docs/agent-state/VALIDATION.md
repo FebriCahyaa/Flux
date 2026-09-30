@@ -154,3 +154,19 @@ Step 5: **IMPLEMENTED**, architecture approved by owner (2026-09-29). Device val
 | CI https://github.com/FebriCahyaa/Flux/actions/runs/36634896135 (ndk-build incl. FluxBridge, ObservatoryHost) | success |
 | flux.log / sessions.json / session_live.json | unchanged |
 | Device | NOT_TESTED |
+
+## Step 6.5.1 restore verification — 2026-09-30 (`integration/game-runtime-clean` @ `a121b2c`)
+| Check | Result |
+|---|---|
+| Tests written first; transaction_test failed to compile without restored/failed counts (red) | observed |
+| restore write succeeds (RESTORED, counts 1/0) | PASS |
+| restore write fails but state matches snapshot (rollback SUCCESS, journal empty) | PASS |
+| restore write fails and state differs (RESTORE_FAILED, journal keeps exactly that node); non-sticking write; unreadable node | PASS |
+| partial transaction recovery (3 entries: restored, already-at-original despite write failure, differing → 2/1, journal kept); unreadable node at recovery | PASS |
+| journal handling (clean → empty; failed → only unverified entry; later recovery clears it) | PASS |
+| Bridge mapping SUCCESS/PARTIAL/FAILED → ok/partial/failed; B-27 scenario now rollback ok and journal removed | PASS |
+| Test fake corrected: writes no longer create missing nodes (matches sysfs and real adapter) | noted |
+| Host ctest | PASS 16/16 |
+| Forbidden-symbol check | clean |
+| CI https://github.com/FebriCahyaa/Flux/actions/runs/36665746650 | success |
+| Device | NOT_TESTED |

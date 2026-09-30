@@ -43,12 +43,16 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   (SESSION/RUNTIME/PERFORMANCE/TRANSACTION/RECOVERY), validation, JSONL, write/query/ordering interfaces +
   bounded memory store. Additive: **no producers wired**, SessionRecorder/sessions.json untouched, no device
   storage/retention. Host 15/15; CI 36632946443 green.
-- **Step 6.5 (Observatory event integration bridge): IN PROGRESS.**
+- **Step 6.5 (Observatory event integration bridge): APPROVED (owner).**
   `integration/game-runtime-clean` @ `aa88ce2`: neutral observers in Transaction / GamePerformanceRuntime /
   SessionManager (called after transitions, exceptions swallowed), `jni/bridge/ObservatoryBridge.*`,
   `jni/ObservatoryHost.*` (fluxd: bounded in-memory store, no persistence). Registry renamed to the Step 6.5
   event list. Host 16/16; CI 36634896135 green. flux.log / sessions.json / session_live.json unchanged. Device: NOT_TESTED.
-- **Next:** owner review of Step 6.5.
+- **Step 6.5.1 (transaction restore verification hardening): IN PROGRESS.**
+  `integration/game-runtime-clean` @ `a121b2c`: restore and boot recovery decide by read-back == snapshot (write
+  result ignored); only verified entries leave the journal; rollback/restore notices carry restored/failed counts;
+  TRANSACTION_ROLLBACK/RESTORE report ok/partial/failed. Resolves B-27. Host 16/16; CI 36665746650 green. Device: NOT_TESTED.
+- **Next:** owner review of Step 6.5.1.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 
 ## Repositories and branches

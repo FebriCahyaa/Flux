@@ -106,8 +106,14 @@ categories. Integration points listed in `docs/architecture/OBSERVATORY.md`.
 Suggested next: wire producers (SessionManager, GamePerformanceRuntime, Transaction, recovery) to an
 `EventSink`, then Phase 5 storage + 7-day retention under `/data/adb/.config/zairenkai/telemetry/`.
 
-## Step 6.5 — Observatory event integration bridge (IN PROGRESS)
+## Step 6.5 — Observatory event integration bridge (APPROVED)
 
 Done (`aa88ce2`): observers + bridge + fluxd in-memory store; 16 event types emitted; failure isolation
 tested. Not in scope: persistence/retention (Phase 5), reading events out of fluxd (CLI/export), WebUI,
 GPU/Thermal events. Open finding B-27 (rollback of a node whose write failed is reported incomplete).
+
+## Step 6.5.1 — Transaction restore verification hardening (IN PROGRESS)
+
+Done (`a121b2c`): Transaction Engine only (+ bridge result mapping). Restored ⇔ read-back equals snapshot;
+journal kept when unverifiable or different; SUCCESS/PARTIAL/FAILED outcome in events.
+Known limitation: `recover()` compares raw read-back against view-normalised snapshots (no current user).
