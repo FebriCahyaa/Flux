@@ -80,3 +80,15 @@ by the Kernel Intelligence bootstrap at daemon start. For engines this means:
   mapping between them is future work (B-29).
 
 Lifecycle and failure table: `KERNEL_INTELLIGENCE.md` §Step 7.6.
+
+## Graphics facts (Step 8)
+
+Graphics Intelligence publishes domain `graphics` under the publisher `graphics`, after the kernel
+bootstrap. It reads the kernel's `gpu` facts for its frequency and load interfaces instead of probing
+them again. The ids, evidence and confidence tables are in `GRAPHICS_INTELLIGENCE.md`.
+
+The confidence scale is HIGH / MEDIUM / LOW / UNKNOWN. `Confidence::None` is UNKNOWN, and its
+`to_string` is now `unknown` (it was `none`; no persisted consumer exists).
+
+Capability and policy stay separate: the context holds only capability. Graphics, performance and
+thermal policies are consumers and never publish capability facts.

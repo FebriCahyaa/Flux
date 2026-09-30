@@ -20,7 +20,7 @@ const char *to_string(Confidence c) {
     case Confidence::High: return "high";
     case Confidence::None: break;
     }
-    return "none";
+    return "unknown"; // None is the UNKNOWN confidence level
 }
 const char *to_string(Risk r) {
     switch (r) {

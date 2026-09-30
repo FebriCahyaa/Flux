@@ -18,6 +18,8 @@
 
 #include <sys/system_properties.h>
 
+#include "GraphicsIntelligence.hpp"
+
 #include <FluxLog.hpp>
 
 namespace flux_capability {
@@ -43,6 +45,25 @@ flux::kernel::CapabilityBootstrap &bootstrapper() {
     return boot;
 }
 
+/// Graphics capability facts (Step 8). No Vulkan instance is created in fluxd: only properties,
+/// driver files and the kernel's GPU facts. A failure logs and leaves graphics facts Unknown.
+void publish_graphics() {
+    try {
+        auto fs = flux::kernel::make_readonly_fs("");
+        flux::graphics::publish({[](const std::string &k) { return property(k.c_str()); }, fs.get(), std::nullopt,
+                                 shared().get()},
+                                *shared());
+        const auto vendor = shared()->resolve("graphics.gpu.vendor");
+        const auto vk = shared()->resolve("graphics.vulkan.available");
+        LOGI_TAG("Capability", "graphics capabilities published: gpu {}, vulkan {}",
+                 vendor.fact ? vendor.fact->value : "unknown", flux::context::to_string(vk.support));
+    } catch (const std::exception &e) {
+        LOGW_TAG("Capability", "graphics capability probe failed ({}); graphics facts stay unknown", e.what());
+    } catch (...) {
+        LOGW_TAG("Capability", "graphics capability probe failed; graphics facts stay unknown");
+    }
+}
+
 } // namespace
 
 std::shared_ptr<const flux::context::CapabilityContext> context() { return shared(); }
@@ -58,6 +79,7 @@ const flux::kernel::BootstrapResult &bootstrap() {
                  r.facts, r.supported, flux::kernel::to_string(r.status),
                  integ.fact ? integ.fact->value : "unknown", adapter.fact ? adapter.fact->value : "unknown");
     }
+    publish_graphics();
     return bootstrapper().last();
 }
 

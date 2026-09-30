@@ -167,3 +167,12 @@ target_link_libraries(capability_context_test PRIVATE flux_kernel flux_perf)
 
 flux_add_test(capability_bootstrap_test tests/capability_bootstrap_test.cpp)
 target_link_libraries(capability_bootstrap_test PRIVATE flux_kernel)
+
+# -- graphics intelligence (capability only; no policy, no Vulkan instance) ------
+add_library(flux_graphics STATIC jni/graphics/GraphicsIntelligence.cpp)
+target_include_directories(flux_graphics PUBLIC jni/graphics)
+target_link_libraries(flux_graphics PUBLIC flux_kernel flux_context flux_gfx)
+target_compile_options(flux_graphics PRIVATE ${FLUX_WARNINGS})
+
+flux_add_test(graphics_intelligence_test tests/graphics_intelligence_test.cpp)
+target_link_libraries(graphics_intelligence_test PRIVATE flux_graphics)

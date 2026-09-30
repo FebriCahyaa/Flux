@@ -15,6 +15,7 @@
 namespace flux::context {
 
 enum class Support { Unknown, No, Yes };
+/// HIGH / MEDIUM / LOW / UNKNOWN; `None` is UNKNOWN (to_string -> "unknown").
 enum class Confidence { None, Low, Medium, High };
 enum class Risk { Unknown, Low, Medium, High };
 
