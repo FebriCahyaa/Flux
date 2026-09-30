@@ -29,6 +29,7 @@ struct FakeFs {
         io.write = [this](const std::string &p, const std::string &v) {
             ++writes;
             if (fail_write.count(p)) return false;
+            if (!nodes.count(p)) return false; // like sysfs/procfs: writing never creates a node
             if (!ignore_write.count(p)) nodes[p] = v;
             return true;
         };
@@ -218,6 +219,127 @@ void test_corrupted_journal_handling() {
     CHECK_EQ(v, std::string("a\tb\nc\\d"));
 }
 
+// -- restore verification (Step 6.5.1): restored means read-back == snapshot -------------------
+
+void test_restore_write_succeeds() {
+    FakeFs fs;
+    fs.nodes = {{"/sys/a", "1"}};
+    std::vector<TxNotice> notes;
+    Transaction tx("tx-r1", plan_of(fs, {{"/sys/a", "10"}}), nullptr,
+                   [&](const TxNotice &n) { notes.push_back(n); });
+    CHECK(tx.start());
+    CHECK(tx.finish());
+    CHECK(tx.state() == TxState::Restored);
+    CHECK_EQ(fs.nodes["/sys/a"], std::string("1"));
+    CHECK(notes.back().kind == TxNotice::Kind::Restore);
+    CHECK_EQ(notes.back().restored, size_t{1});
+    CHECK_EQ(notes.back().failed, size_t{0});
+}
+
+void test_restore_write_fails_but_state_matches() {
+    // The write of /sys/b fails during apply, so /sys/b never changed. Rolling it back also fails
+    // to write, but the node already holds its snapshot: that is a successful restore.
+    FakeFs fs;
+    fs.nodes = {{"/sys/a", "1"}, {"/sys/b", "2"}};
+    fs.fail_write.insert("/sys/b");
+    std::string journal = "unset";
+    std::vector<TxNotice> notes;
+    Transaction tx("tx-r2", plan_of(fs, {{"/sys/a", "10"}, {"/sys/b", "20"}}),
+                   [&](const std::string &j) { journal = j; return true; },
+                   [&](const TxNotice &n) { notes.push_back(n); });
+    CHECK(!tx.start());
+    CHECK_EQ(fs.nodes["/sys/a"], std::string("1"));
+    CHECK_EQ(fs.nodes["/sys/b"], std::string("2"));
+    CHECK(tx.journal_entries().empty());                // nothing left to recover
+    CHECK(journal::parse(journal).entries.empty());
+    const TxNotice &rb = notes.back();
+    CHECK(rb.kind == TxNotice::Kind::Rollback);
+    CHECK(rb.ok);
+    CHECK_EQ(rb.restored, size_t{2});
+    CHECK_EQ(rb.failed, size_t{0});
+}
+
+void test_restore_write_fails_and_state_differs() {
+    FakeFs fs;
+    fs.nodes = {{"/sys/a", "1"}, {"/sys/b", "2"}};
+    std::string journal;
+    std::vector<TxNotice> notes;
+    Transaction tx("tx-r3", plan_of(fs, {{"/sys/a", "10"}, {"/sys/b", "20"}}),
+                   [&](const std::string &j) { journal = j; return true; },
+                   [&](const TxNotice &n) { notes.push_back(n); });
+    CHECK(tx.start());
+    fs.fail_write.insert("/sys/b");                     // /sys/b holds 20 and cannot be written back
+    CHECK(!tx.finish());
+    CHECK(tx.state() == TxState::Failed);
+    CHECK_EQ(fs.nodes["/sys/a"], std::string("1"));
+    CHECK_EQ(fs.nodes["/sys/b"], std::string("20"));
+    auto kept = journal::parse(journal).entries;        // journal keeps exactly the unverified node
+    CHECK_EQ(kept.size(), size_t{1});
+    CHECK_EQ(kept[0], journal::encode_entry("/sys/b", "2"));
+    CHECK_EQ(notes.back().restored, size_t{1});
+    CHECK_EQ(notes.back().failed, size_t{1});
+
+    // A write that "succeeds" but does not stick is not a restore either.
+    FakeFs fs2;
+    fs2.nodes = {{"/sys/a", "1"}};
+    Transaction tx2("tx-r4", plan_of(fs2, {{"/sys/a", "10"}}));
+    CHECK(tx2.start());
+    fs2.ignore_write.insert("/sys/a");
+    CHECK(!tx2.finish());
+    CHECK_EQ(tx2.journal_entries().size(), size_t{1});
+
+    // Unverifiable (node unreadable after restore) keeps the journal.
+    FakeFs fs3;
+    fs3.nodes = {{"/sys/a", "1"}};
+    Transaction tx3("tx-r5", plan_of(fs3, {{"/sys/a", "10"}}));
+    CHECK(tx3.start());
+    fs3.nodes.erase("/sys/a");
+    CHECK(!tx3.finish());
+    CHECK_EQ(tx3.journal_entries().size(), size_t{1});
+}
+
+void test_partial_transaction_recovery() {
+    FakeFs fs;
+    fs.nodes = {{"/sys/a", "10"}, {"/sys/b", "2"}, {"/sys/c", "30"}};
+    fs.fail_write.insert("/sys/b");  // write fails, but /sys/b already holds its original
+    fs.fail_write.insert("/sys/c");  // write fails and /sys/c differs
+    const std::string text = journal::serialize("tx-r6", "performance", "g",
+                                                {journal::encode_entry("/sys/a", "1"),
+                                                 journal::encode_entry("/sys/b", "2"),
+                                                 journal::encode_entry("/sys/c", "3")});
+    RecoveryReport r = recover(fs.io(), text);
+    CHECK_EQ(r.found, size_t{3});
+    CHECK_EQ(r.restored, size_t{2});
+    CHECK_EQ(r.failed.size(), size_t{1});
+    CHECK_EQ(r.failed[0], journal::encode_entry("/sys/c", "3"));
+    CHECK(!r.clean());                  // journal kept for the next boot
+    CHECK_EQ(fs.nodes["/sys/a"], std::string("1"));
+
+    // Unreadable node: cannot be verified -> failed, journal kept.
+    FakeFs fs2;
+    RecoveryReport u = recover(fs2.io(), journal::encode_entry("/sys/gone", "1"));
+    CHECK_EQ(u.restored, size_t{0});
+    CHECK(!u.clean());
+}
+
+void test_restore_journal_handling() {
+    // Clean restore empties the journal; a failed restore keeps only what is unverified; a later
+    // successful retry (the node became writable) empties it.
+    FakeFs fs;
+    fs.nodes = {{"/sys/a", "1"}, {"/sys/b", "2"}};
+    std::string journal;
+    Transaction tx("tx-r7", plan_of(fs, {{"/sys/a", "10"}, {"/sys/b", "20"}}),
+                   [&](const std::string &j) { journal = j; return true; });
+    CHECK(tx.start());
+    CHECK_EQ(journal::parse(journal).entries.size(), size_t{2});
+    fs.fail_write.insert("/sys/a");
+    CHECK(!tx.finish());
+    CHECK_EQ(journal::parse(journal).entries.size(), size_t{1});
+    fs.fail_write.clear();
+    CHECK(recover(fs.io(), journal).clean());
+    CHECK_EQ(fs.nodes["/sys/a"], std::string("1"));
+}
+
 } // namespace
 
 int main() {
@@ -230,5 +352,10 @@ int main() {
     test_restore_failure_is_reported();
     test_crash_journal_recovery();
     test_corrupted_journal_handling();
+    test_restore_write_succeeds();
+    test_restore_write_fails_but_state_matches();
+    test_restore_write_fails_and_state_differs();
+    test_partial_transaction_recovery();
+    test_restore_journal_handling();
     return flux_test::report("transaction_test");
 }

@@ -176,9 +176,11 @@ void test_transaction_failure_event() {
     CHECK(apply[0].reason.find(kBoost) != std::string::npos);
     auto rb = r.of("TRANSACTION_ROLLBACK");
     CHECK_EQ(rb.size(), size_t{1});
-    // The failed node could not be written back either, so the engine reports the rollback as
-    // incomplete (journal kept) even though that node never changed — recorded as B-27.
-    CHECK(rb[0].reason.find("rollback") != std::string::npos);
+    // Step 6.5.1: the node whose write failed never changed, so its read-back matches the snapshot
+    // and the rollback is a verified SUCCESS (was reported incomplete before, B-27).
+    CHECK(rb[0].result == observatory::Result::Ok);
+    CHECK_EQ(rb[0].after.at("not_restored"), std::string("0"));
+    CHECK(r.w.files.count("/cfg/perf_journal") == 0);
     auto fail = r.of("RUNTIME_FAILURE");
     CHECK_EQ(fail.size(), size_t{1});
     CHECK(fail[0].severity >= observatory::Severity::Warning);
@@ -285,6 +287,25 @@ void test_events_are_valid_and_after_transition() {
     CHECK(v.br.stats().emitted >= 12);
 }
 
+void test_rollback_result_mapping() {
+    Rig r;
+    auto rb = [&](size_t restored, size_t failed) {
+        runtime::TxNotice n;
+        n.kind = runtime::TxNotice::Kind::Rollback;
+        n.ok = failed == 0;
+        n.tx_id = "tx-m";
+        n.detail = "mapping";
+        n.restored = restored;
+        n.failed = failed;
+        r.br.on_transaction(n);
+        auto all = r.of("TRANSACTION_ROLLBACK");
+        return all.back().result;
+    };
+    CHECK(rb(3, 0) == observatory::Result::Ok);      // SUCCESS
+    CHECK(rb(2, 1) == observatory::Result::Partial); // PARTIAL
+    CHECK(rb(0, 2) == observatory::Result::Failed);  // FAILED
+}
+
 } // namespace
 
 int main() {
@@ -294,5 +315,6 @@ int main() {
     test_recovery_event();
     test_observatory_unavailable_does_not_break_runtime();
     test_events_are_valid_and_after_transition();
+    test_rollback_result_mapping();
     return flux_test::report("observatory_bridge_test");
 }

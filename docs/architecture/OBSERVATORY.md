@@ -74,6 +74,17 @@ Transaction Engine ── TxNotice ────────┼─> ObservatoryBr
 4. Session id comes only from `SessionManager` (context hook); events outside a session carry none.
 5. `flux.log`, `sessions.json`, `session_live.json` are untouched; the bridge writes no log lines.
 
+### Verified rollback / restore results (Step 6.5.1)
+
+`TRANSACTION_ROLLBACK` and `TRANSACTION_RESTORE` report the verified outcome from the Transaction
+Engine's read-back comparison (`after.restored`, `after.not_restored`):
+
+| Engine outcome | `result` | `severity` |
+|---|---|---|
+| SUCCESS — every node read back at its snapshot | `ok` | rollback: warning (it follows a failure) · restore: info |
+| PARTIAL — some nodes at snapshot, some not | `partial` | error |
+| FAILED — no node at its snapshot | `failed` | error |
+
 ### Failure handling
 
 | Failure | Effect on the producer | Where it is visible |

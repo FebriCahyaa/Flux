@@ -129,3 +129,35 @@ CI run [36617841919](https://github.com/FebriCahyaa/Flux/actions/runs/3661784191
   `snapshot_view` supplied by the planner.
 - The build workflow also posts the artifact to Telegram on `workflow_dispatch` runs (existing
   `build.yml` behaviour, unchanged).
+
+## Restore verification (Step 6.5.1)
+
+Restore success is decided by the **verified final state**, not by the write result.
+
+```
+snapshot -> apply -> (failure | end of lifecycle) -> rollback / finish
+   for each touched operation, newest first:
+      attempt write(snapshot)          (result ignored)
+      read back node                   (unreadable -> RESTORE_FAILED)
+      compare with snapshot            (== -> RESTORED, != -> RESTORE_FAILED)
+```
+
+| Case | Old behaviour | Now |
+|---|---|---|
+| restore write succeeds, read-back = snapshot | restored | RESTORED |
+| restore write fails, node already at snapshot (e.g. the apply write failed) | reported failed, entry journaled (B-27) | RESTORED, entry dropped |
+| restore write fails, node differs | failed | RESTORE_FAILED, entry journaled |
+| write "succeeds" but value does not stick | failed (verify_restore) | RESTORE_FAILED, entry journaled |
+| node unreadable after restore | failed | RESTORE_FAILED, entry journaled |
+
+Journal safety: an entry leaves the journal only when its node read back equal to the snapshot.
+Anything unverifiable or different stays for boot recovery. `recover()` applies the same rule
+(attempt write, then read-back decides), so a journal whose nodes are already back at their
+originals is cleared even if the nodes reject writes.
+
+Outcome reported to observers (`TxNotice.restored` / `failed` for Rollback and Restore):
+SUCCESS = all restored, PARTIAL = some restored, FAILED = none restored.
+
+Known limitation: journal entries store the snapshot after `snapshot_view` (e.g. `mq-deadline`
+from `[mq-deadline] none`); `recover()` compares raw read-back, so selector-style nodes recovered
+at boot are reported failed even when correct. No current planner uses a view.

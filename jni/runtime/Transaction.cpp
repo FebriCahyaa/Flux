@@ -115,7 +115,14 @@ bool NodeWriteOperation::verify() {
 
 bool NodeWriteOperation::restore() {
     if (!applied_ || !have_original_) return true;
-    if (!io_.write(path_, original_)) return false;
+    // The write result alone decides nothing: a failed write may leave the node untouched (already
+    // at its snapshot), and a "successful" one may not stick. The read-back is the verdict.
+    if (io_.write) io_.write(path_, original_);
+    const auto cur = io_.read ? io_.read(path_) : std::nullopt;
+    if (!cur) return false; // cannot verify: keep it journaled
+    std::string now = trim(*cur);
+    if (view_) now = view_(now);
+    if (now != original_) return false;
     applied_ = false;
     return true;
 }
@@ -156,6 +163,8 @@ void Transaction::notify(TxNotice::Kind kind, bool ok, const std::string &detail
         n.domain = plan_.domain;
         n.subject = plan_.subject;
         n.detail = detail;
+        n.restored = last_restored_;
+        n.failed = last_failed_;
         for (const TransactionOperation *op : touched_) op->evidence(n.before, n.after);
         observer_(n);
     } catch (...) {
@@ -185,7 +194,7 @@ bool Transaction::start() {
             notify(TxNotice::Kind::Apply, false, "journal write failed before " + op->describe());
             const bool clean = rollback();
             state_ = TxState::Failed;
-            notify(TxNotice::Kind::Rollback, clean, clean ? "rolled back" : "rollback incomplete");
+            notify(TxNotice::Kind::Rollback, clean, clean ? "rolled back; every node read back at its snapshot" : std::to_string(last_failed_) + " node(s) not at snapshot after rollback; journal kept");
             return false;
         }
         const bool applied = op->apply();
@@ -196,7 +205,7 @@ bool Transaction::start() {
                    (applied ? "verify failed: " : "apply failed: ") + op->describe());
             const bool clean = rollback();
             state_ = TxState::Failed;
-            notify(TxNotice::Kind::Rollback, clean, clean ? "rolled back" : "rollback incomplete");
+            notify(TxNotice::Kind::Rollback, clean, clean ? "rolled back; every node read back at its snapshot" : std::to_string(last_failed_) + " node(s) not at snapshot after rollback; journal kept");
             return false;
         }
         log_.push_back("applied " + op->describe());
@@ -212,10 +221,13 @@ bool Transaction::start() {
 
 bool Transaction::rollback() {
     bool clean = true;
+    last_restored_ = last_failed_ = 0;
     std::vector<TransactionOperation *> left;
     for (auto it = touched_.rbegin(); it != touched_.rend(); ++it) {
         const bool ok = (*it)->restore() && (*it)->verify_restore();
         log_.push_back(std::string(ok ? "restored " : "RESTORE FAILED ") + (*it)->describe());
+        if (ok) ++last_restored_;
+        else ++last_failed_;
         if (!ok) left.insert(left.begin(), *it);
         clean = clean && ok;
     }
@@ -247,7 +259,11 @@ bool Transaction::finish() {
             n.tx_id = id_;
             n.domain = plan_.domain;
             n.subject = plan_.subject;
-            n.detail = clean ? "restored and read back" : "restore incomplete; journal kept";
+            n.detail = clean ? "restored and read back"
+                             : std::to_string(last_failed_) + " of " + std::to_string(last_restored_ + last_failed_) +
+                                   " not at snapshot after restore; journal kept";
+            n.restored = last_restored_;
+            n.failed = last_failed_;
             n.before = std::move(before);
             n.after = std::move(after);
             observer_(n);
@@ -338,8 +354,10 @@ RecoveryReport recover(const Io &io, const std::string &journal_text) {
     for (auto it = p.entries.rbegin(); it != p.entries.rend(); ++it) {
         ++r.found;
         std::string path, original;
-        bool ok = journal::decode_entry(*it, path, original) && io.write && io.write(path, original);
+        bool ok = journal::decode_entry(*it, path, original);
         if (ok) {
+            // Attempt the write, then let the read-back decide (see NodeWriteOperation::restore).
+            if (io.write) io.write(path, original);
             auto now = io.read ? io.read(path) : std::nullopt;
             ok = now && trim(*now) == original;
         }

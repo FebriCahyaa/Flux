@@ -50,6 +50,9 @@ public:
     virtual std::string describe() const = 0;
     /// Capture what must be restored; false = cannot be undone, so the operation is skipped.
     virtual bool snapshot() = 0;
+    // restore(): attempt to put the snapshot back, then decide by read-back — true only when the
+    // current state equals the snapshot (even if the write itself failed), false when it differs or
+    // cannot be read.
     virtual bool apply() = 0;
     virtual bool verify() = 0;
     virtual bool restore() = 0;
@@ -106,6 +109,8 @@ struct TxNotice {
     std::string tx_id, domain, subject;
     std::string detail; ///< failing operation or summary
     std::map<std::string, std::string> before, after;
+    /// Rollback / Restore: operations whose read-back matched the snapshot, and those that did not.
+    size_t restored = 0, failed = 0;
 };
 /// Optional; a throwing observer is ignored and never changes the transaction.
 using TxObserver = std::function<void(const TxNotice &)>;
@@ -138,6 +143,7 @@ private:
     bool rollback();
     bool persist();
     void notify(TxNotice::Kind kind, bool ok, const std::string &detail) const;
+    size_t last_restored_ = 0, last_failed_ = 0; ///< counts from the most recent rollback()
 
     std::string id_;
     RuntimePlan plan_;

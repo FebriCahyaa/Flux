@@ -167,14 +167,16 @@ void ObservatoryBridge::on_transaction(const flux::runtime::TxNotice &n) {
     case K::Apply: e.type = "TRANSACTION_APPLY"; break;
     case K::Verify: e.type = "TRANSACTION_VERIFY"; break;
     case K::Rollback:
-        e.type = "TRANSACTION_ROLLBACK";
-        e.severity = n.ok ? Severity::Warning : Severity::Error; // a rollback always follows a failure
-        e.result = n.ok ? Result::Ok : Result::Partial;
-        break;
     case K::Restore:
-        e.type = "TRANSACTION_RESTORE";
-        e.result = n.ok ? Result::Ok : Result::Partial;
-        if (!n.ok) e.severity = Severity::Error;
+        e.type = n.kind == K::Rollback ? "TRANSACTION_ROLLBACK" : "TRANSACTION_RESTORE";
+        // Verified outcome: SUCCESS = every node read back at its snapshot, PARTIAL = some did,
+        // FAILED = none did.
+        e.result = n.failed == 0 ? Result::Ok : (n.restored > 0 ? Result::Partial : Result::Failed);
+        e.severity = n.failed == 0 ? (n.kind == K::Rollback ? Severity::Warning : Severity::Info) : Severity::Error;
+        if (e.after.size() + 2 <= kMaxKeys) {
+            e.after.emplace("restored", std::to_string(n.restored));
+            e.after.emplace("not_restored", std::to_string(n.failed));
+        }
         break;
     }
     if (e.after.size() < kMaxKeys) e.after.emplace("subject", n.subject);
