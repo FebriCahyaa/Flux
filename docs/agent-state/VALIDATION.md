@@ -170,3 +170,15 @@ Step 5: **IMPLEMENTED**, architecture approved by owner (2026-09-29). Device val
 | Forbidden-symbol check | clean |
 | CI https://github.com/FebriCahyaa/Flux/actions/runs/36665746650 | success |
 | Device | NOT_TESTED |
+
+## Step 7 — Kernel Intelligence foundation (`9e19e1a`)
+
+| Check | Result |
+|---|---|
+| Tests written first; CMake configure failed without `KernelIntelligence.cpp` (red) | confirmed |
+| Host ctest (gcc, -Werror) | PASS 17/17 |
+| clang-18 `-Wall -Wextra -Wpedantic -Werror` syntax check of module + test | PASS |
+| Read-only: real temp tree content and mtime unchanged after probing; `ReadOnlyFs` has no write API | PASS |
+| Forbidden-symbol check | clean |
+| CI https://github.com/FebriCahyaa/Flux/actions/runs/36667540789 | PENDING |
+| Device | NOT_TESTED |

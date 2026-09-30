@@ -48,11 +48,16 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   SessionManager (called after transitions, exceptions swallowed), `jni/bridge/ObservatoryBridge.*`,
   `jni/ObservatoryHost.*` (fluxd: bounded in-memory store, no persistence). Registry renamed to the Step 6.5
   event list. Host 16/16; CI 36634896135 green. flux.log / sessions.json / session_live.json unchanged. Device: NOT_TESTED.
-- **Step 6.5.1 (transaction restore verification hardening): IN PROGRESS.**
+- **Step 6.5.1 (transaction restore verification hardening): APPROVED (owner). Transaction Engine hardened; B-27 resolved; B-28 deferred to the kernel adapter phase.**
   `integration/game-runtime-clean` @ `a121b2c`: restore and boot recovery decide by read-back == snapshot (write
   result ignored); only verified entries leave the journal; rollback/restore notices carry restored/failed counts;
   TRANSACTION_ROLLBACK/RESTORE report ok/partial/failed. Resolves B-27. Host 16/16; CI 36665746650 green. Device: NOT_TESTED.
-- **Next:** owner review of Step 6.5.1.
+- **Step 7 (Zairenkai Kernel Intelligence foundation): IN PROGRESS.**
+  `integration/game-runtime-clean` @ `9e19e1a`: `jni/kernel/KernelIntelligence.*` (FluxKernel, linked, no call path),
+  `tests/kernel_intelligence_test.cpp`, `docs/architecture/{KERNEL_INTELLIGENCE,CAPABILITY_MODEL}.md`. Observation only:
+  Integration × Generation classification with confidence, read-only probes (15 domains), generic/Qualcomm/MediaTek
+  adapters + registry. No writes, no policy. Host 17/17 PASS (gcc; clang-18 -Werror syntax OK). CI: see VALIDATION. Device: NOT_TESTED.
+- **Next:** owner review of Step 7.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 
 ## Repositories and branches

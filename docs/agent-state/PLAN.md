@@ -112,8 +112,17 @@ Done (`aa88ce2`): observers + bridge + fluxd in-memory store; 16 event types emi
 tested. Not in scope: persistence/retention (Phase 5), reading events out of fluxd (CLI/export), WebUI,
 GPU/Thermal events. Open finding B-27 (rollback of a node whose write failed is reported incomplete).
 
-## Step 6.5.1 — Transaction restore verification hardening (IN PROGRESS)
+## Step 6.5.1 — Transaction restore verification hardening (APPROVED)
 
 Done (`a121b2c`): Transaction Engine only (+ bridge result mapping). Restored ⇔ read-back equals snapshot;
 journal kept when unverifiable or different; SUCCESS/PARTIAL/FAILED outcome in events.
 Known limitation: `recover()` compares raw read-back against view-normalised snapshots (no current user).
+
+## Step 7 — Zairenkai Kernel Intelligence foundation (IN PROGRESS)
+
+Done (`9e19e1a`): kernel identity + two-axis classification with confidence (B-05 in the model), capability record,
+read-only probes (CPUFreq, policy, governor, uclamp, scheduler, cpuset, cgroup, DevFreq, GPU, thermal, ZRAM, swap,
+I/O scheduler, input boost, display refresh), adapters generic/Qualcomm/MediaTek + registry (full-match platform
+patterns, B-07). Not in scope: writes/verification, tweak contracts, policy, daemon call path, KERNEL events, export,
+WebUI, retiring `kernel_type`/`is_gki` writers. Next candidates: call path + Observatory KERNEL snapshot; B-28 in the
+adapter write phase.
