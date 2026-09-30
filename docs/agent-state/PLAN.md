@@ -134,8 +134,15 @@ conflicts visible, no field merging); kernel export 1:1; planner receives the co
 Observatory observer interface only. Not in scope: kernel writes, policy, thermal, GameRuntime lifecycle, fluxd call
 path, KERNEL/CAPABILITY events or storage, graphics/Synrei producers, SynthesisCore schema v4 (D-11).
 
-## Step 7.6 — Runtime capability bootstrap (IN PROGRESS)
+## Step 7.6 — Runtime capability bootstrap (APPROVED)
 
 Done (`0b5a7e4`): fluxd start -> Kernel Intelligence probe -> CapabilityContext publish -> engines query (const view).
 Failure never stops the daemon; unavailable stays Unknown; repeat replaces the snapshot, failed repeat keeps the last good.
 Not in scope: writes, performance/thermal decisions, periodic re-probe, Observatory events/persistence, SynthesisCore schema.
+
+## Step 8 — Zairenkai Graphics Intelligence foundation (IN PROGRESS)
+
+Done (`3af9cc0`): read-only graphics capability facts (domain `graphics`), per-source GPU claims with conflict handling,
+published in fluxd after the kernel bootstrap. Capability separate from policy. Not in scope: GPU policy/tuning/overclock,
+driver changes, render injection, upscaling, thermal, WebUI, a Vulkan instance inside fluxd, feeding CLI Vulkan probes into
+the context, SynthesisCore schema v4 mapping (B-29).

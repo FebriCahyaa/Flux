@@ -62,13 +62,20 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   `export_facts`/`publish`, `PerfCapabilities::context` (carried, no decision reads it), observer interface for the
   Observatory (not wired, no storage). Unknown stays Unknown; conflicts resolve Unknown at equal confidence.
   Host 18/18 PASS; clang-18 -Werror OK. CI 36668216151 green. Still no fluxd call path for observe(). Device: NOT_TESTED.
-- **Step 7.6 (runtime capability bootstrap): IN PROGRESS.**
+- **Step 7.6 (runtime capability bootstrap): APPROVED (owner).**
   `integration/game-runtime-clean` @ `0b5a7e4`: `jni/kernel/CapabilityBootstrap.*`, `jni/CapabilityHost.*`; Main.cpp calls
   `flux_capability::bootstrap()` once at start before boot recovery; GameRuntime planner carries `flux_capability::context()`.
   Failed probe: daemon continues, capabilities Unknown, one log warning. Observer hook only; no telemetry. Host 19/19 PASS;
   clang-18 -Werror OK (daemon glue checked only by CI ndk-build: spdlog submodule absent locally). CI 36669240984 green.
   **Device: NOT_TESTED** (first step whose code runs in fluxd on device: read-only sysfs/procfs probe at start).
-- **Next:** owner review of Step 7.6.
+- **Step 8 (Zairenkai Graphics Intelligence foundation): IN PROGRESS.** (Owner step numbering; corresponds to the
+  capability part of master-plan Phase 7 "Graphics intelligence" — not master-plan Phase 8 Game Runtime integration.)
+  `integration/game-runtime-clean` @ `3af9cc0`: `jni/graphics/GraphicsIntelligence.*` (FluxGraphics), domain `graphics`
+  published by fluxd after the kernel bootstrap, **no Vulkan instance in fluxd** (declarative evidence, Medium/Low).
+  GPU vendor/model/driver, Vulkan, GLES/EGL, interfaces, GPU freq/load interfaces (from kernel facts). Confidence
+  HIGH/MEDIUM/LOW/UNKNOWN (`Confidence::None` now prints `unknown`). Host 20/20 PASS; clang-18 -Werror OK.
+  CI: see VALIDATION. Device: NOT_TESTED.
+- **Next:** owner review of Step 8.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 
 ## Repositories and branches

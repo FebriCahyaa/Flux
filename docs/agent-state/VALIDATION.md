@@ -206,3 +206,15 @@ Step 5: **IMPLEMENTED**, architecture approved by owner (2026-09-29). Device val
 | Forbidden-symbol check | clean |
 | CI https://github.com/FebriCahyaa/Flux/actions/runs/36669240984 (incl. ndk-build of the daemon glue) | success |
 | Device | NOT_TESTED |
+
+## Step 8 — Graphics Intelligence (`3af9cc0`)
+
+| Check | Result |
+|---|---|
+| Tests first; CMake configure failed without `GraphicsIntelligence.cpp` (red) | confirmed |
+| Host ctest (gcc, -Werror) | PASS 20/20 |
+| clang-18 -Werror syntax (module + test) | PASS |
+| Daemon glue (`CapabilityHost.cpp`) | CI ndk-build only |
+| Forbidden-symbol check | clean |
+| CI | PENDING |
+| Device | NOT_TESTED |
