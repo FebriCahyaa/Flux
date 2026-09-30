@@ -74,7 +74,7 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   published by fluxd after the kernel bootstrap, **no Vulkan instance in fluxd** (declarative evidence, Medium/Low).
   GPU vendor/model/driver, Vulkan, GLES/EGL, interfaces, GPU freq/load interfaces (from kernel facts). Confidence
   HIGH/MEDIUM/LOW/UNKNOWN (`Confidence::None` now prints `unknown`). Host 20/20 PASS; clang-18 -Werror OK.
-  CI: see VALIDATION. Device: NOT_TESTED.
+  CI 36669963849 green. Device: NOT_TESTED.
 - **Next:** owner review of Step 8.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 
