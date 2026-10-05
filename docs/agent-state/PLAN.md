@@ -231,3 +231,20 @@ Prerequisites for enabling on device: B-37 device validation (verified facts), o
   - Android CI result (not checked).
   - Device validation: B-37, then the first live execution.
 - Not implemented, by directive: adaptive optimization, learning, escalation, repeated tuning, UI, telemetry expansion, brand migration.
+
+## Phase 4.5 — Brand & namespace migration (IN PROGRESS: host complete, CI not checked, device NOT_TESTED)
+
+- Done (`5f6135a`):
+  - public labels;
+  - the `zairenkai` CLI alias;
+  - frozen identifier constants;
+  - the non-destructive config helper;
+  - the classification registry, inventory test and `BRAND_MIGRATION.md`.
+- Open owner decisions:
+  - enabling config compatibility lookup in fluxd;
+  - website body copy;
+  - CI/release titles;
+  - `NOTICE.md` wording (legal review);
+  - GitHub repository renames (infrastructure);
+  - an optional source namespace layer;
+  - a new banner asset.

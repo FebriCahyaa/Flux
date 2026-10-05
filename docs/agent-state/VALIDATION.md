@@ -391,3 +391,12 @@ Open: B-26, B-33A, B-33B, B-33C, B-34C, B-36, B-37 (host only), B-38; B-35 defer
 - `jni/SessionHost.cpp`: stub syntax check passed (C++23, `-Werror`). `LivePolicyController.cpp`: C++23 syntax check passed.
 - Android CI (ndk-build): triggered by the push, **not checked**.
 - Device: **NOT_TESTED**.
+
+## Phase 4.5 — Brand & namespace migration (`5f6135a`)
+
+- Host `ctest` 35/35 PASS (`-Wall -Wextra -Wpedantic -Werror`). New tests:
+  - `brand_migration_test` (4 functions covering the 24 listed cases);
+  - `brand_inventory_test.sh`.
+- `FluxCLI.cpp` passes a C++23 stub syntax check. `customize.sh`, `uninstall.sh` and `action.sh` pass `sh -n`.
+- The full fluxd NDK build was not run locally (the spdlog submodule is absent). Android CI was triggered by the push and **not checked**.
+- Device: **NOT_TESTED**. In particular, neither the `zairenkai` symlink on Magisk/KSU/APatch nor the module upgrade over an existing install has been tested.

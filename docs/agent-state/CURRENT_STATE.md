@@ -163,7 +163,14 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   PolicyExecutor restore runs before GameRuntime's restore. Journal: `/data/adb/.config/zairenkai/policy.journal`.
   B-38 is resolved in the DecisionEngine. Host 33/33 PASS (new `live_policy_test`). Doc: `CONTROL_EXECUTION.md`.
   B-37 (host only), B-26, B-33A/B/C, B-34C, B-35 (deferred) and B-36 are unchanged.
-- **Next:** owner review of Phase 4C; then the device validation pass (B-37 first, then the first live execution).
+- **Phase 4.5 (brand & namespace migration): IN PROGRESS — host complete, Android CI not checked, device NOT_TESTED.**
+  `integration/game-runtime-clean` @ `5f6135a`. Public identity is now Zairenkai, with Synrei Thermal Intelligence
+  and Zairenkai Intelligence; Aeyrin stays internal. `zairenkai` is a symlink alias of `fluxd`. All compatibility
+  identifiers are frozen: module ID `flux`, `fluxd`, `/data/adb/.config/flux`, HiCo paths, `/dev/hico/state`,
+  `com.febricahyaa.synthesiscore`, update channel, log tag `FluxTweaks`, schema v1. The config compatibility
+  helper (`jni/brand/ConfigNamespace`) exists but is not called by fluxd. Host 35/35 PASS.
+  Docs: `BRAND_MIGRATION.md` and `brand_identifiers.tsv`.
+- **Next:** owner review of Phase 4C and 4.5; then the device validation pass (B-37 first, then the first live execution).
 - **Working rule (owner, 2026-10-05):** do not wait for / monitor CI completion; trigger it and report it as unchecked.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 
