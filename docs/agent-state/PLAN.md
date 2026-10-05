@@ -154,8 +154,14 @@ composer, RenderEngine, frame-timing availability, pipeline) capability facts, c
 Not in scope: graphics policy, refresh forcing, frame boosting, injection, upscaling, SurfaceFlinger changes; moving
 `RefreshMatcher`/`flux_refresh` onto these facts (B-12 remains).
 
-## Step 8.6 — Runtime bottleneck observation foundation (IN PROGRESS)
+## Step 8.6 — Runtime bottleneck observation foundation (APPROVED)
 
 Done (`920cb88`): evidence-based assessment model + thermal context interface + facts export (domain `bottleneck`, not
 published). Not in scope: optimisation actions, policy engine, WebUI, profile/GPU/thermal changes, a runtime sampler
 (CPU/GPU utilisation, PSI), a Synrei adapter, Observatory events (B-33).
+
+## Step 8.7 — Runtime metrics collector foundation (IN PROGRESS)
+
+Done (`e0e4bdd`): read-only collector + bottleneck input mapping. Not in scope: optimisation, policy, kernel/GPU/thermal
+changes, a periodic session sampler (call path), Synrei adapter, Observatory events, using metric confidence/verified as
+evidence weights in BottleneckModel.

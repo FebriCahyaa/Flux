@@ -241,3 +241,15 @@ Step 5: **IMPLEMENTED**, architecture approved by owner (2026-09-29). Device val
 | Forbidden-symbol check | clean |
 | CI https://github.com/FebriCahyaa/Flux/actions/runs/36674890357 | success |
 | Device | NOT_TESTED (no call path) |
+
+## Step 8.7 — Runtime metrics collector (`e0e4bdd`)
+
+| Check | Result |
+|---|---|
+| Tests first; CMake configure failed without `RuntimeMetrics.cpp` (red) | confirmed |
+| Host ctest (gcc, -Werror) | PASS 23/23 |
+| clang-18 -Werror syntax (module + test) | PASS |
+| Read-only: fake tree unchanged after sampling | PASS |
+| Forbidden-symbol check | clean |
+| CI | PENDING |
+| Device | NOT_TESTED (no call path) |

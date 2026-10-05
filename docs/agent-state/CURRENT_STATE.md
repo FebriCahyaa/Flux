@@ -79,12 +79,17 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   `integration/game-runtime-clean` @ `365c8df`: `jni/display/DisplayIntelligence.*` (FluxDisplay); domains `display` and
   `rendering` published by fluxd after graphics (dumpsys display, wm size, service list, properties, kernel DRM facts).
   Refresh capability != FPS (no fps facts). Host 21/21 PASS; clang-18 -Werror OK. CI 36670838946 green. Device: NOT_TESTED.
-- **Step 8.6 (runtime bottleneck observation foundation): IN PROGRESS.**
+- **Step 8.6 (runtime bottleneck observation foundation): APPROVED (owner).**
   `integration/game-runtime-clean` @ `920cb88`: `jni/bottleneck/BottleneckModel.*` (FluxBottleneck, linked, **no call path**:
   no runtime sampler exists yet). CPU/GPU/thermal/memory/storage/display, states CONFIRMED/LIKELY/POSSIBLE/UNKNOWN, evidence
   + confidence + source + timestamp on every observation, Synrei `ThermalContext` interface. Host 22/22 PASS; clang-18
   -Werror OK. CI 36674890357 green. Device: NOT_TESTED.
-- **Next:** owner review of Step 8.6.
+- **Step 8.7 (runtime metrics collector foundation): IN PROGRESS.**
+  `integration/game-runtime-clean` @ `e0e4bdd`: `jni/metrics/RuntimeMetrics.*` (FluxMetrics, linked, **no call path**).
+  CPU/GPU/memory/storage metrics via the read-only fs seam; each with value, timestamp, source, confidence, readable,
+  verified; missing/unreadable/malformed = UNKNOWN; `to_runtime_sample()` feeds BottleneckModel only. Host 23/23 PASS;
+  clang-18 -Werror OK. CI: see VALIDATION. Device: NOT_TESTED.
+- **Next:** owner review of Step 8.7.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 
 ## Repositories and branches
