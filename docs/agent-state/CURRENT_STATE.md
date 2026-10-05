@@ -228,3 +228,14 @@ NOT_TESTED. Details: `VALIDATION.md`.
   at the base commit (PyYAML `'true'` vs `True` difference in this environment). Doc: `SYNREI_BRAND_MIGRATION.md`.
   Open: the built `module/webroot` bundle still shows HiCo labels until the next WebUI build; EULA, CI names and
   repository names are unchanged (owner/legal decisions).
+
+- **Phase 4.5C (SynthesisCore → Zairenkai Intelligence, SynthesisCore repo): IN PROGRESS — source complete, CI not checked, device NOT_TESTED, release APK not rebuilt.**
+  SynthesisCore `ccr-0dc934d1-0a6zta` @ `2fe71b6`.
+  - Rebranded: README title and identity section, `app_name`, usage banner, release title, issue-template text. Aeyrin stays internal.
+  - Frozen: package and applicationId `com.febricahyaa.synthesiscore`, the `MainKt` entry and modes, `synthesis_version 3`,
+    release asset names `SynthesisCore-<tag>.apk*`, the `synthesiscore-release` event, the signing certificate and pin, `rootProject.name`.
+  - Runtime change: one help-text line.
+  - Tests: `tests/brand_migration_test.sh` PASS, twice. It is added to `ci.yml`.
+  - Gradle/Kotlin unit tests were not run locally (no Android SDK in the container); CI is not checked.
+  - Open: the APK label and banner reach devices only after the next signed release plus the Zairenkai prebuilt sync.
+  - Device blockers (B-37, B-39, …) unchanged.
