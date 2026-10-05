@@ -253,3 +253,11 @@ NOT_TESTED. Details: `VALIDATION.md`.
     - SynthesisCore brand test PASS (Gradle not run, no SDK).
   - CI: not checked. Device: NOT_TESTED.
   - New blockers: B-40, B-41.
+
+- **Phase 5 (Adaptive Optimization V1): IN PROGRESS — host complete, Android CI not checked, device NOT_TESTED.**
+  - Flux `integration/game-runtime-clean` @ `f3892bf`.
+  - `jni/adaptive` holds the pure evaluation and controller, wired into `LivePolicyController`.
+  - The flow: baseline gate → apply → post window → KEEP / ROLLBACK (PolicyExecutor RESTORE) / OBSERVE → cooldown and hysteresis.
+  - Also fixed: the PolicyExecutor stack-use-after-return (ASan) and test-only dangling references.
+  - Host 36/36 PASS, also under ASan. No new events; B-35 deferred.
+  - New blockers: B-42 (MITIGATE/RESTORE rule), B-43 (device).
