@@ -88,7 +88,7 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   `integration/game-runtime-clean` @ `e0e4bdd`: `jni/metrics/RuntimeMetrics.*` (FluxMetrics, linked, **no call path**).
   CPU/GPU/memory/storage metrics via the read-only fs seam; each with value, timestamp, source, confidence, readable,
   verified; missing/unreadable/malformed = UNKNOWN; `to_runtime_sample()` feeds BottleneckModel only. Host 23/23 PASS;
-  clang-18 -Werror OK. CI: see VALIDATION. Device: NOT_TESTED.
+  clang-18 -Werror OK. CI 37267128969 green. Device: NOT_TESTED.
 - **Next:** owner review of Step 8.7.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 

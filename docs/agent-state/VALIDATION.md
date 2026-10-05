@@ -251,5 +251,5 @@ Step 5: **IMPLEMENTED**, architecture approved by owner (2026-09-29). Device val
 | clang-18 -Werror syntax (module + test) | PASS |
 | Read-only: fake tree unchanged after sampling | PASS |
 | Forbidden-symbol check | clean |
-| CI | PENDING |
+| CI https://github.com/FebriCahyaa/Flux/actions/runs/37267128969 | success |
 | Device | NOT_TESTED (no call path) |
