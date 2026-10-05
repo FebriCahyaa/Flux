@@ -213,3 +213,9 @@ Prerequisite for any executor: a capability write + read-back verification step 
 Done (`181af15`): explicit-adapter transactional verifier, once-per-start fluxd lifecycle with journal recovery, context update
 preserving metadata. Not in scope: Policy Executor, executing any decision, more adapters (governor, scheduler, uclamp, cpuset,
 zram, input boost, display), telemetry persistence of results, thermal writes.
+
+## Phase 4B — Controlled policy executor (IN PROGRESS: host complete, no call path, device NOT_TESTED)
+
+Done (`eb329aa`): PolicyExecutor with trusted operations, gating, Transaction Engine execution, rollback/restore, idempotency.
+Not in scope: fluxd call path, adaptive optimisation (Phase 5), new operations, UI, telemetry expansion.
+Prerequisites for enabling on device: B-37 device validation (verified facts), owner decision on B-38.

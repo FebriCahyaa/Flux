@@ -150,7 +150,14 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   (next lower available frequency), block read_ahead_kb, vm.swappiness. Everything else `no_safe_verifier`; thermal refused;
   skipped while Synrei is boost/relaxed/safety. Host 31/31 PASS; clang-18 -Werror OK; CapabilityHost glue compiled against stubs.
   Android CI: triggered, NOT checked. **This is the first step that writes kernel nodes at daemon start (temporarily, then restored).**
-- **Next:** owner review of Step 8.14; device validation of verification is required before relying on verified=true.
+- **Phase 4B (controlled policy executor): IN PROGRESS — implementation complete on host, no fluxd call path, device NOT_TESTED.**
+  `integration/game-runtime-clean` @ `eb329aa`: `jni/policy/PolicyExecutor.*`. Executes an approved PolicyDecision exactly (no upgrade);
+  MITIGATE/BOOST → RuntimePlan(domain policy) of NodeWriteOperations through the existing Transaction Engine; RESTORE = finish() of the
+  executor-owned transaction. Trusted operations only: cpufreq scaling_max_freq, KGSL max_gpuclk, devfreq max_freq (one listed step:
+  next lower / highest within known max). Gating: supported, readable, writable, verified, rollback, risk Low/Medium, not planner-owned;
+  decision constraints, Synrei safety (BOOST), runtime state, idempotency. Existing TRANSACTION_* events; registry 19, schema v1.
+  Host 32/32 PASS; clang-18 -Werror OK. Android CI: triggered, NOT checked.
+- **Next:** owner review of Phase 4B (incl. MITIGATE semantics question, B-38); device validation pass (B-37 first).
 - **Working rule (owner, 2026-10-05):** do not wait for / monitor CI completion; trigger it and report it as unchecked.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 

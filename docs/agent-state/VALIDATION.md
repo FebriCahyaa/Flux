@@ -360,3 +360,17 @@ Open device blockers unchanged: B-26, B-33A, B-33B, B-33C, B-34C, B-36; B-35 def
 | Device | NOT_TESTED — verified=true never observed on a real device |
 
 Open: B-26, B-33A, B-33B, B-33C, B-34C, B-36, B-37 (host only); B-35 deferred.
+
+## Phase 4B — Controlled policy executor (`eb329aa`)
+
+| Check | Result |
+|---|---|
+| Tests first; CMake configure failed without `PolicyExecutor.cpp` (red) | confirmed |
+| Host ctest (gcc, -Wall -Wextra -Wpedantic -Werror) | PASS 32/32 (new `policy_executor_test`: 6 functions covering the 33 required cases) |
+| clang-18 -Werror (C++20 + C++2b) | PASS |
+| Write-path scan of jni/policy: only the counting Io wrapper handed to NodeWriteOperation; no system/popen/exec/fopen | confirmed |
+| Forbidden-symbol check | clean |
+| Android CI | triggered, **not checked** |
+| Device | NOT_TESTED (no call path) |
+
+Open: B-26, B-33A, B-33B, B-33C, B-34C, B-36, B-37 (host only), B-38; B-35 deferred.
