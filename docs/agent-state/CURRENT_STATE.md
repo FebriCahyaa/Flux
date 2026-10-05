@@ -239,3 +239,17 @@ NOT_TESTED. Details: `VALIDATION.md`.
   - Gradle/Kotlin unit tests were not run locally (no Android SDK in the container); CI is not checked.
   - Open: the APK label and banner reach devices only after the next signed release plus the Zairenkai prebuilt sync.
   - Device blockers (B-37, B-39, …) unchanged.
+
+- **Phase 4.5D (cross-repository ecosystem audit): DONE — Phase 4.5 brand migration is COMPLETE WITH RELEASE ARTIFACT / DEVICE VALIDATION PENDING.**
+  - Audited commits: Flux `5f6135a`, HiCo `b7f7845c`, SynthesisCore `2fe71b6`.
+  - Audit commit: Flux `5cfcbd4` (`ECOSYSTEM_INTEGRATION_AUDIT.md`, `tests/ecosystem_contract_check.sh`, 95/95 PASS).
+  - Fixes:
+    - HiCo `7c35644f`: WebUI integrity manifest refreshed after the 4.5B label edits (`verify_webui` would have failed CI); brand-test history check made opt-in.
+    - SynthesisCore `e41d746`: brand-test history check made opt-in.
+  - All cross-repo contracts are consistent.
+  - Tests:
+    - Flux 35/35;
+    - HiCo ctest 3/3, Python 20/21 (`ingest_test` fails identically at the pre-migration base);
+    - SynthesisCore brand test PASS (Gradle not run, no SDK).
+  - CI: not checked. Device: NOT_TESTED.
+  - New blockers: B-40, B-41.
