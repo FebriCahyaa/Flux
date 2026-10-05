@@ -16,6 +16,8 @@ LivePolicyController::LivePolicyController(const flux::metrics::RuntimeMetricsSa
 void LivePolicyController::begin(const std::string &session_id) {
     session_id_ = session_id;
     adaptive_.reset(session_id);
+    thermal_hold_ = false;
+    hold_since_ms_ = 0;
     enabled_ = true;
     seen_samples_ = sampler_.samples_taken(); // only samples taken from now on are fresh
     skipped_.clear();
@@ -40,6 +42,8 @@ PolicyInputs LivePolicyController::inputs(const std::string &session_id, int64_t
     // The decision concerns the executor's own changes; GameRuntime's transaction is validated
     // separately by the executor (ExecutionContext).
     in.runtime.transaction = executor_.active() ? rt::TxState::Active : rt::TxState::Inactive;
+    in.runtime.active_intervention = executor_.active_key();
+    in.runtime.thermal_hold = thermal_hold_;
 
     // Thermal: the newest Synrei snapshot the sampler recorded, as recorded (stale stays stale).
     const auto &th = sampler_.thermal_history().items();
@@ -103,11 +107,21 @@ std::optional<LiveEvaluation> LivePolicyController::tick(const std::string &sess
         const auto in = inputs(session_id, now_ms);
         adaptive_.observe(sample(in)); // Observe impact: one fresh sample, baseline or post window
 
+        // B-42 thermal hold: cleared only by a newer, verified Synrei state other than safety (never by
+        // temperatures, an unknown or a stale state). The clearing sample executes nothing: the next
+        // fresh sample is evaluated normally, and nothing is re-applied automatically.
+        bool hold_cleared = false;
+        if (thermal_hold_ && in.thermal && in.thermal->readable && in.thermal->verified && !in.thermal->state.empty() &&
+            in.thermal->state != "safety" && in.thermal->timestamp_ms > hold_since_ms_) {
+            thermal_hold_ = false;
+            hold_cleared = true;
+        }
+
         // Compare → Keep or Rollback: the active intervention is judged before anything new is decided.
         if (adaptive_.phase() == zairenkai::adaptive::Phase::Evaluating) {
             e.adaptive = adaptive_.evaluate(now_ms);
             if (e.adaptive && e.adaptive->verdict == zairenkai::adaptive::Verdict::Rollback) {
-                e.execution = restore(e, now_ms);
+                e.execution = restore(e, in, now_ms);
                 ++evaluations_;
                 last_ = e;
                 notify(e);
@@ -126,6 +140,16 @@ std::optional<LiveEvaluation> LivePolicyController::tick(const std::string &sess
         const bool intervention = e.decision.action == Action::Boost || e.decision.action == Action::Mitigate;
         const std::string key = std::string(to_string(e.decision.action)) + ":" + e.decision.target;
         const std::string sig = intervention ? signature(e.decision, in) : "";
+        if (intervention && hold_cleared) {
+            e.adaptive_gate = "thermal_hold_cleared: fresh evidence required";
+            e.execution.requested_action = e.decision.action;
+            e.execution.final_status = ExecutionStatus::NotExecuted;
+            e.execution.reason = "adaptive: " + e.adaptive_gate;
+            ++evaluations_;
+            last_ = e;
+            notify(e);
+            return e;
+        }
         if (intervention) {
             const auto adm = adaptive_.admit(key, sig, now_ms, e.decision.action == Action::Mitigate);
             e.adaptive_gate = adm.reason;
@@ -139,7 +163,9 @@ std::optional<LiveEvaluation> LivePolicyController::tick(const std::string &sess
                 return e;
             }
         }
+        const std::string key_before = executor_.active_key();
         e.execution = executor_.execute(e.decision, x);
+        note_restore(key_before, in, e.execution);
         if (intervention) {
             using zairenkai::adaptive::ExecutionOutcome;
             const auto st = e.execution.final_status;
@@ -229,7 +255,16 @@ std::string LivePolicyController::signature(const PolicyDecision &d, const Polic
     return sig;
 }
 
-PolicyExecutionResult LivePolicyController::restore(LiveEvaluation &e, int64_t now_ms) {
+void LivePolicyController::note_restore(const std::string &key_before, const PolicyInputs &in,
+                                        const PolicyExecutionResult &r) {
+    // Entering the hold: a BOOST was taken back while Synrei (verified) reports safety.
+    if (r.requested_action != Action::Restore || !r.executed || key_before.rfind("BOOST:", 0) != 0) return;
+    if (zairenkai::adaptive::from_synrei(in.thermal) != zairenkai::adaptive::Thermal::Safety) return;
+    thermal_hold_ = true;
+    hold_since_ms_ = in.thermal->timestamp_ms;
+}
+
+PolicyExecutionResult LivePolicyController::restore(LiveEvaluation &e, const PolicyInputs &in, int64_t now_ms) {
     // Rollback through the existing restoration path: a RESTORE of the executor's own transaction.
     // No value is chosen and no node is named here; PolicyExecutor finishes its transaction.
     PolicyDecision d;
@@ -246,7 +281,9 @@ PolicyExecutionResult LivePolicyController::restore(LiveEvaluation &e, int64_t n
     x.session_id = session_id_;
     x.runtime = runtime_state();
     x.capabilities = capabilities_;
+    const std::string key_before = executor_.active_key();
     auto r = executor_.execute(d, x);
+    note_restore(key_before, in, r);
     adaptive_.restored(r.final_status == ExecutionStatus::Restored, now_ms);
     return r;
 }

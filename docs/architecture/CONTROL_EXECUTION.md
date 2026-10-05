@@ -74,3 +74,12 @@ Each fresh sample is also fed to `AdaptiveController` (`ADAPTIVE_OPTIMIZATION.md
   hysteresis) before the executor runs.
 
 Restore ordering at session end is unchanged.
+
+## Thermal hold (B-42)
+
+**Entering the hold:** when a BOOST is restored while Synrei (verified) reports safety, the live loop enters a state-based thermal hold.
+- **While it is active:** the DecisionEngine does not recommend BOOST.
+- **Clearing it:** only a newer, verified Synrei state other than safety clears it. The clearing sample executes nothing, and normal evaluation resumes on the next fresh sample.
+
+An active MITIGATE under safety stays in place: the DecisionEngine returns NO_ACTION. This removes
+the MITIGATE ↔ RESTORE oscillation. PolicyExecutor and the Transaction Engine are unchanged.

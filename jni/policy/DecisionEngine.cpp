@@ -106,7 +106,9 @@ PolicyDecision decide(const PolicyInputs &in) {
     if (rt.transaction == TxState::Restoring) restore.push_back("transaction restore incomplete");
     if (rt.transaction == TxState::Active && !rt.game_active) restore.push_back("transaction active without an active game");
     if (rt.recovery_failed) restore.push_back("journal recovery left entries unrestored");
-    if (thermal == Thermal::Safety && rt.transaction == TxState::Active && rt.game_active) {
+    // B-42: an applied MITIGATE already lowers a ceiling, which is what safety asks for: it stays.
+    const bool mitigation_active = rt.active_intervention.rfind("MITIGATE:", 0) == 0;
+    if (thermal == Thermal::Safety && rt.transaction == TxState::Active && rt.game_active && !mitigation_active) {
         restore.push_back("Synrei reports safety while performance changes are applied");
         x.constrain(ConstraintKind::ThermalSafety, "boost", "thermal safety overrides performance intent");
         x.blocking("thermal", in.thermal->source, in.thermal->state);
@@ -122,6 +124,20 @@ PolicyDecision decide(const PolicyInputs &in) {
         for (const auto &r : restore) why += (why.empty() ? "" : "; ") + r;
         x.constrain(ConstraintKind::RestoreRequired, rt.transaction_id.empty() ? "transaction" : rt.transaction_id, why);
         x.d.reason = "Restore takes priority: " + why + ".";
+        finish(x, in);
+        return x.d;
+    }
+
+    // -- 1b. Safety with the mitigation already applied: nothing further to do (no re-MITIGATE) --
+    if (thermal == Thermal::Safety && rt.transaction == TxState::Active && rt.game_active && mitigation_active) {
+        x.d.action = Action::NoAction;
+        x.d.confidence = thermal_conf;
+        x.d.target = rt.active_intervention.substr(rt.active_intervention.find(':') + 1);
+        x.constrain(ConstraintKind::ThermalSafety, "boost", "thermal safety overrides performance intent");
+        x.support("thermal", in.thermal->source, in.thermal->state);
+        x.support("runtime", "active_intervention", rt.active_intervention);
+        x.d.reason = "Synrei reports safety and the mitigation " + rt.active_intervention +
+                     " is already applied; it stays in place.";
         finish(x, in);
         return x.d;
     }
@@ -243,6 +259,13 @@ PolicyDecision decide(const PolicyInputs &in) {
         boost_ok = false;
         x.constrain(ConstraintKind::ProfileIntent, "boost",
                     std::string("profile '") + to_string(in.profile.mode) + "' does not request performance");
+    }
+    if (rt.thermal_hold) {
+        // B-42: a BOOST was restored under Synrei safety; until a fresh verified Synrei state other
+        // than safety clears the hold, BOOST is not recommended again.
+        x.constrain(ConstraintKind::ThermalSafety, "hold", "thermal hold after a BOOST was restored under safety");
+        return observe(weaker(confidence, cx::Confidence::Medium),
+                       "Thermal hold is active after a BOOST was restored under Synrei safety; observing.");
     }
     if (!apply_gate(gate(in.capabilities, target), target))
         return observe(weaker(confidence, cx::Confidence::Medium),

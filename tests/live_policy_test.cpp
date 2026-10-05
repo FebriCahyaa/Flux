@@ -112,6 +112,7 @@ ctx::CapabilityContext caps(bool verified = true) {
 struct Evidence {
     std::string synrei = "boost";
     bool synrei_verified = true;
+    std::optional<double> cpu_temp; // temperature reading only; never a thermal verdict
     double fps = 41;
     b::Kind kind = b::Kind::Cpu;
     b::State state = b::State::Confirmed;
@@ -130,6 +131,10 @@ t::ThermalSnapshot snapshot(const Evidence &e, int64_t now) {
     if (e.synrei_verified && e.synrei == "safety") s.constraint = t::Constraint::Constrained;
     else if (e.synrei_verified && e.synrei == "boost") s.constraint = t::Constraint::Unconstrained;
     if (!e.synrei_verified) s.note = "stale";
+    if (e.cpu_temp) {
+        s.cpu.celsius = e.cpu_temp;
+        s.cpu.readable = true;
+    }
     return s;
 }
 
@@ -524,6 +529,73 @@ void test_adaptive_live() {
     }
 }
 
+// B-42: thermal safety with active interventions and the state-based thermal hold.
+void test_b42_thermal_hold() {
+    Rig r;
+    CHECK(r.start());
+    r.samples(3);
+    CHECK(r.executor.active() && r.executor.active_key() == "BOOST:cpu");
+    CHECK(!r.live.thermal_hold());
+
+    // 3, 4. safety with BOOST active: BOOST restored, hold entered.
+    r.ev.synrei = "safety";
+    r.samples(1);
+    CHECK(r.live.last()->execution.final_status == p::ExecutionStatus::Restored);
+    CHECK_EQ(r.dev.nodes[MAX4], std::string("2016000"));
+    CHECK(r.live.thermal_hold());
+
+    // 5, 6, 7. safety persists: hold stays, BOOST never re-applied. 14: MITIGATE waits for the cooldown.
+    r.samples(5);
+    CHECK(r.live.thermal_hold());
+    CHECK(r.live.last()->decision.action == p::Action::Mitigate);
+    CHECK(r.live.last()->adaptive_gate.rfind("cooldown", 0) == 0);
+    CHECK_EQ(r.dev.nodes[MAX4], std::string("2016000"));
+
+    // 1. after the cooldown, safety with nothing active -> MITIGATE (one step down).
+    r.samples(20);
+    r.samples(10);
+    CHECK(r.executor.active() && r.executor.active_key() == "MITIGATE:cpu");
+    CHECK_EQ(r.dev.nodes[MAX4], std::string("1574400"));
+
+    // 2, 13. safety with the matching MITIGATE active: NO_ACTION, no restore, no oscillation.
+    const int writes = r.dev.writes;
+    std::set<std::string> actions;
+    for (int i = 0; i < 12; ++i) {
+        r.samples(1);
+        actions.insert(p::to_string(r.live.last()->decision.action));
+    }
+    CHECK(actions == std::set<std::string>{"NO_ACTION"});
+    CHECK_EQ(r.dev.writes, writes);
+    CHECK_EQ(r.dev.nodes[MAX4], std::string("1574400"));
+    CHECK(r.live.thermal_hold());
+
+    // 10, 11. unknown / stale Synrei does not clear the hold; 12. nor does a cool temperature alone.
+    r.ev.synrei_verified = false;
+    r.ev.synrei = "boost";
+    r.samples(3);
+    CHECK(r.live.thermal_hold());
+    r.ev.synrei_verified = true;
+    r.ev.synrei = "safety";
+    r.ev.cpu_temp = 30;
+    r.samples(2);
+    CHECK(r.live.thermal_hold());
+
+    // 8. a fresh verified state other than safety clears it; the clearing sample executes nothing.
+    r.ev.synrei = "boost";
+    r.samples(1);
+    CHECK(!r.live.thermal_hold());
+    // 9. no automatic re-application: the mitigation stays, no BOOST is applied on following samples.
+    r.samples(6);
+    CHECK(r.executor.active_key() == "MITIGATE:cpu");
+    CHECK_EQ(r.dev.nodes[MAX4], std::string("1574400"));
+    CHECK_EQ(r.dev.writes, writes);
+
+    // Session end restores the mitigation before GameRuntime, as before.
+    r.mgr.end(s::EndReason::Exit, r.ev.now + 1);
+    CHECK_EQ(r.dev.nodes[MAX4], std::string("2016000"));
+    CHECK(!r.live.thermal_hold() || !r.live.enabled());
+}
+
 } // namespace
 
 int main() {
@@ -535,5 +607,6 @@ int main() {
     test_failures();
     test_isolation();
     test_adaptive_live();
+    test_b42_thermal_hold();
     return flux_test::report("live_policy_test");
 }

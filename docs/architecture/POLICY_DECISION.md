@@ -169,3 +169,17 @@ fluxd evaluates the engine during a session through `LivePolicyController` (`CON
 once per new RuntimeMetrics sample, with the in-session `RuntimeMetricsSampler::assess()` result, the
 newest Synrei snapshot, FPS evidence from the sampler window, the daemon profile mode and the
 GameRuntime state. The engine itself is unchanged apart from the B-38 rule above.
+
+## Thermal safety with an active intervention (B-42)
+
+`RuntimeEvidence` carries:
+- `active_intervention`, the executor's `<ACTION>:<target>`;
+- `thermal_hold`, set by the live loop.
+
+The rules:
+- **Safety + active BOOST, or an unknown active transaction:** RESTORE (unchanged).
+- **Safety + active MITIGATE:** NO_ACTION; the mitigation stays. A Failed or Restoring transaction is still restored first.
+- **Safety + nothing active:** MITIGATE if the gate is actionable, otherwise OBSERVE (unchanged).
+- **Thermal hold:** BOOST becomes OBSERVE, with constraint `ThermalSafety / hold`.
+
+The action vocabulary is unchanged.

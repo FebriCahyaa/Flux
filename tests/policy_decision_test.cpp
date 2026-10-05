@@ -332,6 +332,45 @@ void test_b38_mitigate_semantics() {
     }
 }
 
+// B-42: thermal safety semantics with an active intervention, and the thermal hold.
+void test_b42_thermal_safety() {
+    auto c = caps({control("cpufreq.policy4.scaling_max_freq", "cpufreq")});
+    auto in = base(&c);
+    in.thermal = synrei("safety");
+    in.bottleneck = result(b::Kind::Cpu, b::State::Confirmed, ctx::Confidence::High);
+    CHECK(engine.evaluate(in).action == p::Action::Mitigate); // 1. safety, nothing active -> MITIGATE
+    in.runtime.transaction = TxState::Active;
+    in.runtime.active_intervention = "MITIGATE:cpu";
+    auto keep = engine.evaluate(in); // 2. matching mitigation already applied -> NO_ACTION (no re-MITIGATE)
+    CHECK(keep.action == p::Action::NoAction);
+    CHECK_EQ(keep.target, std::string("cpu"));
+    in.runtime.active_intervention = "BOOST:cpu";
+    CHECK(engine.evaluate(in).action == p::Action::Restore); // 3. active BOOST -> RESTORE
+    in.runtime.active_intervention.clear();                   // unknown kind: safe default unchanged
+    CHECK(engine.evaluate(in).action == p::Action::Restore);
+    in.runtime.active_intervention = "MITIGATE:cpu";
+    in.runtime.transaction = TxState::Failed; // a failed transaction is still restored first
+    CHECK(engine.evaluate(in).action == p::Action::Restore);
+    auto u = caps({control("cpufreq.policy4.scaling_max_freq", "cpufreq", false)});
+    auto un = base(&u);
+    un.thermal = synrei("safety");
+    CHECK(engine.evaluate(un).action == p::Action::Observe); // no verified reversible control -> OBSERVE
+
+    // 5. hold blocks BOOST that would otherwise be recommended; 16. without the hold, unchanged.
+    auto bo = base(&c);
+    bo.thermal = synrei("boost");
+    bo.bottleneck = result(b::Kind::Cpu, b::State::Confirmed, ctx::Confidence::High);
+    bo.fps = shortfall();
+    bo.profile.mode = p::ProfileMode::Performance;
+    CHECK(engine.evaluate(bo).action == p::Action::Boost);
+    bo.runtime.thermal_hold = true;
+    auto held = engine.evaluate(bo);
+    CHECK(held.action == p::Action::Observe);
+    CHECK(has(held, p::ConstraintKind::ThermalSafety, "hold"));
+    // 21. deterministic
+    CHECK_EQ(p::explain(engine.evaluate(bo)), p::explain(held));
+}
+
 void test_determinism_and_evidence() {
     auto c1 = caps({control("gpu.kgsl.max_gpuclk", "gpu")});
     auto c2 = caps({control("gpu.kgsl.max_gpuclk", "gpu")});
@@ -423,6 +462,7 @@ int main() {
     test_restore_priority();
     test_profile_intent();
     test_b38_mitigate_semantics();
+    test_b42_thermal_safety();
     test_determinism_and_evidence();
     test_no_writes_and_isolation();
     test_b35_unchanged();

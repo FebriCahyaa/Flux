@@ -69,6 +69,8 @@ class LivePolicyController {
     const std::string &skipped() const { return skipped_; }
     /// Adaptive Optimization V1 (Phase 5): evaluation of the executed intervention's outcome.
     const zairenkai::adaptive::AdaptiveController &adaptive() const { return adaptive_; }
+    /// Thermal hold (B-42): set when a BOOST is restored under Synrei safety.
+    bool thermal_hold() const { return thermal_hold_; }
 
     /// Inputs exactly as tick() would build them (exposed for tests / explanation).
     PolicyInputs inputs(const std::string &session_id, int64_t now_ms) const;
@@ -78,7 +80,8 @@ class LivePolicyController {
     void notify(const LiveEvaluation &e) const;
     zairenkai::adaptive::Sample sample(const PolicyInputs &in) const;
     std::string signature(const PolicyDecision &d, const PolicyInputs &in) const;
-    PolicyExecutionResult restore(LiveEvaluation &e, int64_t now_ms);
+    PolicyExecutionResult restore(LiveEvaluation &e, const PolicyInputs &in, int64_t now_ms);
+    void note_restore(const std::string &key_before, const PolicyInputs &in, const PolicyExecutionResult &r);
 
     const flux::metrics::RuntimeMetricsSampler &sampler_;
     const flux::context::CapabilityContext *capabilities_;
@@ -90,6 +93,8 @@ class LivePolicyController {
     zairenkai::adaptive::AdaptiveController adaptive_;
     bool enabled_ = false;
     bool recovery_failed_ = false;
+    bool thermal_hold_ = false;   // B-42: state-based, driven only by Synrei's verified state
+    int64_t hold_since_ms_ = 0;   // timestamp of the Synrei snapshot that entered the hold
     std::string session_id_;
     uint64_t seen_samples_ = 0;
     uint64_t evaluations_ = 0;

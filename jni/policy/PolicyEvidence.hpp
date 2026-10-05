@@ -40,6 +40,12 @@ struct RuntimeEvidence {
     flux::runtime::TxState transaction = flux::runtime::TxState::Inactive;
     std::string transaction_id;
     bool recovery_failed = false; // RecoveryReport not clean: journal kept
+    /// "<ACTION>:<target>" of the policy transaction that is active ("" = unknown / none). Lets the
+    /// engine tell an applied MITIGATE (aligned with thermal safety) from an applied BOOST.
+    std::string active_intervention;
+    /// Thermal hold (B-42): entered when a BOOST was restored under Synrei safety; cleared by the
+    /// live loop only on a fresh, verified Synrei state other than safety. While set: no BOOST.
+    bool thermal_hold = false;
 };
 
 struct HistoricalEvidence {

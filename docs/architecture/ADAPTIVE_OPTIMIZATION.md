@@ -109,6 +109,31 @@ otherwise unknown. Temperatures are never used to infer safety. Under safety, BO
 admitted by the executor, and a BOOST already applied is rolled back by the adaptive loop or
 restored by the DecisionEngine RESTORE rule.
 
+## Thermal safety and thermal hold (B-42)
+
+**Semantics:**
+- **Synrei safety + active BOOST:** the BOOST is restored, either by the adaptive rollback or by the
+  DecisionEngine RESTORE. The live loop then enters **THERMAL_HOLD**.
+- **Synrei safety + active MITIGATE:** the mitigation stays in place. MITIGATE already lowers the
+  ceiling one step, which is what safety asks for. The DecisionEngine returns **NO_ACTION**: no
+  restore and no second MITIGATE.
+- **Synrei safety + nothing active:** MITIGATE through a verified reversible control, otherwise OBSERVE.
+- **Synrei safety + an unknown or failed transaction:** RESTORE (the existing safe default).
+
+**THERMAL_HOLD is state-based:**
+- **While it is active:** the DecisionEngine never recommends BOOST, nothing is re-applied
+  automatically and nothing escalates.
+- **When it clears:** only when a Synrei snapshot newer than the one that entered the hold is
+  verified and reports a state other than safety. An unknown state, a stale or unverified
+  snapshot, or a temperature reading never clears it.
+- **The clearing sample:** executes nothing. The next fresh sample goes through normal DecisionEngine
+  evaluation and the usual baseline, cooldown and hysteresis rules, so the previous action is never
+  re-applied automatically.
+- **Cooldowns:** unchanged (30 s after KEEP, 60 s after rollback, restore or failure). They are not
+  the safety mechanism.
+- **Ownership:** the hold is a gate on Zairenkai's own policy decisions, not a second thermal state
+  machine. Synrei remains the only thermal owner, and the hold only reads its reported state.
+
 ## Ownership
 
 | Component | Owns |
@@ -141,10 +166,6 @@ state outside the session (`reset()` at session start).
 
 ## Known limitations
 
-- **B-42 (new):** under Synrei safety, the DecisionEngine recommends MITIGATE. With that executor
-  transaction active it then returns RESTORE on the next sample, because its RESTORE rule
-  (safety + active transaction) does not distinguish MITIGATE from BOOST. Phase 5 does not change
-  the DecisionEngine. The adaptive cooldown bounds the resulting MITIGATE → RESTORE cycle to one per
-  60 s, and the owner must decide the DecisionEngine rule.
+- **B-42:** resolved; see "Thermal safety and thermal hold".
 - The thresholds are initial values, not calibrated on devices (as for B-33C).
 - The first physical adaptive run must be supervised and use one narrowly bounded intervention.
