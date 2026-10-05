@@ -125,7 +125,7 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   `fluxd telemetry status|retention|query` (read-only; retention dry run). sessions.json / session_live.json / thresholds
   unchanged; no WebUI. Host 28/28 PASS; clang-18 -Werror OK (CLI handler and ObservatoryHost compiled against stubs:
   spdlog absent locally). CI: triggered, not monitored. Device: NOT_TESTED.
-- **Step 8.12 (Observatory historical analysis & explanation layer): IN PROGRESS — implementation complete, validation pending.**
+- **Step 8.12 (Observatory historical analysis & explanation layer): IMPLEMENTED (owner); CI/device validation pending.**
   `integration/game-runtime-clean` @ `0c23fc0`: `jni/observatory/{SessionTimeline,Explanation,ObservatoryAnalyzer,TelemetryCli}.*`,
   additive read-only `PersistentEventStore::newest_timestamp()`, `fluxd telemetry session|analyze|history` (read-only; existing
   commands moved unchanged into `TelemetryCli`). Session reconstruction, transaction / recovery / bottleneck (as recorded) /
@@ -135,7 +135,14 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   against stubs. CI: triggered, NOT checked. Device: NOT_TESTED.
   Limitation recorded: Synrei state transitions and per-sample FPS are not persisted as events, so the analysis can use only
   the bottleneck assessment's thermal/FPS evidence.
-- **Next:** owner review of Step 8.12.
+- **Step 8.13 (decision & policy foundation): IN PROGRESS — implementation complete, validation pending.**
+  `integration/game-runtime-clean` @ `7f84189`: `jni/policy/{PolicyEvidence,PolicyConstraint,PolicyDecision,DecisionEngine}.*`
+  (FluxPolicy linked, **no call path, no executor**). Actions NO_ACTION/OBSERVE/MITIGATE/BOOST/RESTORE; hierarchy RESTORE >
+  NO_ACTION > MITIGATE > BOOST; Synrei safety forbids BOOST; unknown/stale thermal, conflicting/insufficient bottleneck → OBSERVE;
+  capability gating (unsupported/unreadable/non-writable blocked, writable-unverified restricted) — with today's verified=false
+  kernel facts, device decisions stay OBSERVE. Pure, deterministic, no I/O; no new event types (registry 19, schema v1);
+  B-35 untouched. Host 30/30 PASS; clang-18 -Werror (C++20 and C++2b) OK. Android CI: triggered, NOT checked. Device: NOT_TESTED.
+- **Next:** owner review of Step 8.13.
 - **Working rule (owner, 2026-10-05):** do not wait for / monitor CI completion; trigger it and report it as unchecked.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 

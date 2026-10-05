@@ -195,9 +195,15 @@ Done (`1ee1c7a`): persistent telemetry store, indexes/queries, rolling 7 × 24 h
 epoch, failure isolation, read-only CLI hooks. Not in scope: WebUI/dashboard/export UI, sessions.json changes, threshold
 changes, optimisation policy, cross-process locking for the CLI (read-only by design).
 
-## Step 8.12 — Observatory historical analysis & explanation layer (IN PROGRESS: implementation complete, validation pending)
+## Step 8.12 — Observatory historical analysis & explanation layer (IMPLEMENTED; CI/device validation pending)
 
 Done (`0c23fc0`): read-only session timelines, evidence-backed explanations (lifecycle, transaction, recovery, bottleneck,
 thermal, FPS), deterministic summaries, bounded 7-day history patterns, read-only CLI. Not in scope: WebUI/dashboard, new
 event producers (Synrei transitions, per-sample FPS — would be a separate owner decision), optimisation/policy, telemetry
 format/retention changes.
+
+## Step 8.13 — Decision & policy foundation (IN PROGRESS: implementation complete, validation pending)
+
+Done (`7f84189`): evidence-driven DecisionEngine → PolicyDecision (Decide stage only). Not in scope: Policy Executor,
+RuntimePlan generation from decisions, any device write, POLICY_* events, B-35 telemetry expansion, a fluxd call path.
+Prerequisite for any executor: a capability write + read-back verification step (all kernel facts are verified=false).
