@@ -195,11 +195,17 @@ target_compile_options(flux_bottleneck PRIVATE ${FLUX_WARNINGS})
 flux_add_test(bottleneck_model_test tests/bottleneck_model_test.cpp)
 target_link_libraries(bottleneck_model_test PRIVATE flux_bottleneck)
 
+# -- thermal context (read-only; Synrei adapter) ---------------------------------
+add_library(flux_thermal STATIC jni/thermal/ThermalContext.cpp jni/thermal/SynreiThermalAdapter.cpp)
+target_include_directories(flux_thermal PUBLIC jni/thermal)
+target_link_libraries(flux_thermal PUBLIC flux_kernel flux_bottleneck flux_context)
+target_compile_options(flux_thermal PRIVATE ${FLUX_WARNINGS})
+
 # -- runtime metrics collector (read-only; feeds the bottleneck model) -----------
 add_library(flux_metrics STATIC jni/metrics/RuntimeMetrics.cpp jni/metrics/RuntimeMetricsSampler.cpp
   jni/metrics/FpsObservation.cpp)
 target_include_directories(flux_metrics PUBLIC jni/metrics)
-target_link_libraries(flux_metrics PUBLIC flux_kernel flux_bottleneck flux_context flux_session)
+target_link_libraries(flux_metrics PUBLIC flux_kernel flux_bottleneck flux_context flux_session flux_thermal)
 target_compile_options(flux_metrics PRIVATE ${FLUX_WARNINGS})
 
 flux_add_test(runtime_metrics_test tests/runtime_metrics_test.cpp)
@@ -210,3 +216,6 @@ target_link_libraries(runtime_metrics_sampler_test PRIVATE flux_metrics)
 
 flux_add_test(fps_observation_test tests/fps_observation_test.cpp)
 target_link_libraries(fps_observation_test PRIVATE flux_metrics)
+
+flux_add_test(synrei_thermal_context_test tests/synrei_thermal_context_test.cpp)
+target_link_libraries(synrei_thermal_context_test PRIVATE flux_metrics flux_thermal)

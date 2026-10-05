@@ -105,3 +105,14 @@ at most POSSIBLE (B-33A). Thermal stays UNKNOWN until Synrei is connected (B-33B
 (≤ 3 s) and newer than the previous one (`FPS_OBSERVATION.md`). Thresholds and rules are unchanged:
 when FPS is missing, no frame deficit is assumed and states stay at most POSSIBLE. FPS is never
 estimated from load.
+
+## Thermal evidence from Synrei (Step 8.9)
+
+`ThermalContext` is fed by `flux::thermal::ThermalHistory` (`SYNREI_THERMAL_CONTEXT.md`), built from Synrei's
+published state:
+- `safety` → throttling;
+- `boost` → not throttling;
+- anything else, or unverified or stale context → no evidence.
+
+There is no `cap_ratio`. Thresholds are unchanged, and a constraint is never inferred from temperature.
+Without Synrei, thermal stays UNKNOWN.

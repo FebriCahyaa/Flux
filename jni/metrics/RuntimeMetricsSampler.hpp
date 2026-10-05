@@ -16,6 +16,7 @@
 #include "KernelIntelligence.hpp"
 #include "RuntimeMetrics.hpp"
 #include "SessionManager.hpp"
+#include "ThermalContext.hpp"
 
 #include <cstdint>
 #include <deque>
@@ -48,12 +49,16 @@ struct SampleNotice {
 };
 using SampleObserver = std::function<void(const SampleNotice &)>;
 
+/// Read-only thermal context for one sample (e.g. SynreiThermalAdapter::read). Optional.
+using ThermalSource = std::function<flux::thermal::ThermalSnapshot(int64_t now_ms)>;
+
 class RuntimeMetricsSampler {
   public:
     enum class State { Idle, Running, Failed };
 
     RuntimeMetricsSampler(const flux::kernel::ReadOnlyFs &fs, const flux::context::CapabilityContext *context,
-                          SamplerConfig config = {}, FpsSource fps = nullptr);
+                          SamplerConfig config = {}, FpsSource fps = nullptr,
+                          ThermalSource thermal = nullptr);
 
     /// False when already running for this session (duplicate ignored). A different session
     /// replaces the running one (its samples are dropped).
@@ -70,7 +75,11 @@ class RuntimeMetricsSampler {
     const std::deque<flux::bottleneck::RuntimeSample> &window() const { return window_; }
     const std::optional<MetricsSnapshot> &last_snapshot() const { return last_; }
 
+    /// Thermal snapshots of this session (evidence for the BottleneckModel).
+    const flux::thermal::ThermalHistory &thermal_history() const { return history_; }
+
     /// BottleneckModel judgement over the current window (or the last session's at stop).
+    /// Without an explicit thermal context, the session's own thermal history is used.
     flux::bottleneck::Assessment assess(int64_t now_ms, const flux::bottleneck::PerformanceState &perf = {},
                                         const flux::bottleneck::ThermalContext *thermal = nullptr) const;
     const std::optional<flux::bottleneck::Assessment> &final_assessment() const { return final_; }
@@ -80,11 +89,14 @@ class RuntimeMetricsSampler {
 
   private:
     void notify(const SampleNotice &n) const;
+    void add_thermal(MetricsSnapshot &snap, int64_t now_ms);
     const flux::kernel::ReadOnlyFs &fs_;
     const flux::context::CapabilityContext *context_;
     SamplerConfig config_;
     FpsSource fps_;
     int64_t last_fps_ts_ = 0; // newest accepted observation (ordering)
+    ThermalSource thermal_;
+    flux::thermal::ThermalHistory history_;
     SampleObserver observer_;
     State state_ = State::Idle;
     std::string session_id_;

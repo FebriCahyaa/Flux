@@ -21,6 +21,9 @@
 #include "ObservatoryHost.hpp"
 #include "RuntimeMetricsSampler.hpp"
 #include "SessionRecorder.hpp"
+#include "SynreiThermalAdapter.hpp"
+
+#include <ctime>
 
 #include <FluxLog.hpp>
 
@@ -82,10 +85,12 @@ RecorderParticipant recorder_participant;
 constexpr int64_t kSamplingIntervalMs = 2000;
 flux::metrics::RuntimeMetricsSampler &sampler() {
     static auto fs = flux::kernel::make_readonly_fs("");
-    static flux::metrics::RuntimeMetricsSampler instance(*fs, flux_capability::context().get(),
-                                                         {kSamplingIntervalMs, 120, 3000}, [] {
-        return SessionRecorder::get_instance().fps_observation().latest();
-    });
+    // Synrei (HiCo) thermal context: read-only view of /dev/hico/state (Step 8.9).
+    static flux::thermal::SynreiThermalAdapter synrei(*fs, [] { return static_cast<int64_t>(std::time(nullptr)); });
+    static flux::metrics::RuntimeMetricsSampler instance(
+        *fs, flux_capability::context().get(), {kSamplingIntervalMs, 120, 3000},
+        [] { return SessionRecorder::get_instance().fps_observation().latest(); },
+        [](int64_t now_ms) { return synrei.read(now_ms); });
     return instance;
 }
 flux::metrics::SamplerParticipant &sampler_participant() {

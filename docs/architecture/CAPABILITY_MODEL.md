@@ -116,3 +116,10 @@ Capabilities (this document) say what *exists*. Runtime metrics (`RUNTIME_METRIC
 *happening now*: values with timestamps that change every sample. Metrics are not published into the
 CapabilityContext. The collector reads the context only to reuse the kernel's `io.<dev>.scheduler`
 facts. Both follow the same rule: missing data is UNKNOWN and nothing is inferred.
+
+## Thermal context vs capabilities (Step 8.9)
+
+Synrei thermal context is runtime state owned by Synrei, not a capability. It is read through
+`flux::thermal` (`SYNREI_THERMAL_CONTEXT.md`), stored per session for the bottleneck model, and **not**
+published into the CapabilityContext. The kernel's `thermal.*` capability facts (thermal-zone nodes,
+observe-only) are unchanged and unrelated: they say which nodes exist, never what Synrei is doing.

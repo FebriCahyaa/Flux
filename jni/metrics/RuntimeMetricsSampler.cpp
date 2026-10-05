@@ -15,8 +15,9 @@ SamplerConfig clamp(SamplerConfig c) {
 }
 
 RuntimeMetricsSampler::RuntimeMetricsSampler(const flux::kernel::ReadOnlyFs &fs, const cx::CapabilityContext *context,
-                                             SamplerConfig config, FpsSource fps)
-    : fs_(fs), context_(context), config_(clamp(config)), fps_(std::move(fps)) {}
+                                             SamplerConfig config, FpsSource fps, ThermalSource thermal)
+    : fs_(fs), context_(context), config_(clamp(config)), fps_(std::move(fps)), thermal_(std::move(thermal)),
+      history_(std::max<int64_t>(2 * config_.interval_ms, 5000), config_.window) {}
 
 bool RuntimeMetricsSampler::start(const std::string &session_id, int64_t now_ms) {
     if (state_ == State::Running && session_id == session_id_) return false; // duplicate
@@ -29,6 +30,7 @@ bool RuntimeMetricsSampler::start(const std::string &session_id, int64_t now_ms)
     taken_ = 0;
     failures_ = 0;
     last_fps_ts_ = 0;
+    history_.clear();
     state_ = State::Running;
     last_sample_ms_ = now_ms - config_.interval_ms; // sample immediately
     tick(now_ms);
@@ -76,6 +78,7 @@ void RuntimeMetricsSampler::tick(int64_t now_ms) {
             fm.readable = true;
         }
         snap.metrics.push_back(fm);
+        if (thermal_) add_thermal(snap, now_ms);
         const std::optional<double> fps = fa.fps;
         std::optional<double> target;
         if (context_) {
@@ -104,6 +107,61 @@ void RuntimeMetricsSampler::tick(int64_t now_ms) {
     notify(n);
 }
 
+void RuntimeMetricsSampler::add_thermal(MetricsSnapshot &snap, int64_t now_ms) {
+    namespace th = flux::thermal;
+    th::ThermalSnapshot t;
+    try {
+        t = thermal_(now_ms);
+    } catch (const std::exception &e) {
+        t = th::ThermalSnapshot{};
+        t.timestamp_ms = now_ms;
+        t.note = std::string("thermal source failed: ") + e.what();
+    } catch (...) {
+        t = th::ThermalSnapshot{};
+        t.timestamp_ms = now_ms;
+        t.note = "thermal source failed";
+    }
+    history_.add(t);
+    auto metric = [&](const std::string &id, const char *unit) {
+        Metric m;
+        m.id = id;
+        m.unit = unit;
+        m.timestamp_ms = t.timestamp_ms;
+        m.source = t.source;
+        m.verified = t.verified;
+        return m;
+    };
+    Metric c = metric("thermal.constraint", "");
+    c.text = th::to_string(t.constraint);
+    c.readable = t.usable();
+    c.confidence = c.readable ? t.confidence : cx::Confidence::None;
+    c.note = t.note.empty() ? "Synrei state " + t.state : t.note;
+    snap.metrics.push_back(c);
+    auto temp = [&](const char *id, const th::TempReading &r) {
+        Metric m = metric(id, "celsius");
+        m.value = r.celsius;
+        m.readable = r.readable;
+        m.confidence = r.readable ? t.confidence : cx::Confidence::None;
+        m.note = r.note;
+        snap.metrics.push_back(m);
+    };
+    temp("thermal.cpu_temp_c", t.cpu);
+    temp("thermal.gpu_temp_c", t.gpu);
+    temp("thermal.battery_temp_c", t.battery);
+    Metric h = metric("thermal.headroom_c", "celsius");
+    h.value = t.headroom_c;
+    h.readable = t.headroom_c.has_value();
+    h.confidence = h.readable ? t.confidence : cx::Confidence::None;
+    if (!h.readable) h.note = "headroom not published by the thermal authority";
+    snap.metrics.push_back(h);
+    Metric sl = metric("thermal.slope_c_per_min", "celsius_per_min");
+    sl.value = t.slope_c_per_min;
+    sl.readable = t.slope_c_per_min.has_value();
+    sl.confidence = sl.readable ? cx::Confidence::Medium : cx::Confidence::None;
+    sl.note = sl.readable ? "derived from consecutive verified CPU temperatures" : "needs two verified readings";
+    snap.metrics.push_back(sl);
+}
+
 flux::bottleneck::Assessment RuntimeMetricsSampler::assess(int64_t now_ms, const flux::bottleneck::PerformanceState &perf,
                                                            const flux::bottleneck::ThermalContext *thermal) const {
     if (state_ == State::Idle && final_) return *final_;
@@ -112,7 +170,7 @@ flux::bottleneck::Assessment RuntimeMetricsSampler::assess(int64_t now_ms, const
     in.session.package = session_id_;
     in.session.samples.assign(window_.begin(), window_.end());
     in.performance = perf;
-    in.thermal = thermal;
+    in.thermal = thermal ? thermal : (thermal_ ? &history_ : nullptr);
     in.now_ms = now_ms;
     return flux::bottleneck::assess(in);
 }
