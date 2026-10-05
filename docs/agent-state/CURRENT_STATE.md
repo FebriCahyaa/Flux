@@ -157,7 +157,13 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   next lower / highest within known max). Gating: supported, readable, writable, verified, rollback, risk Low/Medium, not planner-owned;
   decision constraints, Synrei safety (BOOST), runtime state, idempotency. Existing TRANSACTION_* events; registry 19, schema v1.
   Host 32/32 PASS; clang-18 -Werror OK. Android CI: triggered, NOT checked.
-- **Next:** owner review of Phase 4B (incl. MITIGATE semantics question, B-38); device validation pass (B-37 first).
+- **Phase 4C (live decision integration): IN PROGRESS — host complete, Android CI not checked, device NOT_TESTED.**
+  `integration/game-runtime-clean` @ `227d90d`. `jni/policy/LivePolicyController.*` is the `live_policy`
+  session participant, registered last: it evaluates once per fresh RuntimeMetrics sample, and its
+  PolicyExecutor restore runs before GameRuntime's restore. Journal: `/data/adb/.config/zairenkai/policy.journal`.
+  B-38 is resolved in the DecisionEngine. Host 33/33 PASS (new `live_policy_test`). Doc: `CONTROL_EXECUTION.md`.
+  B-37 (host only), B-26, B-33A/B/C, B-34C, B-35 (deferred) and B-36 are unchanged.
+- **Next:** owner review of Phase 4C; then the device validation pass (B-37 first, then the first live execution).
 - **Working rule (owner, 2026-10-05):** do not wait for / monitor CI completion; trigger it and report it as unchecked.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 

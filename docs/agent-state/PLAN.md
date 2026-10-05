@@ -219,3 +219,15 @@ zram, input boost, display), telemetry persistence of results, thermal writes.
 Done (`eb329aa`): PolicyExecutor with trusted operations, gating, Transaction Engine execution, rollback/restore, idempotency.
 Not in scope: fluxd call path, adaptive optimisation (Phase 5), new operations, UI, telemetry expansion.
 Prerequisites for enabling on device: B-37 device validation (verified facts), owner decision on B-38.
+
+## Phase 4C — Live decision integration (IN PROGRESS: host complete, CI not checked, device NOT_TESTED)
+
+- Done (`227d90d`):
+  - B-38 fixed in the DecisionEngine.
+  - `LivePolicyController` and the `live_policy` participant.
+  - SessionHost wiring: profile source, GameRuntime state, recovery gate, `policy.journal`.
+  - Docs: `CONTROL_EXECUTION.md` plus six updated docs.
+- Open:
+  - Android CI result (not checked).
+  - Device validation: B-37, then the first live execution.
+- Not implemented, by directive: adaptive optimization, learning, escalation, repeated tuning, UI, telemetry expansion, brand migration.

@@ -374,3 +374,20 @@ Open: B-26, B-33A, B-33B, B-33C, B-34C, B-36, B-37 (host only); B-35 deferred.
 | Device | NOT_TESTED (no call path) |
 
 Open: B-26, B-33A, B-33B, B-33C, B-34C, B-36, B-37 (host only), B-38; B-35 deferred.
+
+## Phase 4C — Live decision integration (`227d90d`)
+
+- Host:
+  - `ctest` 33/33 PASS (C++20, `-Werror`).
+  - New `live_policy_test` (7 functions) covers the 26 listed cases:
+    - B-38 live;
+    - stale thermal;
+    - fresh evidence, no repeats and final result untouched;
+    - gating (session, recovery, conflict);
+    - restore before GameRuntime for all end reasons and for switch;
+    - executor, verify and restore failures;
+    - isolation (no paths, shell, threads, collectors or transaction framework) and schema v1/19.
+  - `policy_decision_test` updated for B-38, adding `test_b38_mitigate_semantics`.
+- `jni/SessionHost.cpp`: stub syntax check passed (C++23, `-Werror`). `LivePolicyController.cpp`: C++23 syntax check passed.
+- Android CI (ndk-build): triggered by the push, **not checked**.
+- Device: **NOT_TESTED**.
