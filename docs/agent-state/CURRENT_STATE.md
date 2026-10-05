@@ -219,3 +219,12 @@ NOT_TESTED. Details: `VALIDATION.md`.
 2. Confirm the work branch still descends from the base commits above.
 3. Work only in documents for Phase 1; update `PHASE_STATUS.md`, `DECISIONS.md`,
    `VALIDATION.md` and this file at the end.
+
+- **Phase 4.5B (HiCo → Synrei Thermal Intelligence, HiCo repo): IN PROGRESS — host complete, CI not checked, device NOT_TESTED.**
+  HiCo `ccr-0dc934d1-0a6zta` @ `b7f7845c`. Public labels are rebranded. Frozen: module ID `hico`, `hicod`,
+  `/data/adb/.config/hico`, `/dev/hico/state`, `HICO_TAG`, config, state and JSON keys, update channel
+  HiCo-Release, database and all data, licence and EULA. Thermal behavior and the Zairenkai contract are unchanged.
+  HiCo ctest 3/3 PASS (unit, cli, new synrei_brand). Python tests: 20/21 PASS. `ingest_test` fails identically
+  at the base commit (PyYAML `'true'` vs `True` difference in this environment). Doc: `SYNREI_BRAND_MIGRATION.md`.
+  Open: the built `module/webroot` bundle still shows HiCo labels until the next WebUI build; EULA, CI names and
+  repository names are unchanged (owner/legal decisions).
