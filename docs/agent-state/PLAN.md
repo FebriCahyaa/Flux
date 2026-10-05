@@ -172,8 +172,14 @@ Done (`d5194ac`): session-owned sampler lifecycle, bounded scheduling, Bottlenec
 interface. Not in scope: Synrei thermal context (B-33B, owner: not yet), device threshold calibration (B-33C), an fps
 source from SessionRecorder, using the assessment anywhere, Observatory events/persistence, policy of any kind.
 
-## Step 8.8.1 — FPS observation bridge (IN PROGRESS)
+## Step 8.8.1 — FPS observation bridge (ARCHITECTURALLY APPROVED; IN PROGRESS until CI/device validation)
 
 Done (`d42b866`): read-only FPS observation from SessionRecorder into the sampler/bottleneck input with freshness and
 ordering rules. Not in scope: SessionRecorder redesign, a second FPS collector, threshold changes, Synrei (B-33B),
 calibration (B-33C), using or exporting the assessment.
+
+## Step 8.9 — Synrei thermal context foundation (IN PROGRESS)
+
+Done (`7007422`): neutral thermal context boundary, Synrei adapter over `/dev/hico/state`, per-session thermal history as
+BottleneckModel evidence. Not in scope: thermal control/limits/protection changes, thermal writes, HiCo changes (headroom /
+cap ratio publication would need a HiCo-side decision), threshold calibration (B-33C), using or exporting assessments.

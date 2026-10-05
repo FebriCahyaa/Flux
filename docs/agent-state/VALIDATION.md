@@ -279,3 +279,16 @@ Step 5: **IMPLEMENTED**, architecture approved by owner (2026-09-29). Device val
 | Forbidden-symbol check | clean |
 | CI | triggered, not monitored (owner instruction) |
 | Device | NOT_TESTED |
+
+## Step 8.9 — Synrei thermal context (`7007422`)
+
+| Check | Result |
+|---|---|
+| Tests first; CMake configure failed without `ThermalContext.cpp` / `SynreiThermalAdapter.cpp` (red) | confirmed |
+| Host ctest (gcc, -Werror) | PASS 26/26 |
+| clang-18 -Werror syntax (thermal, sampler, test) | PASS |
+| Zero thermal writes: fake tree unchanged, reads limited to `dev/hico/state` + `proc/<pid>`; real tree mtimes unchanged | PASS |
+| GameRuntime / SessionRecorder / FPS architecture diff | none |
+| Forbidden-symbol check | clean |
+| CI | triggered, not monitored (owner instruction) |
+| Device | NOT_TESTED |

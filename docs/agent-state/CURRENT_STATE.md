@@ -96,13 +96,20 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   sampling without affecting the session. Feeds BottleneckModel only; no fps source in fluxd yet. Host 24/24 PASS;
   clang-18 -Werror OK. CI: triggered, not monitored (owner instruction 2026-10-05). Device: NOT_TESTED.
   Synrei integration not started (owner).
-- **Step 8.8.1 (FPS observation bridge): IN PROGRESS.**
+- **Step 8.8.1 (FPS observation bridge): ARCHITECTURALLY APPROVED (owner); stays IN PROGRESS until CI/device validation is completed.**
   `integration/game-runtime-clean` @ `d42b866`: `jni/metrics/FpsObservation.*`; SessionRecorder publishes its existing
   per-second FPS into a read-only slot (additive: publish after write_live, clear on stop, const accessor); sampler accepts
   only valid / fresh (≤3 s) / newer observations, else UNKNOWN; bottleneck thresholds unchanged. sessions.json /
   session_live.json / FPS measurement / recorder lifecycle unchanged; no second FPS loop. Host 25/25 PASS; clang-18 -Werror
   OK. CI: triggered, not monitored. Device: NOT_TESTED. Synrei not started (owner).
-- **Next:** owner review of Step 8.8.1.
+- **Step 8.9 (Synrei thermal context foundation): IN PROGRESS.**
+  `integration/game-runtime-clean` @ `7007422`: `jni/thermal/{ThermalContext,SynreiThermalAdapter}.*` (FluxThermal). Reads hicod's
+  existing `/dev/hico/state` read-only; verified only while the hicod pid is alive and `updated` ≤ 15 s old; constraint from
+  Synrei state only (safety → constrained, boost → unconstrained, else unknown; never from temperature); headroom UNKNOWN
+  (not published); slope derived. Sampler records one snapshot per sample; BottleneckModel gets it via the neutral
+  `ThermalContext`. Thresholds, FPS architecture, GameRuntime and SessionRecorder unchanged; zero thermal writes (tested).
+  Host 26/26 PASS; clang-18 -Werror OK. CI: triggered, not monitored. Device: NOT_TESTED. HiCo repository unchanged.
+- **Next:** owner review of Step 8.9.
 - **Working rule (owner, 2026-10-05):** do not wait for / monitor CI completion; trigger it and report it as unchecked.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 
