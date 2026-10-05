@@ -84,12 +84,20 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   no runtime sampler exists yet). CPU/GPU/thermal/memory/storage/display, states CONFIRMED/LIKELY/POSSIBLE/UNKNOWN, evidence
   + confidence + source + timestamp on every observation, Synrei `ThermalContext` interface. Host 22/22 PASS; clang-18
   -Werror OK. CI 36674890357 green. Device: NOT_TESTED.
-- **Step 8.7 (runtime metrics collector foundation): IN PROGRESS.**
+- **Step 8.7 (runtime metrics collector foundation): APPROVED (owner) — FOUNDATION COMPLETE, INTEGRATION PENDING.**
   `integration/game-runtime-clean` @ `e0e4bdd`: `jni/metrics/RuntimeMetrics.*` (FluxMetrics, linked, **no call path**).
   CPU/GPU/memory/storage metrics via the read-only fs seam; each with value, timestamp, source, confidence, readable,
   verified; missing/unreadable/malformed = UNKNOWN; `to_runtime_sample()` feeds BottleneckModel only. Host 23/23 PASS;
   clang-18 -Werror OK. CI 37267128969 green. Device: NOT_TESTED.
-- **Next:** owner review of Step 8.7.
+- **Step 8.8 (runtime metrics sampling lifecycle): IN PROGRESS.**
+  `integration/game-runtime-clean` @ `d5194ac`: `jni/metrics/RuntimeMetricsSampler.*`; `SamplerParticipant` registered last in
+  fluxd's SessionManager (`jni/SessionHost.cpp`). Samples on the session tick only (no thread), 2000 ms default, clamped
+  1000–60000 ms, window 120 (3–900); fresh collector per session; stops on every end reason; 3 consecutive failures stop
+  sampling without affecting the session. Feeds BottleneckModel only; no fps source in fluxd yet. Host 24/24 PASS;
+  clang-18 -Werror OK. CI: triggered, not monitored (owner instruction 2026-10-05). Device: NOT_TESTED.
+  Synrei integration not started (owner).
+- **Next:** owner review of Step 8.8.
+- **Working rule (owner, 2026-10-05):** do not wait for / monitor CI completion; trigger it and report it as unchecked.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 
 ## Repositories and branches

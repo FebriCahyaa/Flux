@@ -160,8 +160,14 @@ Done (`920cb88`): evidence-based assessment model + thermal context interface + 
 published). Not in scope: optimisation actions, policy engine, WebUI, profile/GPU/thermal changes, a runtime sampler
 (CPU/GPU utilisation, PSI), a Synrei adapter, Observatory events (B-33).
 
-## Step 8.7 — Runtime metrics collector foundation (IN PROGRESS)
+## Step 8.7 — Runtime metrics collector foundation (APPROVED — foundation complete, integration pending)
 
 Done (`e0e4bdd`): read-only collector + bottleneck input mapping. Not in scope: optimisation, policy, kernel/GPU/thermal
 changes, a periodic session sampler (call path), Synrei adapter, Observatory events, using metric confidence/verified as
 evidence weights in BottleneckModel.
+
+## Step 8.8 — Runtime metrics sampling lifecycle (IN PROGRESS)
+
+Done (`d5194ac`): session-owned sampler lifecycle, bounded scheduling, BottleneckModel forwarding, sample observer
+interface. Not in scope: Synrei thermal context (B-33B, owner: not yet), device threshold calibration (B-33C), an fps
+source from SessionRecorder, using the assessment anywhere, Observatory events/persistence, policy of any kind.
