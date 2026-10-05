@@ -109,3 +109,10 @@ snapshot replace on each publish.
 session samples, performance state and a future Synrei thermal interface. It produces evidence-based
 observations. `to_facts()` can express them in domain `bottleneck`, but they describe runtime
 observations, not capabilities, and nothing publishes them yet. Details are in `BOTTLENECK_MODEL.md`.
+
+## Runtime metrics vs capabilities (Step 8.7)
+
+Capabilities (this document) say what *exists*. Runtime metrics (`RUNTIME_METRICS.md`) say what is
+*happening now*: values with timestamps that change every sample. Metrics are not published into the
+CapabilityContext. The collector reads the context only to reuse the kernel's `io.<dev>.scheduler`
+facts. Both follow the same rule: missing data is UNKNOWN and nothing is inferred.

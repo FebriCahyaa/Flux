@@ -83,3 +83,11 @@ publishes them yet.
 - memory, storage and display;
 - the evidence contract (evidence, confidence, source and timestamp on every observation) and the
   facts export.
+
+## Inputs from the runtime metrics collector (Step 8.7)
+
+`flux::metrics::to_runtime_sample()` (`RUNTIME_METRICS.md`) fills `RuntimeSample` from real procfs/sysfs
+metrics. Only readable metrics are copied, and UNKNOWN stays `nullopt`, so the bottleneck rules above
+are unchanged. A metric's own `confidence` and `verified` are not yet used to weight evidence. Still
+missing before the model runs on a device: a periodic session sampler that calls the collector, and
+the Synrei thermal adapter (B-33).
