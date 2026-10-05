@@ -87,3 +87,11 @@ SessionRecorder (participant `session_recorder`) also publishes each per-second 
 read-only `FpsObservationSlot`. That reading carries a steady-clock timestamp, the value, validity and
 the source; the slot is cleared on `stop()`. The `runtime_metrics` participant reads it while sampling.
 Session order, `sessions.json` and `session_live.json` are unchanged. See `FPS_OBSERVATION.md`.
+
+## Final bottleneck assessment at session end (Step 8.10)
+
+When the `runtime_metrics` participant ends (first, before the game runtime restores), the sampler
+computes the session's bottleneck assessment once and hands the result to the Observatory as
+`BOTTLENECK_ASSESSED`, or `BOTTLENECK_ANALYSIS_FAILED` if it fails. That participant's `end()` still
+always reports clean, analysis failures never change the session, restore or transactions, and no
+worker keeps running after the session. See `BOTTLENECK_RESULT.md`.

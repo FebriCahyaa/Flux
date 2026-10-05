@@ -125,3 +125,12 @@ working, missing, throwing and rejecting Observatory, and with throwing observer
 Storage location for device telemetry is already decided at the directive level
 (`/data/adb/.config/zairenkai/telemetry/`) but not created in this step; the frozen
 `/data/adb/.config/flux/` files are not touched.
+
+## Bottleneck events (Step 8.10)
+
+Two registered types, category `performance`, source `bottleneck`, session id required:
+- `BOTTLENECK_ASSESSED`: the final per-session assessment, with its evidence in `after`;
+- `BOTTLENECK_ANALYSIS_FAILED`: the analysis could not complete.
+
+The schema version is unchanged (additive types only). In fluxd they go to the bounded in-memory store;
+there is still no persistence or retention. See `BOTTLENECK_RESULT.md`.

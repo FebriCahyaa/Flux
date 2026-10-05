@@ -116,3 +116,10 @@ published state:
 
 There is no `cap_ratio`. Thresholds are unchanged, and a constraint is never inferred from temperature.
 Without Synrei, thermal stays UNKNOWN.
+
+## Final result (Step 8.10)
+
+At session end the sampler calls `assess()` once and turns the assessment into a `BottleneckResult`
+(`BOTTLENECK_RESULT.md`), which is emitted to the Observatory as `BOTTLENECK_ASSESSED`. If the analysis
+throws, `BOTTLENECK_ANALYSIS_FAILED` is emitted instead. Rules and thresholds are unchanged, and a
+primary of UNKNOWN is reported as such.

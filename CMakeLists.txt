@@ -145,9 +145,9 @@ flux_add_test(observatory_test tests/observatory_test.cpp)
 target_link_libraries(observatory_test PRIVATE flux_observatory)
 
 # -- observatory integration bridge ----------------------------------------------
-add_library(flux_bridge STATIC jni/bridge/ObservatoryBridge.cpp)
+add_library(flux_bridge STATIC jni/bridge/ObservatoryBridge.cpp jni/bridge/BottleneckEvents.cpp)
 target_include_directories(flux_bridge PUBLIC jni/bridge)
-target_link_libraries(flux_bridge PUBLIC flux_observatory flux_perf flux_session)
+target_link_libraries(flux_bridge PUBLIC flux_observatory flux_perf flux_session flux_bottleneck)
 target_compile_options(flux_bridge PRIVATE ${FLUX_WARNINGS})
 
 flux_add_test(observatory_bridge_test tests/observatory_bridge_test.cpp)
@@ -187,7 +187,7 @@ flux_add_test(display_intelligence_test tests/display_intelligence_test.cpp)
 target_link_libraries(display_intelligence_test PRIVATE flux_display)
 
 # -- bottleneck observation (read-only; no actions) ------------------------------
-add_library(flux_bottleneck STATIC jni/bottleneck/BottleneckModel.cpp)
+add_library(flux_bottleneck STATIC jni/bottleneck/BottleneckModel.cpp jni/bottleneck/BottleneckResult.cpp)
 target_include_directories(flux_bottleneck PUBLIC jni/bottleneck)
 target_link_libraries(flux_bottleneck PUBLIC flux_context)
 target_compile_options(flux_bottleneck PRIVATE ${FLUX_WARNINGS})
@@ -219,3 +219,6 @@ target_link_libraries(fps_observation_test PRIVATE flux_metrics)
 
 flux_add_test(synrei_thermal_context_test tests/synrei_thermal_context_test.cpp)
 target_link_libraries(synrei_thermal_context_test PRIVATE flux_metrics flux_thermal)
+
+flux_add_test(bottleneck_result_test tests/bottleneck_result_test.cpp)
+target_link_libraries(bottleneck_result_test PRIVATE flux_metrics flux_bridge)

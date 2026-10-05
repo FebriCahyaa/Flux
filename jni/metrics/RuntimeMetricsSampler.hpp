@@ -11,6 +11,7 @@
 #pragma once
 
 #include "BottleneckModel.hpp"
+#include "BottleneckResult.hpp"
 #include "CapabilityContext.hpp"
 #include "FpsObservation.hpp"
 #include "KernelIntelligence.hpp"
@@ -49,6 +50,12 @@ struct SampleNotice {
 };
 using SampleObserver = std::function<void(const SampleNotice &)>;
 
+/// Receivers of the session's final bottleneck result (Step 8.10). Called once per session, at stop,
+/// after the assessment completed (or failed). Exceptions are swallowed.
+using ResultCallback = std::function<void(const flux::bottleneck::BottleneckResult &)>;
+using FailureCallback = std::function<void(const std::string &session_id, const std::string &error, int64_t now_ms)>;
+using Analyzer = std::function<flux::bottleneck::Assessment(const flux::bottleneck::BottleneckInputs &)>;
+
 /// Read-only thermal context for one sample (e.g. SynreiThermalAdapter::read). Optional.
 using ThermalSource = std::function<flux::thermal::ThermalSnapshot(int64_t now_ms)>;
 
@@ -85,6 +92,13 @@ class RuntimeMetricsSampler {
     const std::optional<flux::bottleneck::Assessment> &final_assessment() const { return final_; }
 
     void set_observer(SampleObserver o) { observer_ = std::move(o); }
+    void set_result_sink(ResultCallback on_result, FailureCallback on_failure) {
+        on_result_ = std::move(on_result);
+        on_failure_ = std::move(on_failure);
+    }
+    /// Test seam; defaults to flux::bottleneck::assess.
+    void set_analyzer(Analyzer a) { analyzer_ = std::move(a); }
+    const std::optional<flux::bottleneck::BottleneckResult> &last_result() const { return result_; }
     const SamplerConfig &config() const { return config_; }
 
   private:
@@ -96,6 +110,10 @@ class RuntimeMetricsSampler {
     FpsSource fps_;
     int64_t last_fps_ts_ = 0; // newest accepted observation (ordering)
     ThermalSource thermal_;
+    ResultCallback on_result_;
+    FailureCallback on_failure_;
+    Analyzer analyzer_;
+    std::optional<flux::bottleneck::BottleneckResult> result_;
     flux::thermal::ThermalHistory history_;
     SampleObserver observer_;
     State state_ = State::Idle;

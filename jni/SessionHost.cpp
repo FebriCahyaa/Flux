@@ -16,6 +16,7 @@
 
 #include "SessionHost.hpp"
 
+#include "BottleneckEvents.hpp"
 #include "CapabilityHost.hpp"
 #include "GameRuntimeHost.hpp"
 #include "ObservatoryHost.hpp"
@@ -23,6 +24,7 @@
 #include "SessionRecorder.hpp"
 #include "SynreiThermalAdapter.hpp"
 
+#include <chrono>
 #include <ctime>
 
 #include <FluxLog.hpp>
@@ -91,6 +93,23 @@ flux::metrics::RuntimeMetricsSampler &sampler() {
         *fs, flux_capability::context().get(), {kSamplingIntervalMs, 120, 3000},
         [] { return SessionRecorder::get_instance().fps_observation().latest(); },
         [](int64_t now_ms) { return synrei.read(now_ms); });
+    // Final bottleneck result at session end -> Observatory (in-memory store; Step 8.10).
+    static const bool sink_set = [] {
+        const auto wall = [] {
+            return static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+                                            std::chrono::system_clock::now().time_since_epoch())
+                                            .count());
+        };
+        instance.set_result_sink(
+            [wall](const flux::bottleneck::BottleneckResult &r) {
+                flux_observatory::store().write(flux::bridge::bottleneck_event(r, wall()));
+            },
+            [wall](const std::string &session, const std::string &error, int64_t) {
+                flux_observatory::store().write(flux::bridge::bottleneck_failure_event(session, error, wall()));
+            });
+        return true;
+    }();
+    (void)sink_set;
     return instance;
 }
 flux::metrics::SamplerParticipant &sampler_participant() {

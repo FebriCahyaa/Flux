@@ -128,6 +128,12 @@ EventRegistry EventRegistry::builtin() {
     add("RECOVERY_START", Category::Recovery, recovery, false, false, "journal replay started at daemon start");
     add("RECOVERY_SUCCESS", Category::Recovery, recovery, false, false, "journal restored cleanly (or none left behind)");
     add("RECOVERY_FAILED", Category::Recovery, recovery, false, false, "journal kept: failed or corrupted entries");
+
+    const std::vector<std::string> bottleneck{"bottleneck"};
+    add("BOTTLENECK_ASSESSED", Category::Performance, bottleneck, true, false,
+        "final bottleneck assessment of a session (observation only; evidence in `after`)");
+    add("BOTTLENECK_ANALYSIS_FAILED", Category::Performance, bottleneck, true, false,
+        "the session's bottleneck analysis could not complete; no finding was claimed");
     return r;
 }
 

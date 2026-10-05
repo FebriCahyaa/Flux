@@ -39,13 +39,38 @@ bool RuntimeMetricsSampler::start(const std::string &session_id, int64_t now_ms)
 
 void RuntimeMetricsSampler::stop(int64_t now_ms) {
     if (state_ == State::Idle) return;
+    // Final assessment: once per session, after the last sample; never a background worker.
+    std::string error;
     try {
         final_ = assess(now_ms);
+    } catch (const std::exception &e) {
+        final_.reset();
+        error = e.what();
     } catch (...) {
         final_.reset();
+        error = "unknown analysis failure";
+    }
+    if (final_) {
+        try {
+            result_ = flux::bottleneck::make_result(*final_, session_id_);
+        } catch (const std::exception &e) {
+            result_.reset();
+            error = e.what();
+        } catch (...) {
+            result_.reset();
+            error = "result construction failed";
+        }
+    } else {
+        result_.reset();
     }
     collector_.reset();
     state_ = State::Idle;
+    try {
+        if (result_ && on_result_) on_result_(*result_);
+        else if (!result_ && on_failure_) on_failure_(session_id_, error, now_ms);
+    } catch (...) {
+        // Observatory problems never affect the session.
+    }
 }
 
 void RuntimeMetricsSampler::tick(int64_t now_ms) {
@@ -172,7 +197,7 @@ flux::bottleneck::Assessment RuntimeMetricsSampler::assess(int64_t now_ms, const
     in.performance = perf;
     in.thermal = thermal ? thermal : (thermal_ ? &history_ : nullptr);
     in.now_ms = now_ms;
-    return flux::bottleneck::assess(in);
+    return analyzer_ ? analyzer_(in) : flux::bottleneck::assess(in);
 }
 
 void RuntimeMetricsSampler::notify(const SampleNotice &n) const {
