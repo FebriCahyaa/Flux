@@ -254,7 +254,7 @@ void test_live_b38_semantics() {
     {
         Rig r; // 5. full BOOST requirements
         CHECK(r.start());
-        r.samples(1);
+        r.samples(3); // Phase 5: BOOST waits for a 3-sample FPS baseline
         CHECK(r.live.last()->decision.action == p::Action::Boost);
         CHECK(r.live.last()->execution.final_status == p::ExecutionStatus::Applied);
         CHECK_EQ(r.dev.nodes[MAX4], std::string("2419200"));
@@ -309,14 +309,20 @@ void test_fresh_evidence_and_repeats() {
     CHECK_EQ(r.live.evaluations(), uint64_t(0));
     r.samples(1);
     CHECK_EQ(r.live.evaluations(), uint64_t(1));
+    CHECK(r.live.last()->execution.final_status == p::ExecutionStatus::NotExecuted); // no baseline yet
+    CHECK(r.live.last()->adaptive_gate.rfind("insufficient_baseline", 0) == 0);
     CHECK_EQ(r.live.last()->sample_index, r.sampler.samples_taken());
     r.live.tick(r.mgr.current().id, r.ev.now); // same evidence again
     CHECK_EQ(r.live.evaluations(), uint64_t(1));
     CHECK_EQ(r.live.skipped(), std::string("no_fresh_evidence"));
+    r.samples(2); // baseline complete: BOOST admitted and applied
+    CHECK_EQ(r.live.evaluations(), uint64_t(3));
+    CHECK(r.live.last()->execution.final_status == p::ExecutionStatus::Applied);
     const int writes = r.dev.writes;
-    r.samples(1); // new sample, same decision: already applied, not executed again
-    CHECK_EQ(r.live.evaluations(), uint64_t(2));
-    CHECK(r.live.last()->execution.final_status == p::ExecutionStatus::AlreadyActive);
+    r.samples(1); // new sample, same decision: under evaluation, not executed again (no escalation)
+    CHECK_EQ(r.live.evaluations(), uint64_t(4));
+    CHECK(r.live.last()->execution.final_status == p::ExecutionStatus::NotExecuted);
+    CHECK(r.live.last()->adaptive_gate.rfind("evaluating", 0) == 0);
     CHECK_EQ(r.dev.writes, writes);
     // 9. live assessment never produced or replaced the session-final result.
     CHECK(!r.sampler.final_assessment().has_value());
@@ -372,7 +378,7 @@ void test_restore_order() {
                      s::EndReason::DaemonStop}) {
         Rig r;
         CHECK(r.start());
-        r.samples(1);
+        r.samples(3); // Phase 5: BOOST waits for a 3-sample FPS baseline
         CHECK(r.executor.active());
         order.clear();
         r.mgr.end(why, r.ev.now + 1);
@@ -387,7 +393,7 @@ void test_restore_order() {
     {
         Rig r; // switch: the old session's changes are restored before the new one begins
         CHECK(r.start());
-        r.samples(1);
+        r.samples(3); // Phase 5: BOOST waits for a 3-sample FPS baseline
         order.clear();
         s::SessionKey other;
         other.package = "com.other";
@@ -404,7 +410,7 @@ void test_failures() {
         Rig r;
         r.dev.reject_all = true;
         CHECK(r.start());
-        r.samples(1);
+        r.samples(3); // Phase 5: BOOST waits for a 3-sample FPS baseline
         CHECK(r.live.last()->execution.final_status == p::ExecutionStatus::ApplyFailed);
         CHECK(!r.executor.active());
         r.live.set_observer([](const p::LiveEvaluation &) { throw std::runtime_error("observer"); });
@@ -419,7 +425,7 @@ void test_failures() {
         Rig r;
         r.dev.sticky.insert(MAX4); // read-back differs
         CHECK(r.start());
-        r.samples(1);
+        r.samples(3); // Phase 5: BOOST waits for a 3-sample FPS baseline
         CHECK(r.live.last()->execution.final_status == p::ExecutionStatus::VerifyFailed);
         CHECK(r.live.last()->execution.rolled_back);
         CHECK_EQ(r.dev.nodes[MAX4], std::string("2016000"));
@@ -427,7 +433,7 @@ void test_failures() {
     {
         Rig r;
         CHECK(r.start());
-        r.samples(1);
+        r.samples(3); // Phase 5: BOOST waits for a 3-sample FPS baseline
         r.dev.reject_all = true;
         order.clear();
         r.mgr.end(s::EndReason::Exit, r.ev.now + 1);
@@ -445,14 +451,14 @@ void test_isolation() {
     for (const auto &src : {hpp, cpp}) {
         for (auto bad : {"\"/sys", "\"/proc", "\"/dev", "/data/adb", "system(", "popen", "execv", "execl", "fork(", "std::thread",
                          "pthread", "ofstream", "fopen", "RuntimeMetricsCollector", "SynreiThermalAdapter",
-                         "FpsObservationSlot", "Transaction(", "journal::", "BottleneckModel(", "learn", "adaptive",
+                         "FpsObservationSlot", "Transaction(", "journal::", "BottleneckModel(", "learn", "neural", "random",
                          "escalat"})
             CHECK(src.find(bad) == std::string::npos);
     }
     // 22. capability facts and the decision are not mutated by the live loop.
     Rig r;
     CHECK(r.start());
-    r.samples(1);
+    r.samples(3); // Phase 5: BOOST waits for a 3-sample FPS baseline
     const auto before = p::explain(r.live.last()->decision);
     CHECK(r.c.resolve("cpufreq.policy4.scaling_max_freq").fact->verified);
     CHECK_EQ(r.c.resolve("cpufreq.policy4.scaling_max_freq").fact->value, std::string("2016000"));
@@ -461,6 +467,61 @@ void test_isolation() {
     // 26. Observatory schema unchanged.
     CHECK_EQ(o::kSchemaVersion, 1);
     CHECK_EQ(o::EventRegistry::builtin().types().size(), size_t(19));
+}
+
+// Phase 5: adaptive outcome evaluation through the real executor / transaction path.
+void test_adaptive_live() {
+    { // beneficial BOOST is kept; the kernel value stays applied
+        Rig r;
+        CHECK(r.start());
+        r.samples(3);
+        CHECK(r.live.last()->execution.final_status == p::ExecutionStatus::Applied);
+        r.ev.fps = 56; // frame delivery improves after the intervention
+        r.samples(3);
+        CHECK(r.live.adaptive().phase() == zairenkai::adaptive::Phase::Kept);
+        CHECK_EQ(r.dev.nodes[MAX4], std::string("2419200"));
+        bool kept = false;
+        if (r.live.last()->adaptive) kept = r.live.last()->adaptive->verdict == zairenkai::adaptive::Verdict::Keep;
+        CHECK(kept || r.live.last()->adaptive_gate.rfind("active", 0) == 0);
+    }
+    { // Synrei safety after BOOST: rollback through PolicyExecutor RESTORE (read back at snapshot)
+        Rig r;
+        CHECK(r.start());
+        r.samples(3);
+        CHECK(r.executor.active());
+        r.ev.synrei = "safety";
+        r.samples(1);
+        CHECK(r.live.last()->adaptive.has_value());
+        CHECK(r.live.last()->adaptive->reason == "thermal_safety_after_intervention");
+        CHECK(r.live.last()->decision.action == p::Action::Restore);
+        CHECK(r.live.last()->execution.final_status == p::ExecutionStatus::Restored);
+        CHECK(!r.executor.active());
+        CHECK_EQ(r.dev.nodes[MAX4], std::string("2016000"));
+    }
+    { // ineffective BOOST rolled back; identical evidence stays blocked after the cooldown
+        Rig r;
+        CHECK(r.start());
+        r.samples(3);
+        const int applied_writes = r.dev.writes;
+        r.samples(int(zairenkai::adaptive::kMaxPostSamples));
+        CHECK(!r.executor.active());
+        CHECK_EQ(r.dev.nodes[MAX4], std::string("2016000"));
+        CHECK(r.live.adaptive().phase() == zairenkai::adaptive::Phase::Cooldown);
+        const int after_rollback = r.dev.writes;
+        CHECK(after_rollback > applied_writes);
+        r.samples(20); // 2 x 20 samples of 2 s: > 60 s, cooldown over, evidence unchanged
+        r.samples(20);
+        CHECK_EQ(r.dev.writes, after_rollback); // no BOOST -> rollback -> BOOST oscillation
+        CHECK(r.live.last()->adaptive_gate.rfind("hysteresis", 0) == 0);
+    }
+    { // unverified capability never becomes an adaptive candidate
+        Rig r(false);
+        CHECK(r.start());
+        r.samples(5);
+        CHECK(r.live.last()->decision.action != p::Action::Boost);
+        CHECK(r.live.adaptive().phase() == zairenkai::adaptive::Phase::Idle);
+        CHECK_EQ(r.dev.writes, 0);
+    }
 }
 
 } // namespace
@@ -473,5 +534,6 @@ int main() {
     test_restore_order();
     test_failures();
     test_isolation();
+    test_adaptive_live();
     return flux_test::report("live_policy_test");
 }

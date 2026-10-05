@@ -281,18 +281,23 @@ PolicyExecutionResult PolicyExecutor::execute(const PolicyDecision &d, const Exe
             r.limitations.push_back("some controls were not permitted and are excluded (see blocked constraints)");
 
         // -- RuntimePlan through the existing Transaction Engine ---------------------------------
-        int writes = 0;
+        // The transaction outlives this call (it is kept until RESTORE), so its callbacks must not
+        // refer to this stack frame: the counters live in a shared probe.
+        struct Probe {
+            int writes = 0;
+            bool verify_failed = false, rolled_back = false, rollback_clean = false;
+        };
+        const auto probe = std::make_shared<Probe>();
         rt::Io io = io_;
-        io.write = [this, &writes](const std::string &p, const std::string &v) {
-            ++writes;
+        io.write = [this, probe](const std::string &p, const std::string &v) {
+            ++probe->writes;
             return io_.write(p, v);
         };
-        bool verify_failed = false, rolled_back = false, rollback_clean = false;
-        const rt::TxObserver observer = [&](const rt::TxNotice &n) {
-            if (n.kind == rt::TxNotice::Kind::Verify && !n.ok) verify_failed = true;
+        const rt::TxObserver observer = [this, probe](const rt::TxNotice &n) {
+            if (n.kind == rt::TxNotice::Kind::Verify && !n.ok) probe->verify_failed = true;
             if (n.kind == rt::TxNotice::Kind::Rollback) {
-                rolled_back = true;
-                rollback_clean = n.ok;
+                probe->rolled_back = true;
+                probe->rollback_clean = n.ok;
             }
             if (observer_) observer_(n);
         };
@@ -311,7 +316,7 @@ PolicyExecutionResult PolicyExecutor::execute(const PolicyDecision &d, const Exe
             pl.cap.after = v ? trim(*v) : "unreadable";
             r.affected_capabilities.push_back(pl.cap);
         }
-        r.executed = writes > 0;
+        r.executed = probe->writes > 0;
         if (ok) {
             r.final_status = ExecutionStatus::Applied;
             r.verified = true;
@@ -320,10 +325,10 @@ PolicyExecutionResult PolicyExecutor::execute(const PolicyDecision &d, const Exe
             active_key_ = key;
             return r;
         }
-        r.final_status = verify_failed ? ExecutionStatus::VerifyFailed : ExecutionStatus::ApplyFailed;
-        r.rolled_back = rolled_back;
-        r.restored = rolled_back && rollback_clean;
-        r.reason = std::string(verify_failed ? "read-back differed" : "a write was rejected") + "; rolled back" +
+        r.final_status = probe->verify_failed ? ExecutionStatus::VerifyFailed : ExecutionStatus::ApplyFailed;
+        r.rolled_back = probe->rolled_back;
+        r.restored = probe->rolled_back && probe->rollback_clean;
+        r.reason = std::string(probe->verify_failed ? "read-back differed" : "a write was rejected") + "; rolled back" +
                    (r.restored ? " and read back at the snapshot" : ", NOT fully restored (journal kept)");
         return r;
     } catch (const std::exception &e) {

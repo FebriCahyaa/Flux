@@ -234,10 +234,16 @@ flux_add_test(observatory_analysis_test tests/observatory_analysis_test.cpp)
 target_link_libraries(observatory_analysis_test PRIVATE flux_observatory flux_bridge flux_bottleneck)
 
 # -- decision & policy foundation (reasoning only; no executor) -----------------
+# -- adaptive optimization V1 (Phase 5): outcome evaluation only -------------------
+add_library(flux_adaptive STATIC jni/adaptive/AdaptiveController.cpp jni/adaptive/InterventionEvaluation.cpp)
+target_include_directories(flux_adaptive PUBLIC jni/adaptive)
+target_link_libraries(flux_adaptive PUBLIC flux_bottleneck flux_thermal)
+target_compile_options(flux_adaptive PRIVATE ${FLUX_WARNINGS})
+
 add_library(flux_policy STATIC jni/policy/PolicyConstraint.cpp jni/policy/PolicyDecision.cpp
   jni/policy/DecisionEngine.cpp jni/policy/PolicyExecutor.cpp jni/policy/LivePolicyController.cpp)
 target_include_directories(flux_policy PUBLIC jni/policy)
-target_link_libraries(flux_policy PUBLIC flux_context flux_bottleneck flux_thermal flux_runtime flux_observatory flux_perf flux_metrics flux_session)
+target_link_libraries(flux_policy PUBLIC flux_context flux_bottleneck flux_thermal flux_runtime flux_observatory flux_perf flux_metrics flux_session flux_adaptive)
 target_compile_options(flux_policy PRIVATE ${FLUX_WARNINGS})
 
 flux_add_test(policy_decision_test tests/policy_decision_test.cpp)
@@ -265,3 +271,7 @@ target_compile_definitions(brand_migration_test PRIVATE FLUX_SOURCE_ROOT="${CMAK
 
 add_test(NAME brand_inventory_test COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/tests/brand_inventory_test.sh
          ${CMAKE_CURRENT_SOURCE_DIR})
+
+flux_add_test(adaptive_test tests/adaptive_test.cpp)
+target_link_libraries(adaptive_test PRIVATE flux_adaptive flux_observatory)
+target_compile_definitions(adaptive_test PRIVATE FLUX_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}")

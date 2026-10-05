@@ -16,6 +16,7 @@
 // transaction is restored before the sampler stops and before GameRuntime restores its own.
 #pragma once
 
+#include "AdaptiveController.hpp"
 #include "DecisionEngine.hpp"
 #include "PolicyExecutor.hpp"
 #include "RuntimeMetricsSampler.hpp"
@@ -38,6 +39,8 @@ struct LiveEvaluation {
     uint64_t sample_index = 0; // sampler sample count the evaluation used
     PolicyDecision decision;
     PolicyExecutionResult execution;
+    std::string adaptive_gate;                                  // admission result for BOOST/MITIGATE ("" otherwise)
+    std::optional<zairenkai::adaptive::Evaluation> adaptive;     // Keep/Rollback/Observe of the active intervention
 };
 using LiveObserver = std::function<void(const LiveEvaluation &)>;
 
@@ -64,6 +67,8 @@ class LivePolicyController {
     const std::optional<LiveEvaluation> &last() const { return last_; }
     /// Why the most recent tick did not evaluate ("" when it did).
     const std::string &skipped() const { return skipped_; }
+    /// Adaptive Optimization V1 (Phase 5): evaluation of the executed intervention's outcome.
+    const zairenkai::adaptive::AdaptiveController &adaptive() const { return adaptive_; }
 
     /// Inputs exactly as tick() would build them (exposed for tests / explanation).
     PolicyInputs inputs(const std::string &session_id, int64_t now_ms) const;
@@ -71,6 +76,9 @@ class LivePolicyController {
   private:
     RuntimeEvidence runtime_state() const;
     void notify(const LiveEvaluation &e) const;
+    zairenkai::adaptive::Sample sample(const PolicyInputs &in) const;
+    std::string signature(const PolicyDecision &d, const PolicyInputs &in) const;
+    PolicyExecutionResult restore(LiveEvaluation &e, int64_t now_ms);
 
     const flux::metrics::RuntimeMetricsSampler &sampler_;
     const flux::context::CapabilityContext *capabilities_;
@@ -79,6 +87,7 @@ class LivePolicyController {
     RuntimeProvider runtime_;
     LiveObserver observer_;
     DecisionEngine engine_;
+    zairenkai::adaptive::AdaptiveController adaptive_;
     bool enabled_ = false;
     bool recovery_failed_ = false;
     std::string session_id_;

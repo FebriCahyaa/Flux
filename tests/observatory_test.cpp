@@ -179,7 +179,8 @@ void test_ordering() {
     CHECK_EQ(store.query(q).size(), size_t{1});
     q = {};
     q.limit = 1;
-    CHECK_EQ(store.query(q)[0].timestamp_ms, kNow - 300);
+    const auto first = store.query(q); // keep the result alive while its element is compared
+    CHECK_EQ(first[0].timestamp_ms, kNow - 300);
 
     // Bounded: the oldest event drops first.
     MemoryEventStore small(EventRegistry::builtin(), [] { return kNow; }, 2);
@@ -188,7 +189,8 @@ void test_ordering() {
     small.write(session_start(kNow - 1));
     CHECK_EQ(small.size(), size_t{2});
     CHECK_EQ(small.dropped(), size_t{1});
-    CHECK_EQ(small.query({})[0].timestamp_ms, kNow - 2);
+    const auto oldest = small.query({});
+    CHECK_EQ(oldest[0].timestamp_ms, kNow - 2);
 }
 
 void test_corrupted_event_handling() {

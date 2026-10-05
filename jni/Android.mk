@@ -39,7 +39,7 @@ LOCAL_MODULE := fluxd
 
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/include
 
-LOCAL_STATIC_LIBRARIES := rapidjson spdlog FluxBrand SynthesisCore NativeMonitor BinderNDK PIDTracker InotifyWatcher LockFile GameRegistry FluxUtility DeviceInfo FluxGfx FluxBridge FluxPolicy FluxSession FluxPerf FluxRuntime FluxObservatory FluxMetrics FluxThermal FluxBottleneck FluxDisplay FluxGraphics FluxKernel FluxContext
+LOCAL_STATIC_LIBRARIES := rapidjson spdlog FluxBrand SynthesisCore NativeMonitor BinderNDK PIDTracker InotifyWatcher LockFile GameRegistry FluxUtility DeviceInfo FluxGfx FluxBridge FluxPolicy FluxAdaptive FluxSession FluxPerf FluxRuntime FluxObservatory FluxMetrics FluxThermal FluxBottleneck FluxDisplay FluxGraphics FluxKernel FluxContext
 
 LOCAL_SRC_FILES := $(wildcard $(LOCAL_PATH)/*.cpp)
 LOCAL_SRC_FILES := $(LOCAL_SRC_FILES:$(LOCAL_PATH)/%=%)
@@ -51,4 +51,4 @@ LOCAL_LDFLAGS += $(FLUX_LINK_FLAGS)
 
 include $(BUILD_EXECUTABLE)
 
-include $(LOCAL_PATH)/external/Android.mk $(LOCAL_PATH)/base/Android.mk $(LOCAL_PATH)/gfx/Android.mk $(LOCAL_PATH)/runtime/Android.mk $(LOCAL_PATH)/perf/Android.mk $(LOCAL_PATH)/session/Android.mk $(LOCAL_PATH)/observatory/Android.mk $(LOCAL_PATH)/bridge/Android.mk $(LOCAL_PATH)/kernel/Android.mk $(LOCAL_PATH)/context/Android.mk $(LOCAL_PATH)/graphics/Android.mk $(LOCAL_PATH)/display/Android.mk $(LOCAL_PATH)/bottleneck/Android.mk $(LOCAL_PATH)/metrics/Android.mk $(LOCAL_PATH)/thermal/Android.mk $(LOCAL_PATH)/policy/Android.mk $(LOCAL_PATH)/brand/Android.mk
+include $(LOCAL_PATH)/external/Android.mk $(LOCAL_PATH)/base/Android.mk $(LOCAL_PATH)/gfx/Android.mk $(LOCAL_PATH)/runtime/Android.mk $(LOCAL_PATH)/perf/Android.mk $(LOCAL_PATH)/session/Android.mk $(LOCAL_PATH)/observatory/Android.mk $(LOCAL_PATH)/bridge/Android.mk $(LOCAL_PATH)/kernel/Android.mk $(LOCAL_PATH)/context/Android.mk $(LOCAL_PATH)/graphics/Android.mk $(LOCAL_PATH)/display/Android.mk $(LOCAL_PATH)/bottleneck/Android.mk $(LOCAL_PATH)/metrics/Android.mk $(LOCAL_PATH)/thermal/Android.mk $(LOCAL_PATH)/policy/Android.mk $(LOCAL_PATH)/brand/Android.mk $(LOCAL_PATH)/adaptive/Android.mk

@@ -158,3 +158,10 @@ PerformancePlanner or DecisionEngine changes.
 - duplicate and conflicting execution prevented;
 - Observatory `TRANSACTION_*` events through the bridge, schema and registry unchanged;
 - decision not mutated, capability metadata unchanged, deterministic result, trusted operations only.
+
+## Phase 5 notes
+
+- A RESTORE requested by adaptive evaluation uses the existing RESTORE path unchanged.
+- Lifetime fix: the transaction kept until RESTORE no longer holds callbacks that refer to the
+  stack frame of `execute()`. Counters live in a shared probe. This was found with ASan; behavior
+  is otherwise unchanged.

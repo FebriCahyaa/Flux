@@ -64,3 +64,13 @@ and SessionManager ends participants in reverse order (tested in `live_policy_te
   and an unclean replay blocks live policy.
 - Failures (executor, observer, restore) never stop GameRuntime. A failed restore makes the
   session end unclean.
+
+## Adaptive outcome evaluation (Phase 5)
+
+Each fresh sample is also fed to `AdaptiveController` (`ADAPTIVE_OPTIMIZATION.md`):
+- an intervention under evaluation is judged before anything new is decided;
+- a ROLLBACK verdict executes a RESTORE through `PolicyExecutor`;
+- BOOST and MITIGATE decisions pass an admission gate (baseline, no escalation, cooldown,
+  hysteresis) before the executor runs.
+
+Restore ordering at session end is unchanged.

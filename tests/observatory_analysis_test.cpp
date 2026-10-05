@@ -351,14 +351,16 @@ void test_fps() {
     CHECK(s.shortfall_samples && *s.shortfall_samples == 6 && s.fps_samples && *s.fps_samples == 6);
     CHECK(!s.target_refresh_hz); // not recorded in this assessment's evidence: unknown, not 60 or 0
     CHECK(any_contains(s.limitations, "target refresh"));
-    auto *f = topic(an.analyze("s-short"), "fps");
+    const auto short_report = an.analyze("s-short"); // topic() points into it
+    auto *f = topic(short_report, "fps");
     CHECK(f && f->summary.find("below target") != std::string::npos);
 
     auto d = an.analyze("s-disp").summary.fps;
     CHECK(d.target_refresh_hz && *d.target_refresh_hz == 60);
     CHECK(d.refresh_capability_hz && *d.refresh_capability_hz == 120);
     CHECK(d.observed_fps_peak && *d.observed_fps_peak > 59 && *d.observed_fps_peak < 60);
-    auto *fd = topic(an.analyze("s-disp"), "fps");
+    const auto disp_report = an.analyze("s-disp");
+    auto *fd = topic(disp_report, "fps");
     CHECK(fd && fd->summary.find("Hz") != std::string::npos && fd->summary.find("FPS") != std::string::npos);
     CHECK(fd && fd->summary.find("refresh is not frame rate") != std::string::npos);
 }

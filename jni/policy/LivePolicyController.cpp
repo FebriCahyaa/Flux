@@ -15,6 +15,7 @@ LivePolicyController::LivePolicyController(const flux::metrics::RuntimeMetricsSa
 
 void LivePolicyController::begin(const std::string &session_id) {
     session_id_ = session_id;
+    adaptive_.reset(session_id);
     enabled_ = true;
     seen_samples_ = sampler_.samples_taken(); // only samples taken from now on are fresh
     skipped_.clear();
@@ -99,7 +100,22 @@ std::optional<LiveEvaluation> LivePolicyController::tick(const std::string &sess
         LiveEvaluation e;
         e.session_id = session_id;
         e.sample_index = taken;
-        e.decision = engine_.evaluate(inputs(session_id, now_ms));
+        const auto in = inputs(session_id, now_ms);
+        adaptive_.observe(sample(in)); // Observe impact: one fresh sample, baseline or post window
+
+        // Compare → Keep or Rollback: the active intervention is judged before anything new is decided.
+        if (adaptive_.phase() == zairenkai::adaptive::Phase::Evaluating) {
+            e.adaptive = adaptive_.evaluate(now_ms);
+            if (e.adaptive && e.adaptive->verdict == zairenkai::adaptive::Verdict::Rollback) {
+                e.execution = restore(e, now_ms);
+                ++evaluations_;
+                last_ = e;
+                notify(e);
+                return e;
+            }
+        }
+
+        e.decision = engine_.evaluate(in);
         ExecutionContext x;
         x.session_id = session_id_;
         x.runtime = gr;
@@ -107,7 +123,36 @@ std::optional<LiveEvaluation> LivePolicyController::tick(const std::string &sess
                         ? std::nullopt
                         : std::optional(sampler_.thermal_history().items().back());
         x.capabilities = capabilities_;
+        const bool intervention = e.decision.action == Action::Boost || e.decision.action == Action::Mitigate;
+        const std::string key = std::string(to_string(e.decision.action)) + ":" + e.decision.target;
+        const std::string sig = intervention ? signature(e.decision, in) : "";
+        if (intervention) {
+            const auto adm = adaptive_.admit(key, sig, now_ms, e.decision.action == Action::Mitigate);
+            e.adaptive_gate = adm.reason;
+            if (!adm.allowed) {
+                e.execution.requested_action = e.decision.action;
+                e.execution.final_status = ExecutionStatus::NotExecuted;
+                e.execution.reason = "adaptive: " + adm.reason;
+                ++evaluations_;
+                last_ = e;
+                notify(e);
+                return e;
+            }
+        }
         e.execution = executor_.execute(e.decision, x);
+        if (intervention) {
+            using zairenkai::adaptive::ExecutionOutcome;
+            const auto st = e.execution.final_status;
+            const auto outcome = st == ExecutionStatus::Applied ? ExecutionOutcome::Applied
+                                 : (st == ExecutionStatus::ApplyFailed || st == ExecutionStatus::VerifyFailed)
+                                     ? ExecutionOutcome::Failed
+                                     : ExecutionOutcome::Unchanged;
+            adaptive_.executed({key, e.decision.decision_id, e.decision.target, e.decision.action == Action::Mitigate, now_ms},
+                               outcome, sig, now_ms);
+        } else if (e.execution.final_status == ExecutionStatus::Restored ||
+                   e.execution.final_status == ExecutionStatus::RestoreFailed) {
+            adaptive_.restored(e.execution.final_status == ExecutionStatus::Restored, now_ms);
+        }
         ++evaluations_;
         last_ = e;
         notify(e);
@@ -140,12 +185,70 @@ bool LivePolicyController::end(const std::string &session_id, int64_t now_ms) {
         x.runtime = in.runtime;
         x.capabilities = capabilities_;
         e.execution = executor_.execute(e.decision, x);
+        adaptive_.restored(e.execution.final_status == ExecutionStatus::Restored, now_ms);
         last_ = e;
         notify(e);
         return e.execution.final_status == ExecutionStatus::Restored && !executor_.active();
     } catch (...) {
         return false;
     }
+}
+
+zairenkai::adaptive::Sample LivePolicyController::sample(const PolicyInputs &in) const {
+    zairenkai::adaptive::Sample s;
+    if (!sampler_.window().empty()) {
+        const auto &w = sampler_.window().back(); // the fresh sample this tick consumes
+        s.timestamp_ms = w.timestamp_ms;
+        s.fps = w.fps;
+        s.target_hz = w.target_hz;
+        s.cpu_busy = w.cpu_busiest_core;
+        s.gpu_busy = w.gpu_busy;
+        s.cpu_freq_ratio = w.cpu_freq_ratio;
+        s.gpu_freq_ratio = w.gpu_freq_ratio;
+    }
+    s.thermal = zairenkai::adaptive::from_synrei(in.thermal);
+    if (in.bottleneck) {
+        s.bottleneck = in.bottleneck->primary.kind;
+        s.bottleneck_state = in.bottleneck->primary.rating;
+        s.bottleneck_conflict = in.bottleneck->conflict;
+    }
+    return s;
+}
+
+std::string LivePolicyController::signature(const PolicyDecision &d, const PolicyInputs &in) const {
+    // Evidence a retry must differ in: target resource, bottleneck rating, Synrei state, profile
+    // and the FPS shortfall share in tenths. Deterministic, no clock.
+    std::string sig = std::string(to_string(d.action)) + ":" + d.target;
+    if (in.bottleneck)
+        sig += std::string("|") + b::to_string(in.bottleneck->primary.kind) + "/" + b::to_string(in.bottleneck->primary.rating) +
+               (in.bottleneck->conflict ? "/conflict" : "");
+    sig += std::string("|thermal=") + zairenkai::adaptive::to_string(zairenkai::adaptive::from_synrei(in.thermal));
+    sig += std::string("|profile=") + to_string(in.profile.mode);
+    if (in.fps.fps_samples && *in.fps.fps_samples > 0 && in.fps.shortfall_samples)
+        sig += "|shortfall=" + std::to_string((*in.fps.shortfall_samples * 10) / *in.fps.fps_samples);
+    return sig;
+}
+
+PolicyExecutionResult LivePolicyController::restore(LiveEvaluation &e, int64_t now_ms) {
+    // Rollback through the existing restoration path: a RESTORE of the executor's own transaction.
+    // No value is chosen and no node is named here; PolicyExecutor finishes its transaction.
+    PolicyDecision d;
+    d.action = Action::Restore;
+    d.target = "transaction";
+    d.session_id = session_id_;
+    d.evaluation_time_ms = now_ms;
+    d.confidence = flux::context::Confidence::High;
+    d.reason = "Adaptive evaluation: " + e.adaptive->reason + "; restoring the intervention.";
+    d.constraints.push_back({ConstraintKind::RestoreRequired, "adaptive", e.adaptive->reason});
+    d.decision_id = "pd-" + std::to_string(now_ms) + "-adaptive-" + (adaptive_.active() ? adaptive_.active()->decision_id : "none");
+    e.decision = d;
+    ExecutionContext x;
+    x.session_id = session_id_;
+    x.runtime = runtime_state();
+    x.capabilities = capabilities_;
+    auto r = executor_.execute(d, x);
+    adaptive_.restored(r.final_status == ExecutionStatus::Restored, now_ms);
+    return r;
 }
 
 void LivePolicyParticipant::recover() {
