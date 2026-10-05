@@ -202,8 +202,14 @@ thermal, FPS), deterministic summaries, bounded 7-day history patterns, read-onl
 event producers (Synrei transitions, per-sample FPS — would be a separate owner decision), optimisation/policy, telemetry
 format/retention changes.
 
-## Step 8.13 — Decision & policy foundation (IN PROGRESS: implementation complete, validation pending)
+## Step 8.13 — Decision & policy foundation (APPROVED architecturally)
 
 Done (`7f84189`): evidence-driven DecisionEngine → PolicyDecision (Decide stage only). Not in scope: Policy Executor,
 RuntimePlan generation from decisions, any device write, POLICY_* events, B-35 telemetry expansion, a fluxd call path.
 Prerequisite for any executor: a capability write + read-back verification step (all kernel facts are verified=false).
+
+## Step 8.14 — Capability verification foundation (IN PROGRESS: host complete, device NOT_TESTED)
+
+Done (`181af15`): explicit-adapter transactional verifier, once-per-start fluxd lifecycle with journal recovery, context update
+preserving metadata. Not in scope: Policy Executor, executing any decision, more adapters (governor, scheduler, uclamp, cpuset,
+zram, input boost, display), telemetry persistence of results, thermal writes.

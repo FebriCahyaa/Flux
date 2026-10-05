@@ -135,14 +135,22 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   against stubs. CI: triggered, NOT checked. Device: NOT_TESTED.
   Limitation recorded: Synrei state transitions and per-sample FPS are not persisted as events, so the analysis can use only
   the bottleneck assessment's thermal/FPS evidence.
-- **Step 8.13 (decision & policy foundation): IN PROGRESS — implementation complete, validation pending.**
+- **Step 8.13 (decision & policy foundation): APPROVED architecturally (owner); no executor, no call path.**
   `integration/game-runtime-clean` @ `7f84189`: `jni/policy/{PolicyEvidence,PolicyConstraint,PolicyDecision,DecisionEngine}.*`
   (FluxPolicy linked, **no call path, no executor**). Actions NO_ACTION/OBSERVE/MITIGATE/BOOST/RESTORE; hierarchy RESTORE >
   NO_ACTION > MITIGATE > BOOST; Synrei safety forbids BOOST; unknown/stale thermal, conflicting/insufficient bottleneck → OBSERVE;
   capability gating (unsupported/unreadable/non-writable blocked, writable-unverified restricted) — with today's verified=false
   kernel facts, device decisions stay OBSERVE. Pure, deterministic, no I/O; no new event types (registry 19, schema v1);
   B-35 untouched. Host 30/30 PASS; clang-18 -Werror (C++20 and C++2b) OK. Android CI: triggered, NOT checked. Device: NOT_TESTED.
-- **Next:** owner review of Step 8.13.
+- **Step 8.14 (capability verification foundation): IN PROGRESS — implementation complete on host, device NOT_TESTED.**
+  `integration/game-runtime-clean` @ `181af15`: `jni/kernel/CapabilityVerification.*`; fluxd `flux_capability::verify()` once per start
+  after GameRuntime recovery, before profile scripts. Transactional proof via the existing Transaction Engine (snapshot,
+  write-ahead journal `/data/adb/.config/zairenkai/verification.journal`, test write, exact read-back, restore, exact read-back;
+  leftover journal replayed with `runtime::recover()` first). Adapters: cpufreq scaling_max_freq, KGSL max_gpuclk, devfreq max_freq
+  (next lower available frequency), block read_ahead_kb, vm.swappiness. Everything else `no_safe_verifier`; thermal refused;
+  skipped while Synrei is boost/relaxed/safety. Host 31/31 PASS; clang-18 -Werror OK; CapabilityHost glue compiled against stubs.
+  Android CI: triggered, NOT checked. **This is the first step that writes kernel nodes at daemon start (temporarily, then restored).**
+- **Next:** owner review of Step 8.14; device validation of verification is required before relying on verified=true.
 - **Working rule (owner, 2026-10-05):** do not wait for / monitor CI completion; trigger it and report it as unchecked.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 

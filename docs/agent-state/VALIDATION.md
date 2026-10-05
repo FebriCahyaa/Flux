@@ -346,3 +346,17 @@ Step 5: **IMPLEMENTED**, architecture approved by owner (2026-09-29). Device val
 | Device | NOT_TESTED (no call path) |
 
 Open device blockers unchanged: B-26, B-33A, B-33B, B-33C, B-34C, B-36; B-35 deferred (owner); new B-37.
+
+## Step 8.14 — Capability verification foundation (`181af15`)
+
+| Check | Result |
+|---|---|
+| Tests first; CMake configure failed without `CapabilityVerification.cpp` (red) | confirmed |
+| Host ctest (gcc, -Wall -Wextra -Wpedantic -Werror) | PASS 31/31 (new `capability_verification_test`: 5 functions covering the 24 required cases) |
+| clang-18 -Werror (C++20 + C++2b) | PASS |
+| `CapabilityHost.cpp` (fluxd glue) compiled against stubs (logging/properties) | PASS; full fluxd only via CI ndk-build |
+| Forbidden-symbol check | clean |
+| Android CI | triggered, **not checked** |
+| Device | NOT_TESTED — verified=true never observed on a real device |
+
+Open: B-26, B-33A, B-33B, B-33C, B-34C, B-36, B-37 (host only); B-35 deferred.
