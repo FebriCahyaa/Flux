@@ -91,3 +91,10 @@ metrics. Only readable metrics are copied, and UNKNOWN stays `nullopt`, so the b
 are unchanged. A metric's own `confidence` and `verified` are not yet used to weight evidence. Still
 missing before the model runs on a device: a periodic session sampler that calls the collector, and
 the Synrei thermal adapter (B-33).
+
+## Fed by the session sampler (Step 8.8)
+
+`RuntimeMetricsSampler` keeps a bounded window of `RuntimeSample`s per session and calls `assess()` on
+demand and at session end (`final_assessment()`). The model is still read-only, and nothing acts on
+its result. On devices, `fps` is not supplied yet, so without a measured frame deficit the states stay
+at most POSSIBLE (B-33A). Thermal stays UNKNOWN until Synrei is connected (B-33B).

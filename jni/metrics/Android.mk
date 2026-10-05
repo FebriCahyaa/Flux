@@ -6,7 +6,7 @@ LOCAL_MODULE := FluxMetrics
 LOCAL_SRC_FILES := $(wildcard $(LOCAL_PATH)/*.cpp)
 LOCAL_SRC_FILES := $(LOCAL_SRC_FILES:$(LOCAL_PATH)/%=%)
 
-LOCAL_STATIC_LIBRARIES := FluxKernel FluxBottleneck FluxContext
+LOCAL_STATIC_LIBRARIES := FluxKernel FluxBottleneck FluxContext FluxSession
 
 LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)
 

@@ -196,10 +196,13 @@ flux_add_test(bottleneck_model_test tests/bottleneck_model_test.cpp)
 target_link_libraries(bottleneck_model_test PRIVATE flux_bottleneck)
 
 # -- runtime metrics collector (read-only; feeds the bottleneck model) -----------
-add_library(flux_metrics STATIC jni/metrics/RuntimeMetrics.cpp)
+add_library(flux_metrics STATIC jni/metrics/RuntimeMetrics.cpp jni/metrics/RuntimeMetricsSampler.cpp)
 target_include_directories(flux_metrics PUBLIC jni/metrics)
-target_link_libraries(flux_metrics PUBLIC flux_kernel flux_bottleneck flux_context)
+target_link_libraries(flux_metrics PUBLIC flux_kernel flux_bottleneck flux_context flux_session)
 target_compile_options(flux_metrics PRIVATE ${FLUX_WARNINGS})
 
 flux_add_test(runtime_metrics_test tests/runtime_metrics_test.cpp)
 target_link_libraries(runtime_metrics_test PRIVATE flux_metrics)
+
+flux_add_test(runtime_metrics_sampler_test tests/runtime_metrics_sampler_test.cpp)
+target_link_libraries(runtime_metrics_sampler_test PRIVATE flux_metrics)

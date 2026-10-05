@@ -71,3 +71,12 @@ failed participant does not block restore), profile/tick forwarding only while a
 | SessionManager, participants, fluxd wiring | session id / history in telemetry (Phase 5) |
 | begin/end ordering, single session, EndReason | RenderBooster as a participant |
 | host tests | device validation |
+
+## Runtime metrics participant (Step 8.8)
+
+fluxd's SessionManager now has three participants, in begin order: `game_runtime`, `session_recorder`,
+`runtime_metrics`. `runtime_metrics` (`SamplerParticipant`) only starts, ticks and stops the read-only
+sampler. Its `end()` always reports clean, its failures never change the session, and it ends
+**first**, so sampling stops before the game runtime restores. While a session is active,
+`needs_tick()` is true, so the main loop polls with its 1 s timeout during sessions only. Details are
+in `RUNTIME_METRICS_SAMPLING.md`.

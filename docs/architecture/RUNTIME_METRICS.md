@@ -75,3 +75,9 @@ collector.
 - conflicting metric sources: CPU frequency and GPU busy, with agreement giving verified;
 - bottleneck input: a CPU-bound series from collected samples assesses as CPU;
 - read-only: the tree is unchanged after sampling.
+
+## Sampling (Step 8.8)
+
+The collector is now driven by `RuntimeMetricsSampler` during game sessions only
+(`RUNTIME_METRICS_SAMPLING.md`). Each session gets a fresh collector, so the first sample's delta metrics
+are UNKNOWN by design.

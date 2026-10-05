@@ -16,8 +16,10 @@
 
 #include "SessionHost.hpp"
 
+#include "CapabilityHost.hpp"
 #include "GameRuntimeHost.hpp"
 #include "ObservatoryHost.hpp"
+#include "RuntimeMetricsSampler.hpp"
 #include "SessionRecorder.hpp"
 
 #include <FluxLog.hpp>
@@ -74,6 +76,20 @@ public:
 RuntimeParticipant runtime_participant;
 RecorderParticipant recorder_participant;
 
+/// Read-only runtime metrics for the bottleneck model (Step 8.8). Samples on the session tick
+/// only (no thread), every kSamplingIntervalMs; stops with the session. No fps source yet.
+constexpr int64_t kSamplingIntervalMs = 2000;
+flux::metrics::RuntimeMetricsSampler &sampler() {
+    static auto fs = flux::kernel::make_readonly_fs("");
+    static flux::metrics::RuntimeMetricsSampler instance(*fs, flux_capability::context().get(),
+                                                         {kSamplingIntervalMs, 120});
+    return instance;
+}
+flux::metrics::SamplerParticipant &sampler_participant() {
+    static flux::metrics::SamplerParticipant p(sampler());
+    return p;
+}
+
 } // namespace
 
 flux::session::SessionManager &manager() {
@@ -81,6 +97,8 @@ flux::session::SessionManager &manager() {
         flux::session::SessionManager m;
         m.add(&runtime_participant);
         m.add(&recorder_participant);
+        // Last to begin, first to end: sampling stops before any restore runs.
+        m.add(&sampler_participant());
         m.set_observer(flux_observatory::bridge().session_observer());
         m.set_context(flux_observatory::bridge().session_context());
         return m;
