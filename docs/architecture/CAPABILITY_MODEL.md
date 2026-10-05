@@ -143,3 +143,10 @@ cpufreq `scaling_max_freq`, KGSL `max_gpuclk`, devfreq `max_freq`, block `read_a
 `vm.swappiness`. Everything else stays unverified (`no_safe_verifier`), and thermal is never written.
 supported, readable, writable and verified remain distinct, and writable never implies verified. See
 `CAPABILITY_VERIFICATION.md`.
+
+## Execution gating (Phase 4B)
+
+Before writing, the Policy Executor requires each control fact to be: supported, readable, writable,
+**verified**, rollback-capable, risk Low or Medium, matched by a trusted operation, and not
+planner-owned. Each failure is reported by name (`capability_unverified`, `unsafe_risk`, …). See
+`POLICY_EXECUTOR.md`.

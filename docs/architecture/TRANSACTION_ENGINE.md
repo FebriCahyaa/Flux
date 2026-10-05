@@ -161,3 +161,9 @@ SUCCESS = all restored, PARTIAL = some restored, FAILED = none restored.
 Known limitation: journal entries store the snapshot after `snapshot_view` (e.g. `mq-deadline`
 from `[mq-deadline] none`); `recover()` compares raw read-back, so selector-style nodes recovered
 at boot are reported failed even when correct. No current planner uses a view.
+
+## Policy execution (Phase 4B)
+
+The Policy Executor builds `RuntimePlan`s (domain `policy`, subject = decision id) of `NodeWriteOperation`s
+and runs them with `Transaction`: start (snapshot, journal, apply, verify, rollback on failure) and,
+for RESTORE, finish (restore by read-back). It adds no transaction concepts. See `POLICY_EXECUTOR.md`.

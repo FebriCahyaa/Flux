@@ -155,3 +155,9 @@ re-rates. CLI: `fluxd telemetry session | analyze | history`. See `OBSERVATORY_A
 The Decision Engine (`POLICY_DECISION.md`) can consume history patterns from the analysis layer. No
 event type was added: decisions are not executed and not yet produced at runtime. A `POLICY_*` event
 will be considered only together with a future executor.
+
+## Policy execution events (Phase 4B)
+
+Policy execution is observed through the existing `TRANSACTION_*` events (domain `policy` in the
+transaction, subject = decision id), via the bridge's transaction observer. No `POLICY_*` type was
+added. See `POLICY_EXECUTOR.md`.

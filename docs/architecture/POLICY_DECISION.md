@@ -148,3 +148,10 @@ The Decision Engine can now receive `verified=true` facts produced by the capabi
 ceilings, the cpu or gpu gate can become actionable, so MITIGATE or BOOST become possible
 recommendations. They are still recommendations only: no executor exists. On real devices this is
 unvalidated (B-37).
+
+## Executed by the Policy Executor (Phase 4B)
+
+`PolicyExecutor` (`POLICY_EXECUTOR.md`) executes a `PolicyDecision` exactly as decided, only through
+trusted operations and the Transaction Engine. It never upgrades an action and never acts on
+OBSERVE or NO_ACTION. There is still no fluxd call path. Open design question (B-38): for a
+non-thermal bottleneck under Synrei `boost`, MITIGATE is executed as a one-step ceiling reduction.
