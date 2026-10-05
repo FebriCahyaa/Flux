@@ -92,3 +92,10 @@ conflict, samples, secondary, note and every `evidence.*` entry. It explains the
 re-rating, and cites each evidence entry by event id and field. Thermal and FPS facts in the evidence
 feed the thermal and FPS explanations. History counts repeated cpu, gpu or thermal findings rated at
 least likely, as repetitions, not causes. See `OBSERVATORY_ANALYSIS.md`.
+
+## Consumed by the Decision Engine (Step 8.13)
+
+`BottleneckResult` is an input of `flux::policy::DecisionEngine`, used exactly as produced: primary
+kind, rating, confidence, conflict, evidence and secondary findings. Conflict, or a rating below
+LIKELY, leads to OBSERVE. Evidence is cited verbatim in `PolicyDecision.supporting_evidence` and
+`blocking_evidence`. Nothing is re-rated. See `POLICY_DECISION.md`.

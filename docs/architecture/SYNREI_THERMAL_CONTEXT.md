@@ -102,3 +102,13 @@ belongs to that set. On a real temp tree, the state file and a thermal node keep
   no Synrei gives UNKNOWN;
 - Synrei failure isolation, including a restart;
 - zero writes, on both the fake and the real filesystem.
+
+## Used by the Decision Engine (Step 8.13)
+
+Only a verified, fresh snapshot counts:
+- `safety` (Constrained) forbids BOOST and can lead to MITIGATE or RESTORE;
+- `boost` (Unconstrained) permits considering MITIGATE or BOOST;
+- every other state, and stale or unverified context, is thermal UNKNOWN, which means OBSERVE and is
+  never assumed relaxed.
+
+Temperatures are not used. See `POLICY_DECISION.md`.

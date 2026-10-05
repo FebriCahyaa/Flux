@@ -149,3 +149,9 @@ A read-only analysis layer reconstructs session timelines from the persisted eve
 lifecycle, transactions, recovery, the recorded bottleneck result, thermal evidence and FPS evidence
 into evidence-backed explanations and bounded seven-day history patterns. It never writes and never
 re-rates. CLI: `fluxd telemetry session | analyze | history`. See `OBSERVATORY_ANALYSIS.md`.
+
+## Policy decisions (Step 8.13)
+
+The Decision Engine (`POLICY_DECISION.md`) can consume history patterns from the analysis layer. No
+event type was added: decisions are not executed and not yet produced at runtime. A `POLICY_*` event
+will be considered only together with a future executor.

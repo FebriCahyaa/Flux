@@ -109,3 +109,9 @@ Persisted session events can be rebuilt into a timeline: start, switch (previous
 runtime, transactions, recovery (by time window), bottleneck and end (end_reason exit / focus_lost /
 process_death / switch / failure / daemon_stop, duration, clean). A missing start or end is reported as
 incomplete, never filled in. `fluxd telemetry session <id>` prints it. See `OBSERVATORY_ANALYSIS.md`.
+
+## Session state as decision input (Step 8.13)
+
+The Decision Engine reads the session and transaction state (game active, `TxState`, transaction id,
+recovery outcome) only to decide whether RESTORE takes priority. It never changes the session or the
+transaction. It is not called from fluxd yet. See `POLICY_DECISION.md`.

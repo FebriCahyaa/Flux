@@ -123,3 +123,14 @@ Synrei thermal context is runtime state owned by Synrei, not a capability. It is
 `flux::thermal` (`SYNREI_THERMAL_CONTEXT.md`), stored per session for the bottleneck model, and **not**
 published into the CapabilityContext. The kernel's `thermal.*` capability facts (thermal-zone nodes,
 observe-only) are unchanged and unrelated: they say which nodes exist, never what Synrei is doing.
+
+## Capability gating for decisions (Step 8.13)
+
+`flux::policy::gate()` evaluates rollback-capable control facts per resource (cpu, gpu, memory,
+storage):
+- unsupported, unknown, unreadable or not writable → blocked;
+- writable but unverified, or high risk → restricted;
+- verified, writable and acceptable risk → actionable.
+
+Since kernel facts are `verified=false` until a write-and-read-back step exists, decisions currently
+stay at OBSERVE for device controls. See `POLICY_DECISION.md`.

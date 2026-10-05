@@ -231,3 +231,13 @@ target_link_libraries(telemetry_store_test PRIVATE flux_observatory)
 
 flux_add_test(observatory_analysis_test tests/observatory_analysis_test.cpp)
 target_link_libraries(observatory_analysis_test PRIVATE flux_observatory flux_bridge flux_bottleneck)
+
+# -- decision & policy foundation (reasoning only; no executor) -----------------
+add_library(flux_policy STATIC jni/policy/PolicyConstraint.cpp jni/policy/PolicyDecision.cpp
+  jni/policy/DecisionEngine.cpp)
+target_include_directories(flux_policy PUBLIC jni/policy)
+target_link_libraries(flux_policy PUBLIC flux_context flux_bottleneck flux_thermal flux_runtime flux_observatory)
+target_compile_options(flux_policy PRIVATE ${FLUX_WARNINGS})
+
+flux_add_test(policy_decision_test tests/policy_decision_test.cpp)
+target_link_libraries(policy_decision_test PRIVATE flux_policy)
