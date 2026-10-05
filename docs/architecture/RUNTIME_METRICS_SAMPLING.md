@@ -80,3 +80,10 @@ type, no persistence and no telemetry storage.
 - a throwing observer being swallowed;
 - no node being modified, and the interval and window clamps;
 - samples being forwarded to the BottleneckModel.
+
+## FPS source (Step 8.8.1)
+
+fluxd now passes `SessionRecorder::fps_observation().latest()` as the sampler's `FpsSource`. Each sample
+reads it once and applies the acceptance rules in `FPS_OBSERVATION.md` (`SamplerConfig::fps_max_age_ms`,
+default 3000). The result is stored as the `fps` metric in `last_snapshot()`. The earlier limitation
+("no fps source in fluxd") is resolved.

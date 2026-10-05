@@ -98,3 +98,10 @@ the Synrei thermal adapter (B-33).
 demand and at session end (`final_assessment()`). The model is still read-only, and nothing acts on
 its result. On devices, `fps` is not supplied yet, so without a measured frame deficit the states stay
 at most POSSIBLE (B-33A). Thermal stays UNKNOWN until Synrei is connected (B-33B).
+
+## FPS from SessionRecorder (Step 8.8.1)
+
+`fps` now comes from SessionRecorder's published observation, accepted only when it is valid, fresh
+(≤ 3 s) and newer than the previous one (`FPS_OBSERVATION.md`). Thresholds and rules are unchanged:
+when FPS is missing, no frame deficit is assumed and states stay at most POSSIBLE. FPS is never
+estimated from load.

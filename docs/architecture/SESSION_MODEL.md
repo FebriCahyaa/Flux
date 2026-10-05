@@ -80,3 +80,10 @@ sampler. Its `end()` always reports clean, its failures never change the session
 **first**, so sampling stops before the game runtime restores. While a session is active,
 `needs_tick()` is true, so the main loop polls with its 1 s timeout during sessions only. Details are
 in `RUNTIME_METRICS_SAMPLING.md`.
+
+## SessionRecorder FPS observation (Step 8.8.1)
+
+SessionRecorder (participant `session_recorder`) also publishes each per-second FPS reading into a
+read-only `FpsObservationSlot`. That reading carries a steady-clock timestamp, the value, validity and
+the source; the slot is cleared on `stop()`. The `runtime_metrics` participant reads it while sampling.
+Session order, `sessions.json` and `session_live.json` are unchanged. See `FPS_OBSERVATION.md`.

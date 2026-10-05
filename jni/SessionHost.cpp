@@ -77,12 +77,15 @@ RuntimeParticipant runtime_participant;
 RecorderParticipant recorder_participant;
 
 /// Read-only runtime metrics for the bottleneck model (Step 8.8). Samples on the session tick
-/// only (no thread), every kSamplingIntervalMs; stops with the session. No fps source yet.
+/// only (no thread), every kSamplingIntervalMs; stops with the session. FPS is read from
+/// SessionRecorder's published observation (Step 8.8.1); it is never measured here.
 constexpr int64_t kSamplingIntervalMs = 2000;
 flux::metrics::RuntimeMetricsSampler &sampler() {
     static auto fs = flux::kernel::make_readonly_fs("");
     static flux::metrics::RuntimeMetricsSampler instance(*fs, flux_capability::context().get(),
-                                                         {kSamplingIntervalMs, 120});
+                                                         {kSamplingIntervalMs, 120, 3000}, [] {
+        return SessionRecorder::get_instance().fps_observation().latest();
+    });
     return instance;
 }
 flux::metrics::SamplerParticipant &sampler_participant() {

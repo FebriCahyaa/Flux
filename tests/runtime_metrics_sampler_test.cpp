@@ -242,13 +242,17 @@ void test_read_only_and_bounds() {
 void test_forward_to_bottleneck() {
     auto f = device();
     double fps = 40;
-    m::RuntimeMetricsSampler sampler(f, nullptr, {1000, 10}, [&] { return std::optional<double>(fps); });
+    int64_t fps_ts = 0;
+    m::RuntimeMetricsSampler sampler(f, nullptr, {1000, 10}, [&] {
+        return std::optional<m::FpsObservation>(m::FpsObservation{fps_ts, fps, true, "game"});
+    });
     f.files["sys/devices/system/cpu/cpufreq/policy0/related_cpus"] = "0\n";
     f.files["sys/devices/system/cpu/cpufreq/policy0/scaling_cur_freq"] = "2000000\n";
     f.files["sys/devices/system/cpu/cpufreq/policy0/cpuinfo_max_freq"] = "2000000\n";
     sampler.start("s", 0);
     for (int i = 1; i <= 6; ++i) {
         f.files["proc/stat"] = stat(100 + i * 100, 900); // 100 % busy each interval
+        fps_ts = i * 1000 - 50;
         sampler.tick(i * 1000);
     }
     auto &last = sampler.window().back();

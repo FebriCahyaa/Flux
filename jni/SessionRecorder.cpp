@@ -595,6 +595,7 @@ void SessionRecorder::stop() {
     std::unique_lock lock(mutex_);
     if (running_) finish_locked();
     lock.unlock();
+    fps_slot_.clear(); // no FPS from a finished session
     cv_.notify_all();
     if (thread_.joinable() && thread_.get_id() != std::this_thread::get_id()) thread_.join();
 }
@@ -660,6 +661,10 @@ void SessionRecorder::run() {
         if (!source.empty()) fps_source_ = source;
         samples_.push_back(sample);
         write_live(sample);
+        // Publish the same reading for read-only consumers, stamped with the session (steady) clock.
+        fps_slot_.publish(std::chrono::duration_cast<std::chrono::milliseconds>(
+                              std::chrono::steady_clock::now().time_since_epoch()).count(),
+                          fps, source);
     }
 }
 

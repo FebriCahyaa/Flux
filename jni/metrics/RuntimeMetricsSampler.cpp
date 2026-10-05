@@ -10,11 +10,12 @@ namespace cx = flux::context;
 SamplerConfig clamp(SamplerConfig c) {
     c.interval_ms = std::clamp(c.interval_ms, kMinIntervalMs, kMaxIntervalMs);
     c.window = std::clamp(c.window, kMinWindow, kMaxWindow);
+    c.fps_max_age_ms = std::clamp(c.fps_max_age_ms, kMinFpsAgeMs, kMaxFpsAgeMs);
     return c;
 }
 
 RuntimeMetricsSampler::RuntimeMetricsSampler(const flux::kernel::ReadOnlyFs &fs, const cx::CapabilityContext *context,
-                                             SamplerConfig config, FrameSource fps)
+                                             SamplerConfig config, FpsSource fps)
     : fs_(fs), context_(context), config_(clamp(config)), fps_(std::move(fps)) {}
 
 bool RuntimeMetricsSampler::start(const std::string &session_id, int64_t now_ms) {
@@ -27,6 +28,7 @@ bool RuntimeMetricsSampler::start(const std::string &session_id, int64_t now_ms)
     final_.reset();
     taken_ = 0;
     failures_ = 0;
+    last_fps_ts_ = 0;
     state_ = State::Running;
     last_sample_ms_ = now_ms - config_.interval_ms; // sample immediately
     tick(now_ms);
@@ -54,8 +56,27 @@ void RuntimeMetricsSampler::tick(int64_t now_ms) {
     n.timestamp_ms = now_ms;
     try {
         auto snap = collector_->sample(now_ms);
-        std::optional<double> fps;
-        if (fps_) fps = fps_();
+        // FPS: SessionRecorder's latest observation, accepted only when valid, fresh and new.
+        FpsAcceptance fa{std::nullopt, "no FPS source connected"};
+        std::optional<FpsObservation> obs;
+        if (fps_) {
+            obs = fps_();
+            fa = accept_fps(obs, now_ms, config_.fps_max_age_ms, last_fps_ts_);
+        }
+        Metric fm;
+        fm.id = "fps";
+        fm.unit = "fps";
+        fm.timestamp_ms = obs ? obs->timestamp_ms : now_ms;
+        fm.note = fa.reason;
+        if (fa.fps) {
+            last_fps_ts_ = obs->timestamp_ms;
+            fm.value = fa.fps;
+            fm.source = "session_recorder:" + obs->source;
+            fm.confidence = cx::Confidence::High;
+            fm.readable = true;
+        }
+        snap.metrics.push_back(fm);
+        const std::optional<double> fps = fa.fps;
         std::optional<double> target;
         if (context_) {
             auto r = context_->resolve("display.refresh.current_hz");

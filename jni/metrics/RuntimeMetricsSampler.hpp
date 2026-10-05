@@ -12,6 +12,7 @@
 
 #include "BottleneckModel.hpp"
 #include "CapabilityContext.hpp"
+#include "FpsObservation.hpp"
 #include "KernelIntelligence.hpp"
 #include "RuntimeMetrics.hpp"
 #include "SessionManager.hpp"
@@ -28,10 +29,12 @@ namespace flux::metrics {
 struct SamplerConfig {
     int64_t interval_ms = 2000;
     size_t window = 120; // samples kept for the bottleneck model
+    int64_t fps_max_age_ms = 3000; // older FPS observations are UNKNOWN
 };
 inline constexpr int64_t kMinIntervalMs = 1000, kMaxIntervalMs = 60000;
 inline constexpr size_t kMinWindow = 3, kMaxWindow = 900;
 inline constexpr int kMaxConsecutiveFailures = 3;
+inline constexpr int64_t kMinFpsAgeMs = 1000, kMaxFpsAgeMs = 10000;
 SamplerConfig clamp(SamplerConfig c);
 
 /// Future Observatory sample events (interface only; nothing stores them).
@@ -45,15 +48,12 @@ struct SampleNotice {
 };
 using SampleObserver = std::function<void(const SampleNotice &)>;
 
-/// fps actually presented right now (SessionRecorder); nullopt = not measured.
-using FrameSource = std::function<std::optional<double>()>;
-
 class RuntimeMetricsSampler {
   public:
     enum class State { Idle, Running, Failed };
 
     RuntimeMetricsSampler(const flux::kernel::ReadOnlyFs &fs, const flux::context::CapabilityContext *context,
-                          SamplerConfig config = {}, FrameSource fps = nullptr);
+                          SamplerConfig config = {}, FpsSource fps = nullptr);
 
     /// False when already running for this session (duplicate ignored). A different session
     /// replaces the running one (its samples are dropped).
@@ -83,7 +83,8 @@ class RuntimeMetricsSampler {
     const flux::kernel::ReadOnlyFs &fs_;
     const flux::context::CapabilityContext *context_;
     SamplerConfig config_;
-    FrameSource fps_;
+    FpsSource fps_;
+    int64_t last_fps_ts_ = 0; // newest accepted observation (ordering)
     SampleObserver observer_;
     State state_ = State::Idle;
     std::string session_id_;

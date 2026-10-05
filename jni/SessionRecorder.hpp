@@ -27,6 +27,8 @@
 
 #include <sys/types.h>
 
+#include "FpsObservation.hpp"
+
 /**
  * Game session recorder: play time, frame rate and temperatures.
  *
@@ -86,6 +88,8 @@ public:
     void set_paused(bool paused);
     /// Hottest CPU zone averaged over the last few samples; NAN outside a session.
     [[nodiscard]] float recent_cpu_temp();
+    /// Read-only view of the latest per-second FPS (Step 8.8.1). The measurement itself is unchanged.
+    [[nodiscard]] const flux::metrics::FpsObservationSlot &fps_observation() const { return fps_slot_; }
 
     ~SessionRecorder();
     SessionRecorder(const SessionRecorder &) = delete;
@@ -110,4 +114,5 @@ private:
     int64_t start_ms_ = 0;
     std::string fps_source_;
     std::vector<SessionSample> samples_;
+    flux::metrics::FpsObservationSlot fps_slot_; ///< latest FPS for readers; written after each sample
 };
