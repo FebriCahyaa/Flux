@@ -265,3 +265,17 @@ Step 5: **IMPLEMENTED**, architecture approved by owner (2026-09-29). Device val
 | Forbidden-symbol check | clean |
 | CI | triggered, not monitored (owner instruction) |
 | Device | NOT_TESTED |
+
+## Step 8.8.1 — FPS observation bridge (`d42b866`)
+
+| Check | Result |
+|---|---|
+| Tests first; CMake configure failed without `FpsObservation.cpp` (red) | confirmed |
+| Host ctest (gcc, -Werror) | PASS 25/25 |
+| clang-18 -Werror syntax (bridge, sampler, test) + SessionRecorder.hpp include check | PASS |
+| SessionRecorder change additive only (diff: +publish, +clear on stop, +const accessor, 0 lines removed) | reviewed |
+| SessionRecorder runtime behaviour | no host harness (spdlog + device /sys); CI ndk-build only, device NOT_TESTED |
+| No second FPS loop (reads == samples taken, none after stop) | PASS |
+| Forbidden-symbol check | clean |
+| CI | triggered, not monitored (owner instruction) |
+| Device | NOT_TESTED |

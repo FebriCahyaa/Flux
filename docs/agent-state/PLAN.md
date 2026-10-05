@@ -166,8 +166,14 @@ Done (`e0e4bdd`): read-only collector + bottleneck input mapping. Not in scope: 
 changes, a periodic session sampler (call path), Synrei adapter, Observatory events, using metric confidence/verified as
 evidence weights in BottleneckModel.
 
-## Step 8.8 — Runtime metrics sampling lifecycle (IN PROGRESS)
+## Step 8.8 — Runtime metrics sampling lifecycle (ARCHITECTURALLY APPROVED)
 
 Done (`d5194ac`): session-owned sampler lifecycle, bounded scheduling, BottleneckModel forwarding, sample observer
 interface. Not in scope: Synrei thermal context (B-33B, owner: not yet), device threshold calibration (B-33C), an fps
 source from SessionRecorder, using the assessment anywhere, Observatory events/persistence, policy of any kind.
+
+## Step 8.8.1 — FPS observation bridge (IN PROGRESS)
+
+Done (`d42b866`): read-only FPS observation from SessionRecorder into the sampler/bottleneck input with freshness and
+ordering rules. Not in scope: SessionRecorder redesign, a second FPS collector, threshold changes, Synrei (B-33B),
+calibration (B-33C), using or exporting the assessment.
