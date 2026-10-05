@@ -157,9 +157,10 @@ flux_add_test(observatory_bridge_test tests/observatory_bridge_test.cpp)
 target_link_libraries(observatory_bridge_test PRIVATE flux_bridge)
 
 # -- kernel intelligence (observation only; no writes) ---------------------------
-add_library(flux_kernel STATIC jni/kernel/KernelIntelligence.cpp jni/kernel/CapabilityBootstrap.cpp)
+add_library(flux_kernel STATIC jni/kernel/KernelIntelligence.cpp jni/kernel/CapabilityBootstrap.cpp
+  jni/kernel/CapabilityVerification.cpp)
 target_include_directories(flux_kernel PUBLIC jni/kernel)
-target_link_libraries(flux_kernel PUBLIC flux_context)
+target_link_libraries(flux_kernel PUBLIC flux_context flux_runtime)
 target_compile_options(flux_kernel PRIVATE ${FLUX_WARNINGS})
 
 flux_add_test(kernel_intelligence_test tests/kernel_intelligence_test.cpp)
@@ -241,3 +242,6 @@ target_compile_options(flux_policy PRIVATE ${FLUX_WARNINGS})
 
 flux_add_test(policy_decision_test tests/policy_decision_test.cpp)
 target_link_libraries(policy_decision_test PRIVATE flux_policy)
+
+flux_add_test(capability_verification_test tests/capability_verification_test.cpp)
+target_link_libraries(capability_verification_test PRIVATE flux_kernel flux_policy flux_observatory)

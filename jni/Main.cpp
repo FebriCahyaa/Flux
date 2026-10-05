@@ -606,6 +606,10 @@ static void flux_main_daemon() {
     // Undo per-game values a previous fluxd left behind, before any profile script writes.
     flux_session::manager().recover();
 
+    // Capability verification (Step 8.14): once, after recovery restored per-game values and before
+    // profile scripts; transactional and journaled; thermal never written.
+    flux_capability::verify();
+
     run_perfcommon();
     apply_system_tweaks(true);
 

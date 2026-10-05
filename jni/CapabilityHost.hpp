@@ -21,6 +21,7 @@
 
 #include "CapabilityBootstrap.hpp"
 #include "CapabilityContext.hpp"
+#include "CapabilityVerification.hpp"
 
 #include <memory>
 
@@ -31,5 +32,11 @@ std::shared_ptr<const flux::context::CapabilityContext> context();
 
 /// Probe the kernel and publish. Never throws; a failure is logged and leaves capabilities Unknown.
 const flux::kernel::BootstrapResult &bootstrap();
+
+/// Capability verification (Step 8.14): once per daemon start, after GameRuntime recovery and
+/// before profile scripts. Replays a leftover verification journal first; skipped while Synrei
+/// actively manages thermal state. Marks verified only after write/read-back/restore/read-back.
+/// Never throws; failures only log.
+void verify();
 
 } // namespace flux_capability

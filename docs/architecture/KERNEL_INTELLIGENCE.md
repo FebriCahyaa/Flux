@@ -124,3 +124,11 @@ run replaces the kernel snapshot.
 `run()` never throws. The bootstrap observer (a hook for the future Observatory) receives the
 `BootstrapResult`, and its exceptions are swallowed. It is not wired to anything: there is no kernel
 event type, no persistence and no telemetry. `flux.log` gets one line per run.
+
+## Step 8.14 — Capability verification
+
+Kernel Intelligence still only observes, and its facts are published with `verified=false`. A
+separate one-time step at daemon start (`flux_capability::verify()`, after GameRuntime recovery)
+proves selected controls through the Transaction Engine. It then republishes the kernel snapshot with
+`verified=true` only where the full write, read-back, restore and read-back cycle succeeded. See
+`CAPABILITY_VERIFICATION.md`.

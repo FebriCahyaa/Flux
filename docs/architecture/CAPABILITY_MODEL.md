@@ -134,3 +134,12 @@ storage):
 
 Since kernel facts are `verified=false` until a write-and-read-back step exists, decisions currently
 stay at OBSERVE for device controls. See `POLICY_DECISION.md`.
+
+## Verification (Step 8.14)
+
+`verified` now has a producer: `flux::kernel::CapabilityVerifier` sets it only after a transactional
+write, read-back, restore and read-back cycle performed by an explicit adapter. The adapters cover
+cpufreq `scaling_max_freq`, KGSL `max_gpuclk`, devfreq `max_freq`, block `read_ahead_kb` and
+`vm.swappiness`. Everything else stays unverified (`no_safe_verifier`), and thermal is never written.
+supported, readable, writable and verified remain distinct, and writable never implies verified. See
+`CAPABILITY_VERIFICATION.md`.

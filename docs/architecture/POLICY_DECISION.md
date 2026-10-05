@@ -140,3 +140,11 @@ registry is unchanged (19 types) and the schema is v1.
 - exact evidence references;
 - no writes, unchanged inputs and failure isolation, with history blocking;
 - B-35 unchanged and the five actions.
+
+## Capability verification (Step 8.14)
+
+The Decision Engine can now receive `verified=true` facts produced by the capability verifier
+(`CAPABILITY_VERIFICATION.md`). Nothing in the engine changed. With verified cpufreq, KGSL or devfreq
+ceilings, the cpu or gpu gate can become actionable, so MITIGATE or BOOST become possible
+recommendations. They are still recommendations only: no executor exists. On real devices this is
+unvalidated (B-37).

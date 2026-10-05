@@ -20,9 +20,13 @@
 
 #include "DisplayIntelligence.hpp"
 #include "GraphicsIntelligence.hpp"
+#include "RuntimeHost.hpp"
+#include "SynreiThermalAdapter.hpp"
 
 #include <Exec.hpp>
 #include <FluxLog.hpp>
+
+#include <ctime>
 
 namespace flux_capability {
 
@@ -91,7 +95,56 @@ void publish_display() {
     }
 }
 
+constexpr const char *kVerificationJournal = "/data/adb/.config/zairenkai/verification.journal";
+
 } // namespace
+
+void verify() {
+    try {
+        auto io = flux::perf::make_node_io("");
+        auto files = flux::perf::make_file_store();
+        // A crash during an earlier verification: put the original values back first.
+        if (const auto leftover = files.read(kVerificationJournal)) {
+            const auto report = flux::runtime::recover(io, *leftover);
+            if (!report.clean()) {
+                LOGW_TAG("Capability", "verification journal not fully restored ({} failed); verification skipped",
+                         report.failed.size());
+                return;
+            }
+            files.remove(kVerificationJournal);
+            LOGI_TAG("Capability", "verification journal replayed: {} value(s) restored", report.restored);
+        }
+        auto fs = flux::kernel::make_readonly_fs("");
+        flux::thermal::SynreiThermalAdapter synrei(*fs, [] { return static_cast<int64_t>(std::time(nullptr)); });
+        const auto precondition = [&synrei]() -> std::optional<std::string> {
+            const auto s = synrei.read(0);
+            if (s.verified && (s.state == "boost" || s.state == "relaxed" || s.state == "safety"))
+                return "Synrei is actively managing thermal state (" + s.state + ")";
+            return std::nullopt;
+        };
+        const auto sink = [&files](const std::string &text) {
+            if (flux::runtime::journal::parse(text).entries.empty()) return files.remove(kVerificationJournal);
+            return files.write_atomic(kVerificationJournal, text);
+        };
+        flux::kernel::CapabilityVerifier verifier(io, flux::kernel::builtin_verifiers(), sink, nullptr, precondition);
+        const auto results = verifier.verify_all(*shared());
+        size_t attempted = 0, verified = 0;
+        for (const auto &r : results) {
+            attempted += r.attempted;
+            verified += r.verified;
+            if (r.attempted && !r.verified)
+                LOGW_TAG("Capability", "verification of {} failed: {} (restored: {})", r.capability_id, r.reason,
+                         r.restored ? "yes" : "NO");
+        }
+        const auto updated = flux::kernel::apply_verification(*shared(), results);
+        LOGI_TAG("Capability", "capability verification: {} attempted, {} verified, {} fact(s) updated", attempted, verified,
+                 updated);
+    } catch (const std::exception &e) {
+        LOGW_TAG("Capability", "capability verification failed: {}", e.what());
+    } catch (...) {
+        LOGW_TAG("Capability", "capability verification failed");
+    }
+}
 
 std::shared_ptr<const flux::context::CapabilityContext> context() { return shared(); }
 
