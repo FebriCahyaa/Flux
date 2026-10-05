@@ -45,7 +45,8 @@ const std::pair<Category, const char *> kCategories[] = {{Category::Session, "se
                                                          {Category::Runtime, "runtime"},
                                                          {Category::Performance, "performance"},
                                                          {Category::Transaction, "transaction"},
-                                                         {Category::Recovery, "recovery"}};
+                                                         {Category::Recovery, "recovery"},
+                                                         {Category::Observatory, "observatory"}};
 const std::pair<Severity, const char *> kSeverities[] = {{Severity::Debug, "debug"},     {Severity::Info, "info"},
                                                          {Severity::Notice, "notice"},   {Severity::Warning, "warning"},
                                                          {Severity::Error, "error"},     {Severity::Critical, "critical"}};
@@ -134,6 +135,9 @@ EventRegistry EventRegistry::builtin() {
         "final bottleneck assessment of a session (observation only; evidence in `after`)");
     add("BOTTLENECK_ANALYSIS_FAILED", Category::Performance, bottleneck, true, false,
         "the session's bottleneck analysis could not complete; no finding was claimed");
+
+    add("OBSERVATORY_STORAGE_FAILED", Category::Observatory, {"observatory"}, false, false,
+        "persistent telemetry write failed (recorded in memory only); runtime unaffected");
     return r;
 }
 

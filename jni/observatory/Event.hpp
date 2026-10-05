@@ -32,7 +32,7 @@ namespace flux::observatory {
 
 inline constexpr int kSchemaVersion = 1;
 
-enum class Category { Session, Runtime, Performance, Transaction, Recovery };
+enum class Category { Session, Runtime, Performance, Transaction, Recovery, Observatory };
 enum class Severity { Debug, Info, Notice, Warning, Error, Critical };
 enum class Confidence { High, Medium, Low, Unknown };
 enum class Result { Ok, Failed, Partial, Skipped, Unknown };

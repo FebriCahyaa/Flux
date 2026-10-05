@@ -71,3 +71,11 @@ producer builds Event (no id, no sequence)
    -> EventSink::write: validate -> reject (counted, not stored) | assign sequence + event_id -> store
    -> EventSource::query: filtered, ordered (timestamp, sequence), optional limit (oldest first)
 ```
+
+## Step 8.11 additions
+
+- New category `observatory` and type `OBSERVATORY_STORAGE_FAILED` (source `observatory`, no session
+  required). It is written to the memory store only and is never persisted.
+- The persisted record format is exactly `to_json(event)` (schema 1), one event per line. Events
+  rejected by validation are never persisted.
+- `event_id` stays the key for duplicate detection on disk.

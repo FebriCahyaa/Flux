@@ -30,6 +30,11 @@
 #include <PlatformProbe.hpp>
 #include <VulkanProbe.hpp>
 
+#include "InstallationEpoch.hpp"
+#include "TelemetryStore.hpp"
+
+#include <chrono>
+
 std::string get_module_version() {
     std::ifstream prop_file(MODULE_PROP);
     std::string line;
@@ -146,6 +151,87 @@ int capabilities_handler(const std::vector<std::string> &args) {
     return EXIT_SUCCESS;
 }
 
+
+// Device validation hook for persistent telemetry (Step 8.11). Read-only: opens the store
+// read-only; `retention` is a dry run (fluxd owns the real cleanup).
+int telemetry_handler(const std::vector<std::string> &args) {
+    namespace o = flux::observatory;
+    const o::TelemetryClock clock{
+        [] {
+            return static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+                                            std::chrono::system_clock::now().time_since_epoch()).count());
+        },
+        [] {
+            return static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+                                            std::chrono::steady_clock::now().time_since_epoch()).count());
+        }};
+    o::PersistentEventStore store(o::kTelemetryRoot, clock, o::make_posix_io());
+    if (!store.open(true)) {
+        std::cerr << "telemetry unavailable: " << store.health().last_error << std::endl;
+        return EXIT_FAILURE;
+    }
+    const std::string &sub = args[0];
+    if (sub == "status") {
+        o::QueryStats st;
+        auto all = store.query({}, &st);
+        auto io = o::make_posix_io();
+        auto epoch = io->read_all(std::string(o::kTelemetryRoot) + "/installation.json");
+        auto parsed = epoch ? o::epoch_from_json(*epoch) : std::nullopt;
+        std::cout << "format: ok" << std::endl
+                  << "segments: " << st.segments_total << std::endl
+                  << "events: " << all.size() << std::endl
+                  << "corrupted_lines: " << st.corrupted_lines << std::endl
+                  << "oldest_ms: " << (all.empty() ? 0 : all.front().timestamp_ms) << std::endl
+                  << "newest_ms: " << (all.empty() ? 0 : all.back().timestamp_ms) << std::endl
+                  << "installation_id: " << (parsed ? parsed->installation_id : "unavailable") << std::endl;
+        return EXIT_SUCCESS;
+    }
+    if (sub == "retention") {
+        auto r = store.maintain(true);
+        std::cout << "dry_run: true" << std::endl
+                  << "ran: " << (r.ran ? "true" : "false") << std::endl
+                  << "skipped: " << r.skipped_reason << std::endl
+                  << "cutoff_ms: " << r.cutoff_ms << std::endl
+                  << "segments_to_delete: " << r.segments_deleted << std::endl
+                  << "segments_to_trim: " << r.segments_trimmed << std::endl
+                  << "records_to_remove: " << r.records_removed << std::endl;
+        return EXIT_SUCCESS;
+    }
+    if (sub == "query") {
+        o::TelemetryQuery q;
+        for (size_t i = 1; i < args.size(); ++i) {
+            const auto eq = args[i].find('=');
+            if (eq == std::string::npos) {
+                std::cerr << "expected key=value, got " << args[i] << std::endl;
+                return EXIT_FAILURE;
+            }
+            const std::string k = args[i].substr(0, eq), v = args[i].substr(eq + 1);
+            try {
+                if (k == "session") q.session_id = v;
+                else if (k == "package") q.package = v;
+                else if (k == "source") q.source = v;
+                else if (k == "type") q.type = v;
+                else if (k == "tx") q.transaction_id = v;
+                else if (k == "severity") q.min_severity = o::parse_severity(v);
+                else if (k == "from") q.from_ms = std::stoll(v);
+                else if (k == "to") q.to_ms = std::stoll(v);
+                else if (k == "limit") q.limit = std::stoul(v);
+                else {
+                    std::cerr << "unknown filter " << k << std::endl;
+                    return EXIT_FAILURE;
+                }
+            } catch (...) {
+                std::cerr << "invalid value for " << k << std::endl;
+                return EXIT_FAILURE;
+            }
+        }
+        for (const auto &e : store.query(q)) std::cout << o::to_json(e) << std::endl;
+        return EXIT_SUCCESS;
+    }
+    std::cerr << "unknown telemetry subcommand: " << sub << std::endl;
+    return EXIT_FAILURE;
+}
+
 // clang-format off
 std::vector<CliCommand> commands = {
     {
@@ -179,6 +265,14 @@ std::vector<CliCommand> commands = {
         0,
         1,
         capabilities_handler
+    },
+    {
+        "telemetry",
+        "Inspect persistent telemetry (read-only; retention is a dry run)",
+        "telemetry status | retention | query [session=|package=|source=|type=|tx=|severity=|from=|to=|limit=]...",
+        1,
+        10,
+        telemetry_handler
     },
     {
         "version",

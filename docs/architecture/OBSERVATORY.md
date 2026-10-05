@@ -134,3 +134,11 @@ Two registered types, category `performance`, source `bottleneck`, session id re
 
 The schema version is unchanged (additive types only). In fluxd they go to the bounded in-memory store;
 there is still no persistence or retention. See `BOTTLENECK_RESULT.md`.
+
+## Persistent storage and retention (Step 8.11)
+
+The memory store stays. Producers now write through `TeeEventSink`: memory first, then the persistent
+store at `/data/adb/.config/zairenkai/telemetry/` (hourly JSONL segments plus indexes), with a strict
+rolling 7 × 24 h retention. Persistence failures are isolated and reported once per streak as
+`OBSERVATORY_STORAGE_FAILED`, in memory only. See `OBSERVATORY_STORAGE.md` and `TELEMETRY_RETENTION.md`.
+This supersedes the earlier "no persistence" notes.

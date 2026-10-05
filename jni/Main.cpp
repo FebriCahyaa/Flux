@@ -42,6 +42,7 @@
 #include "SessionRecorder.hpp"
 #include "GameRuntimeHost.hpp"
 #include "CapabilityHost.hpp"
+#include "ObservatoryHost.hpp"
 #include "SessionHost.hpp"
 #include <ShellUtility.hpp>
 #include <SignalHandler.hpp>
@@ -596,6 +597,9 @@ static void flux_main_daemon() {
     DaemonState state;
     pthread_setname_np(pthread_self(), "MainThread");
 
+    // Persistent telemetry + installation epoch + retention (Step 8.11); failures only log.
+    flux_observatory::start();
+
     // Kernel capability facts for the runtime engines (read-only probe; a failure only logs).
     flux_capability::bootstrap();
 
@@ -631,13 +635,15 @@ static void flux_main_daemon() {
 
     while (!daemon_stop_requested.load(std::memory_order_relaxed)) {
         // Sleep until something happens; wake once a second only while a launch boost has a deadline.
-        const int ret = poll(&pfd, 1, flux_session::manager().needs_tick() ? 1000 : -1);
+        // Outside sessions, wake hourly for telemetry retention (Step 8.11).
+        const int ret = poll(&pfd, 1, flux_session::manager().needs_tick() ? 1000 : flux_observatory::idle_timeout_ms());
         if (ret < 0) {
             if (errno == EINTR) continue;
             LOGE_TAG("MainThread", "poll() failed: {}", strerror(errno));
             break;
         }
         flux_session::manager().tick(flux_runtime::now_ms());
+        flux_observatory::maintain_if_due();
         if (ret == 0) continue;
 
         if (daemon_stop_requested.load(std::memory_order_relaxed)) [[unlikely]]

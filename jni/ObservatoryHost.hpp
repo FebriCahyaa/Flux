@@ -20,11 +20,24 @@
 // Nothing is persisted (device telemetry storage and retention come later).
 
 #include "EventStore.hpp"
+#include "TelemetryStore.hpp"
 #include "ObservatoryBridge.hpp"
 
 namespace flux_observatory {
 
 flux::observatory::MemoryEventStore &store();
+/// Persistent telemetry under /data/adb/.config/zairenkai (Step 8.11).
+flux::observatory::PersistentEventStore &persistent();
+/// What producers write to: memory first, then disk (failures isolated).
+flux::observatory::EventSink &sink();
 flux::bridge::ObservatoryBridge &bridge();
+
+/// Daemon start: open the telemetry store, load/create the installation epoch, run retention.
+/// Never throws; problems are logged and leave the memory store working.
+void start();
+/// Retention when due (hourly); call from the main loop.
+void maintain_if_due();
+/// Poll timeout while no session ticks, so retention also runs on an idle daemon.
+int idle_timeout_ms();
 
 } // namespace flux_observatory

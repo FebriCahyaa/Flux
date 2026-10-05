@@ -78,3 +78,9 @@ PerformancePlanner, Synrei/HiCo, kernel nodes, and the bottleneck thresholds.
   on a switch);
 - analysis failure isolation: the session ends cleanly, restore runs, a failure event is recorded and
   no success is claimed; throwing sinks are swallowed.
+
+## Persistence (Step 8.11)
+
+`BOTTLENECK_ASSESSED` and `BOTTLENECK_ANALYSIS_FAILED` now go through `flux_observatory::sink()`, so they
+are kept in memory and persisted to the telemetry store, where they are retained for 7 × 24 h and
+queryable by `type`, `session_id` or `package`. A disk failure never turns into a success event.

@@ -102,10 +102,10 @@ flux::metrics::RuntimeMetricsSampler &sampler() {
         };
         instance.set_result_sink(
             [wall](const flux::bottleneck::BottleneckResult &r) {
-                flux_observatory::store().write(flux::bridge::bottleneck_event(r, wall()));
+                flux_observatory::sink().write(flux::bridge::bottleneck_event(r, wall()));
             },
             [wall](const std::string &session, const std::string &error, int64_t) {
-                flux_observatory::store().write(flux::bridge::bottleneck_failure_event(session, error, wall()));
+                flux_observatory::sink().write(flux::bridge::bottleneck_failure_event(session, error, wall()));
             });
         return true;
     }();

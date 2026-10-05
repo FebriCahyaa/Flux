@@ -95,3 +95,10 @@ computes the session's bottleneck assessment once and hands the result to the Ob
 `BOTTLENECK_ASSESSED`, or `BOTTLENECK_ANALYSIS_FAILED` if it fails. That participant's `end()` still
 always reports clean, analysis failures never change the session, restore or transactions, and no
 worker keeps running after the session. See `BOTTLENECK_RESULT.md`.
+
+## Session events on disk (Step 8.11)
+
+`SESSION_*` events (and every other accepted event) are now also persisted to the telemetry store and
+kept for 7 × 24 h. Package queries resolve through `session_package` in the segment indexes. A
+persisted `SESSION_END` triggers due retention. `sessions.json` and `session_live.json` are unchanged.
+Disk failures never affect the session.
