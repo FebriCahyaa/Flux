@@ -16,7 +16,7 @@
 
 if [ -n "$MMRL" ]; then
 	echo "- This action script is not intended to run on MMRL."
-	echo "- Please open Flux Tweaks WebUI by clicking the module card."
+	echo "- Please open the Zairenkai WebUI by clicking the module card."
 	exit 0
 fi
 

@@ -60,7 +60,7 @@ GameRegistry game_registry;
 // ---------------------------------------------------------------------------
 
 void set_module_description_status(const std::string &status) {
-    const std::string description = "[" + status + "] Special performance module for your Device.";
+    const std::string description = "[" + status + "] Zairenkai performance platform for your device.";
     const std::vector<ModuleProperties> props{{"description", description}};
     try {
         ModuleProperty::Change(MODULE_PROP, props);
@@ -844,11 +844,11 @@ int run_daemon() {
         return EXIT_FAILURE;
     }
 
-    LOGI("Flux Tweaks daemon started");
+    LOGI("Zairenkai daemon started (Flux Tweaks runtime)");
     set_module_description_status("\xF0\x9F\x98\x8B Tweaks applied successfully");
     flux_main_daemon();
 
-    LOGW("Flux Tweaks daemon exited");
+    LOGW("Zairenkai daemon exited (Flux Tweaks runtime)");
 
     if (synthesis_core_event_fd >= 0) {
         close(synthesis_core_event_fd);

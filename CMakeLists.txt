@@ -252,3 +252,16 @@ target_link_libraries(policy_executor_test PRIVATE flux_policy flux_bridge)
 flux_add_test(live_policy_test tests/live_policy_test.cpp)
 target_link_libraries(live_policy_test PRIVATE flux_policy flux_metrics)
 target_compile_definitions(live_policy_test PRIVATE FLUX_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}")
+
+# -- brand & namespace migration (Phase 4.5): labels, frozen identifiers, config lookup ----
+add_library(flux_brand STATIC jni/brand/Brand.cpp jni/brand/ConfigNamespace.cpp)
+target_include_directories(flux_brand PUBLIC jni/brand)
+target_compile_options(flux_brand PRIVATE ${FLUX_WARNINGS})
+
+flux_add_test(brand_migration_test tests/brand_migration_test.cpp)
+target_link_libraries(brand_migration_test PRIVATE flux_brand flux_observatory flux_thermal)
+target_include_directories(brand_migration_test PRIVATE jni/include)
+target_compile_definitions(brand_migration_test PRIVATE FLUX_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}")
+
+add_test(NAME brand_inventory_test COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/tests/brand_inventory_test.sh
+         ${CMAKE_CURRENT_SOURCE_DIR})

@@ -31,7 +31,7 @@ make_dir() {
 abort_unsupported_arch() {
 	ui_print "*********************************************************"
 	ui_print "! Unsupported Architecture: $ARCH"
-	ui_print "! Your CPU architecture is not supported by Flux Tweaks."
+	ui_print "! Your CPU architecture is not supported by Zairenkai."
 	abort "*********************************************************"
 }
 
@@ -188,12 +188,12 @@ else
 fi
 case "$flavor" in
 arm64)
-	[ "$ARCH" = "arm64" ] || abort_wrong_flavor "This is the 64-bit (arm64) build of Flux Tweaks," \
+	[ "$ARCH" = "arm64" ] || abort_wrong_flavor "This is the 64-bit (arm64) build of Zairenkai," \
 		"but this ROM runs a 32-bit (armeabi-v7a) userspace." \
 		"Install the 32-bit build: flux-*-arm.zip"
 	;;
 arm)
-	[ "$ARCH" = "arm" ] || abort_wrong_flavor "This is the 32-bit (arm) build of Flux Tweaks," \
+	[ "$ARCH" = "arm" ] || abort_wrong_flavor "This is the 32-bit (arm) build of Zairenkai," \
 		"but this ROM is 64-bit (arm64-v8a)." \
 		"Install the 64-bit build: flux-*-arm64.zip"
 	;;
@@ -207,6 +207,8 @@ echo "$flavor" >"$MODPATH/flavor"
 extract "$ZIPFILE" "libs/$ARCH_TMP/fluxd" "$TMPDIR"
 cp "$TMPDIR"/libs/"$ARCH_TMP"/* "$MODPATH/system/bin"
 rm -rf "$TMPDIR/libs"
+# Public CLI name: a symlink to the one fluxd binary (no second daemon); fluxd stays.
+ln -sf fluxd "$MODPATH/system/bin/zairenkai"
 
 # Skip mountify
 touch "$MODPATH/skip_mountify"
@@ -223,6 +225,7 @@ if [ "$KSU" = "true" ] || [ "$APATCH" = "true" ]; then
 		[ -d "$dir" ] && {
 			ui_print "- Creating symlink in $dir"
 			ln -sf "$BIN_PATH/fluxd" "$dir/fluxd"
+			ln -sf "$BIN_PATH/fluxd" "$dir/zairenkai"
 			ln -sf "$BIN_PATH/flux_profiler" "$dir/flux_profiler"
 			ln -sf "$BIN_PATH/flux_utility" "$dir/flux_utility"
 		}
@@ -238,7 +241,7 @@ unzip -o "$ZIPFILE" "webroot/*" -d "$MODPATH" -x "*.sha256" >&2
 [ -f /data/local/tmp/flux_logo.png ] && rm -f /data/local/tmp/flux_logo.png
 
 # Set configs
-ui_print "- Flux Tweaks configuration setup"
+ui_print "- Zairenkai configuration setup"
 make_dir "$MODULE_CONFIG"
 unzip -o "$ZIPFILE" "config/*" -d "$MODULE_CONFIG" -x "*.sha256" >&2
 mv "$MODULE_CONFIG/config/"* "$MODULE_CONFIG/"
@@ -293,5 +296,5 @@ case "$((RANDOM % 10 + 1))" in
 7) ui_print "- Flux Engine Ready." ;;
 8) ui_print "- Optimized for Gaming." ;;
 9) ui_print "- Powered by SynthesisCore." ;;
-10) ui_print "- Welcome to Flux Tweaks!" ;;
+10) ui_print "- Welcome to Zairenkai!" ;;
 esac

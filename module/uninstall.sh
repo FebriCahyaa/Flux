@@ -32,7 +32,7 @@ HICOD=/data/adb/modules/hico/system/bin/hicod
 
 # Symlinks created by customize.sh on KernelSU / APatch
 for dir in /data/adb/ksu/bin /data/adb/ap/bin; do
-	for bin in fluxd flux_profiler flux_utility; do
+	for bin in fluxd zairenkai flux_profiler flux_utility; do
 		[ -L "$dir/$bin" ] && rm -f "$dir/$bin"
 	done
 done

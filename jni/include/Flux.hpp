@@ -18,7 +18,7 @@
 
 #include <string>
 
-#define NOTIFY_TITLE "Flux Tweaks"
+#define NOTIFY_TITLE "Zairenkai" // human-readable label (LOG_TAG stays FluxTweaks)
 #define LOG_TAG "FluxTweaks"
 
 #define CONFIG_DIR "/data/adb/.config/flux"

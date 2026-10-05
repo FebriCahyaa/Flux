@@ -23,6 +23,8 @@
 
 #include "FluxCLI.hpp"
 
+#include "Brand.hpp"
+
 #include <Flux.hpp>
 #include <GameRegistry.hpp>
 
@@ -65,7 +67,7 @@ int version_handler(const std::vector<std::string> &args) {
     (void)args;
 
     std::string module_version = get_module_version();
-    std::cout << "Flux Tweaks " << module_version << std::endl;
+    std::cout << zairenkai::brand::version_line(module_version) << std::endl;
     std::cout << "Built on " << __TIME__ << " " << __DATE__ << std::endl;
     return EXIT_SUCCESS;
 }
@@ -158,7 +160,7 @@ int telemetry_handler(const std::vector<std::string> &args) {
 std::vector<CliCommand> commands = {
     {
         "daemon",
-        "Start Flux Tweaks daemon",
+        "Start the Zairenkai daemon",
         "daemon",
         0,
         0,
@@ -207,8 +209,13 @@ std::vector<CliCommand> commands = {
 };
 // clang-format on
 
+namespace {
+// Name shown in help: the alias the user invoked ("zairenkai" or "fluxd"); same handlers either way.
+std::string shown_name = std::string(zairenkai::brand::kDaemonBinary);
+} // namespace
+
 void cli_usage(const char *program_name) {
-    std::cout << "Flux Tweaks CLI" << std::endl << std::endl;
+    std::cout << zairenkai::brand::cli_banner() << std::endl << std::endl;
     std::cout << "Usage: " << program_name << " <COMMAND>" << std::endl << std::endl;
     std::cout << "Commands:" << std::endl;
 
@@ -223,12 +230,13 @@ void cli_usage(const char *program_name) {
 }
 
 void cli_usage_command(const CliCommand &cmd) {
-    std::cout << "Usage: fluxd " << cmd.usage << std::endl << std::endl;
+    std::cout << "Usage: " << shown_name << " " << cmd.usage << std::endl << std::endl;
     std::cout << cmd.description << std::endl;
 }
 
 int flux_cli(int argc, char *argv[]) {
-    const char *program_name = argv[0];
+    shown_name = zairenkai::brand::command_name(argv[0] ? argv[0] : "");
+    const char *program_name = shown_name.c_str();
 
     if (argc == 1) {
         cli_usage(program_name);

@@ -1,9 +1,9 @@
 id=flux
-name=Flux Tweaks
+name=Zairenkai
 version=
 versionCode=
 author=FebriCahyaa
-description=Adaptive gaming and battery optimization framework.
+description=Zairenkai performance platform with Synrei Thermal Intelligence and Zairenkai Intelligence (Flux Tweaks runtime).
 updateJson=https://raw.githubusercontent.com/FebriCahyaa/Flux/main/update.json
 banner=banner.webp
 webuiIcon=webroot/icon.webp

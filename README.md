@@ -1,25 +1,37 @@
-# Flux Tweaks
+# Zairenkai
 
 <p align="center">
-  <img src="banner.webp" alt="Flux Tweaks" width="100%"/>
+  <img src="banner.webp" alt="Zairenkai" width="100%"/>
 </p>
 
 <p align="center">
-  <b>Adaptive gaming and battery optimization module for rooted Android</b><br/>
+  <b>Zairenkai — adaptive gaming and battery optimization platform for rooted Android</b><br/>
+  with Synrei Thermal Intelligence and Zairenkai Intelligence<br/>
   Magisk · KernelSU · APatch · arm64 / arm
 </p>
 
+- [Identity and compatibility names](#identity-and-compatibility-names)
 - [How it works](#how-it-works)
 - [Features](#features)
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Project layout](#project-layout)
 - [Building](#building)
-- [SynthesisCore and supply-chain security](#synthesiscore-and-supply-chain-security)
-- [Ecosystem: HiCo Thermal](#ecosystem-hico-thermal)
+- [Zairenkai Intelligence (SynthesisCore) and supply-chain security](#zairenkai-intelligence-synthesiscore-and-supply-chain-security)
+- [Ecosystem: Synrei Thermal Intelligence (HiCo)](#ecosystem-synrei-thermal-intelligence-hico)
 - [License](#license)
 
 ---
+
+## Identity and compatibility names
+
+| Public name | Component | Compatibility identifiers (unchanged) |
+|---|---|---|
+| **Zairenkai** | the platform: this module, daemon and CLI | module ID `flux`, binary `fluxd`, `/data/adb/.config/flux`, `/data/adb/modules/flux` |
+| **Synrei Thermal Intelligence** | thermal intelligence | HiCo backend, `/dev/hico/state`, `/data/adb/.config/hico` |
+| **Zairenkai Intelligence** | intelligence / system-observation layer | SynthesisCore, package `com.febricahyaa.synthesiscore` |
+
+Flux Tweaks, HiCo and SynthesisCore are the legacy names of these components. Their technical identifiers stay in place so that existing installations, configurations, update channels and scripts keep working. A legacy identifier does **not** mean that the implementation is obsolete. The CLI can be called as `zairenkai` (an alias of `fluxd`) or as `fluxd`; both run the same commands, for example `zairenkai telemetry status` and `fluxd telemetry status`. See [`docs/architecture/BRAND_MIGRATION.md`](docs/architecture/BRAND_MIGRATION.md).
 
 ## How it works
 
@@ -152,7 +164,7 @@ ndk-build -j"$(nproc)"                       # NDK r29
 `.github/scripts/compile_zip.sh` assembles the module; it expects to run in GitHub Actions.
 Both CI builds and releases use the shared `.github/actions/build-module` action.
 
-## SynthesisCore and supply-chain security
+## Zairenkai Intelligence (SynthesisCore) and supply-chain security
 
 `prebuilt/synthesiscore.apk` runs as root, so it is protected end to end:
 
@@ -166,7 +178,7 @@ Both CI builds and releases use the shared `.github/actions/build-module` action
 
 Setup and key rotation are described in [`prebuilt/README.md`](prebuilt/README.md).
 
-## Ecosystem: HiCo Thermal
+## Ecosystem: Synrei Thermal Intelligence (HiCo)
 
 [HiCo Thermal](https://github.com/FebriCahyaa/HiCo) is a Flux add-on that disables thermal
 throttling only while a game runs, then restores the stock thermal stack for daily use, with a
