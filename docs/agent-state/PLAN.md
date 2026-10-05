@@ -184,7 +184,13 @@ Done (`7007422`): neutral thermal context boundary, Synrei adapter over `/dev/hi
 BottleneckModel evidence. Not in scope: thermal control/limits/protection changes, thermal writes, HiCo changes (headroom /
 cap ratio publication would need a HiCo-side decision), threshold calibration (B-33C), using or exporting assessments.
 
-## Step 8.10 — Bottleneck result integration (IN PROGRESS)
+## Step 8.10 — Bottleneck result integration (ARCHITECTURALLY APPROVED; implementation complete)
 
 Done (`3ae57cd`): neutral BottleneckResult, Observatory events for completed/failed assessments, emission once at session end.
 Not in scope: any consumer/policy of the result, persistence/retention/export of events, WebUI, threshold calibration (B-33C).
+
+## Step 8.11 — Observatory persistent storage and 7-day retention (IN PROGRESS)
+
+Done (`1ee1c7a`): persistent telemetry store, indexes/queries, rolling 7 × 24 h retention with clock safety, installation
+epoch, failure isolation, read-only CLI hooks. Not in scope: WebUI/dashboard/export UI, sessions.json changes, threshold
+changes, optimisation policy, cross-process locking for the CLI (read-only by design).

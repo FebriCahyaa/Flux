@@ -304,3 +304,16 @@ Step 5: **IMPLEMENTED**, architecture approved by owner (2026-09-29). Device val
 | Forbidden-symbol check | clean |
 | CI | triggered, not monitored (owner instruction) |
 | Device | NOT_TESTED |
+
+## Step 8.11 — Observatory persistent storage + retention (`1ee1c7a`)
+
+| Check | Result |
+|---|---|
+| Tests first; CMake configure failed without `TelemetryStore.cpp` / `InstallationEpoch.cpp` (red) | confirmed |
+| Host ctest (gcc, -Werror) | PASS 28/28 (existing observatory/bridge tests pass with the new category and types) |
+| clang-18 -Werror syntax (store, epoch, events, test) | PASS |
+| CLI `telemetry` handler and `ObservatoryHost.cpp` compiled against stubs (spdlog/properties) | PASS; CLI run reports "telemetry directory absent" on a host without a store |
+| Daemon glue (Main.cpp, SessionHost.cpp, FluxCLI.cpp in full) | CI ndk-build only (not monitored) |
+| Forbidden-symbol check | clean |
+| CI | triggered, not monitored (owner instruction) |
+| Device | NOT_TESTED |

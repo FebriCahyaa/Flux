@@ -109,14 +109,23 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   (not published); slope derived. Sampler records one snapshot per sample; BottleneckModel gets it via the neutral
   `ThermalContext`. Thresholds, FPS architecture, GameRuntime and SessionRecorder unchanged; zero thermal writes (tested).
   Host 26/26 PASS; clang-18 -Werror OK. CI: triggered, not monitored. Device: NOT_TESTED. HiCo repository unchanged.
-- **Step 8.10 (bottleneck result integration): IN PROGRESS.**
+- **Step 8.10 (bottleneck result integration): ARCHITECTURALLY APPROVED; implementation complete (owner). CI/device validation separate.**
   `integration/game-runtime-clean` @ `3ae57cd`: `jni/bottleneck/BottleneckResult.*`, `jni/bridge/BottleneckEvents.*`, registry types
   `BOTTLENECK_ASSESSED` / `BOTTLENECK_ANALYSIS_FAILED` (category performance, source bottleneck, schema unchanged), sampler result
   sink; fluxd writes the final per-session result to the in-memory Observatory store. One assessment per session at stop, no
   worker; primary UNKNOWN when insufficient; failures isolated (session, restore, transactions unaffected). Rules/thresholds
   unchanged; sessions.json, session_live.json, SessionRecorder, GameRuntime policy, PerformancePlanner, Synrei, kernel nodes
   unchanged. Host 27/27 PASS; clang-18 -Werror OK. CI: triggered, not monitored. Device: NOT_TESTED.
-- **Next:** owner review of Step 8.10.
+- **Step 8.11 (Observatory persistent storage + 7-day retention): IN PROGRESS.**
+  `integration/game-runtime-clean` @ `1ee1c7a`: `jni/observatory/{TelemetryStore,InstallationEpoch}.*`; producers write via
+  `TeeEventSink` (memory first, then `/data/adb/.config/zairenkai/telemetry/`: FORMAT, hourly JSONL segments = to_json(event),
+  per-segment indexes). Retention 7 × 24 h at daemon start, hourly (main loop now wakes hourly when idle) and on SESSION_END;
+  unset clock skipped, forward jump deferred. Disk failures isolated, reported once per streak as OBSERVATORY_STORAGE_FAILED
+  (memory only). Installation epoch at `/data/adb/.config/zairenkai/installation.json`, written once, preserved. CLI
+  `fluxd telemetry status|retention|query` (read-only; retention dry run). sessions.json / session_live.json / thresholds
+  unchanged; no WebUI. Host 28/28 PASS; clang-18 -Werror OK (CLI handler and ObservatoryHost compiled against stubs:
+  spdlog absent locally). CI: triggered, not monitored. Device: NOT_TESTED.
+- **Next:** owner review of Step 8.11.
 - **Working rule (owner, 2026-10-05):** do not wait for / monitor CI completion; trigger it and report it as unchecked.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 
