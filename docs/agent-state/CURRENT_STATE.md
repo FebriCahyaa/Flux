@@ -261,3 +261,6 @@ NOT_TESTED. Details: `VALIDATION.md`.
   - Also fixed: the PolicyExecutor stack-use-after-return (ASan) and test-only dangling references.
   - Host 36/36 PASS, also under ASan. No new events; B-35 deferred.
   - New blockers: B-42 (MITIGATE/RESTORE rule), B-43 (device).
+
+- **B-42 resolved (host), Flux `7084132`.** The thermal hold and MITIGATE semantics are fixed under safety. Host 36/36 PASS, also under ASan. CI: not checked. Device: NOT_TESTED.
+  B-37, B-43, B-26, B-33A/B/C, B-34C, B-36, B-39, B-40 and B-41 remain open; B-35 is deferred.
