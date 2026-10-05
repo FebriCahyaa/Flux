@@ -292,3 +292,15 @@ Step 5: **IMPLEMENTED**, architecture approved by owner (2026-09-29). Device val
 | Forbidden-symbol check | clean |
 | CI | triggered, not monitored (owner instruction) |
 | Device | NOT_TESTED |
+
+## Step 8.10 — Bottleneck result integration (`3ae57cd`)
+
+| Check | Result |
+|---|---|
+| Tests first; CMake configure failed without `BottleneckResult.cpp` / `BottleneckEvents.cpp` (red) | confirmed |
+| Host ctest (gcc, -Werror) | PASS 27/27 (existing observatory tests unchanged and passing with the two added types) |
+| clang-18 -Werror syntax (result, events, sampler, test) | PASS |
+| Protected files (SessionRecorder, perf, GameRuntimeHost, runtime, kernel, thermal) diff | none |
+| Forbidden-symbol check | clean |
+| CI | triggered, not monitored (owner instruction) |
+| Device | NOT_TESTED |

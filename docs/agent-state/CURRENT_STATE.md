@@ -102,14 +102,21 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   only valid / fresh (≤3 s) / newer observations, else UNKNOWN; bottleneck thresholds unchanged. sessions.json /
   session_live.json / FPS measurement / recorder lifecycle unchanged; no second FPS loop. Host 25/25 PASS; clang-18 -Werror
   OK. CI: triggered, not monitored. Device: NOT_TESTED. Synrei not started (owner).
-- **Step 8.9 (Synrei thermal context foundation): IN PROGRESS.**
+- **Step 8.9 (Synrei thermal context foundation): APPROVED (owner).** Thermal mapping accepted; HiCo repository not modified; B-33B1 resolved for the current interface.
   `integration/game-runtime-clean` @ `7007422`: `jni/thermal/{ThermalContext,SynreiThermalAdapter}.*` (FluxThermal). Reads hicod's
   existing `/dev/hico/state` read-only; verified only while the hicod pid is alive and `updated` ≤ 15 s old; constraint from
   Synrei state only (safety → constrained, boost → unconstrained, else unknown; never from temperature); headroom UNKNOWN
   (not published); slope derived. Sampler records one snapshot per sample; BottleneckModel gets it via the neutral
   `ThermalContext`. Thresholds, FPS architecture, GameRuntime and SessionRecorder unchanged; zero thermal writes (tested).
   Host 26/26 PASS; clang-18 -Werror OK. CI: triggered, not monitored. Device: NOT_TESTED. HiCo repository unchanged.
-- **Next:** owner review of Step 8.9.
+- **Step 8.10 (bottleneck result integration): IN PROGRESS.**
+  `integration/game-runtime-clean` @ `3ae57cd`: `jni/bottleneck/BottleneckResult.*`, `jni/bridge/BottleneckEvents.*`, registry types
+  `BOTTLENECK_ASSESSED` / `BOTTLENECK_ANALYSIS_FAILED` (category performance, source bottleneck, schema unchanged), sampler result
+  sink; fluxd writes the final per-session result to the in-memory Observatory store. One assessment per session at stop, no
+  worker; primary UNKNOWN when insufficient; failures isolated (session, restore, transactions unaffected). Rules/thresholds
+  unchanged; sessions.json, session_live.json, SessionRecorder, GameRuntime policy, PerformancePlanner, Synrei, kernel nodes
+  unchanged. Host 27/27 PASS; clang-18 -Werror OK. CI: triggered, not monitored. Device: NOT_TESTED.
+- **Next:** owner review of Step 8.10.
 - **Working rule (owner, 2026-10-05):** do not wait for / monitor CI completion; trigger it and report it as unchecked.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 

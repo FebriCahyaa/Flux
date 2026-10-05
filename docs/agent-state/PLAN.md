@@ -178,8 +178,13 @@ Done (`d42b866`): read-only FPS observation from SessionRecorder into the sample
 ordering rules. Not in scope: SessionRecorder redesign, a second FPS collector, threshold changes, Synrei (B-33B),
 calibration (B-33C), using or exporting the assessment.
 
-## Step 8.9 — Synrei thermal context foundation (IN PROGRESS)
+## Step 8.9 — Synrei thermal context foundation (APPROVED)
 
 Done (`7007422`): neutral thermal context boundary, Synrei adapter over `/dev/hico/state`, per-session thermal history as
 BottleneckModel evidence. Not in scope: thermal control/limits/protection changes, thermal writes, HiCo changes (headroom /
 cap ratio publication would need a HiCo-side decision), threshold calibration (B-33C), using or exporting assessments.
+
+## Step 8.10 — Bottleneck result integration (IN PROGRESS)
+
+Done (`3ae57cd`): neutral BottleneckResult, Observatory events for completed/failed assessments, emission once at session end.
+Not in scope: any consumer/policy of the result, persistence/retention/export of events, WebUI, threshold calibration (B-33C).
