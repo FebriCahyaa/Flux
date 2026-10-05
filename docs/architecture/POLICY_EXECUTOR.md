@@ -1,8 +1,9 @@
 # Controlled Policy Executor (Phase 4B)
 
 Status: **IN PROGRESS** (implementation complete on the host). `jni/policy/PolicyExecutor.*` (`flux::policy::PolicyExecutor`,
-part of `flux_policy` / NDK `FluxPolicy`). **No fluxd call path yet**: nothing on a device executes decisions. The first
-physical-device execution is a dedicated validation run (B-38). Device: NOT_TESTED.
+part of `flux_policy` / NDK `FluxPolicy`). Called by fluxd since Phase 4C through `LivePolicyController` (`CONTROL_EXECUTION.md`). All kernel
+facts stay unverified on devices until validation (B-37), so on real devices the executor blocks.
+Device: NOT_TESTED.
 
 ## Decision ≠ Execution
 
@@ -53,11 +54,10 @@ Not executable in Phase 4B (`no_trusted_adapter`):
   The executor also refuses any `PerformancePlanner::interface_allowed` path
   (`planner_owned_interface`), so it never contends with GameRuntime's per-game transaction.
 
-**Semantics note for owner review:** MITIGATE lowers a ceiling one step. That relieves thermal and power
-load, which is the meaning under Synrei `safety`. For a resource bottleneck under Synrei `boost`, the
-Decision Engine also recommends MITIGATE, and lowering that resource's ceiling does not relieve the
-bottleneck. The executor does not reinterpret decisions, so whether the Decision Engine should send
-OBSERVE instead in that case is an open design question (B-38).
+**MITIGATE semantics (B-38, resolved):** MITIGATE lowers a ceiling one step, relieving thermal and power
+load. The Decision Engine now recommends it only under a verified Synrei `safety`; under Synrei `boost`
+a CPU/GPU bottleneck yields BOOST or OBSERVE. The executor was not changed and still does not
+reinterpret decisions.
 
 ## Validation (all before the Transaction Engine; any failure means `blocked`, exact reasons listed)
 

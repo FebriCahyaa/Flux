@@ -19,6 +19,7 @@
 #include "BottleneckEvents.hpp"
 #include "CapabilityHost.hpp"
 #include "GameRuntimeHost.hpp"
+#include "LivePolicyController.hpp"
 #include "ObservatoryHost.hpp"
 #include "RuntimeMetricsSampler.hpp"
 #include "SessionRecorder.hpp"
@@ -48,11 +49,18 @@ flux::perf::EndReason to_runtime(EndReason r) {
     return flux::perf::EndReason::Exit;
 }
 
+/// GameRuntime journal replay at daemon start left something unrestored (live policy stays off).
+bool runtime_recovery_failed = false;
+
 /// Owns nothing itself: forwards to the Game Runtime performance host, which owns the transaction.
 class RuntimeParticipant final : public flux::session::SessionParticipant {
 public:
     const char *name() const override { return "game_runtime"; }
-    void recover() override { flux_runtime::host().on_daemon_start(); }
+    void recover() override {
+        runtime_recovery_failed = false;
+        for (const auto &r : flux_runtime::host().on_daemon_start())
+            if (!r.report.clean()) runtime_recovery_failed = true;
+    }
     void begin(const SessionInfo &s) override {
         flux_runtime::host().on_game_active(s.key.package, s.key.pid, s.started_ms);
     }
@@ -117,7 +125,92 @@ flux::metrics::SamplerParticipant &sampler_participant() {
     return p;
 }
 
+/// Live policy (Phase 4C): DecisionEngine + PolicyExecutor on the session tick, fed by the sampler
+/// above (no second collector, no thread). Its own journal lets a restarted daemon restore what a
+/// crashed one applied.
+constexpr const char *kPolicyJournal = "/data/adb/.config/zairenkai/policy.journal";
+std::function<FluxProfileMode()> profile_source;
+
+flux::policy::ProfileMode to_policy(FluxProfileMode m) {
+    switch (m) {
+    case PERFCOMMON: return flux::policy::ProfileMode::PerfCommon;
+    case PERFORMANCE_PROFILE: return flux::policy::ProfileMode::Performance;
+    case PERFORMANCE_LITE_PROFILE: return flux::policy::ProfileMode::PerformanceLite;
+    case BALANCE_PROFILE: return flux::policy::ProfileMode::Balance;
+    case POWERSAVE_PROFILE: return flux::policy::ProfileMode::Powersave;
+    }
+    return flux::policy::ProfileMode::Unknown;
+}
+
+flux::perf::FileStore &policy_files() {
+    static auto files = flux::perf::make_file_store();
+    return files;
+}
+
+flux::policy::PolicyExecutor &policy_executor() {
+    static flux::policy::PolicyExecutor instance(
+        flux::perf::make_node_io(),
+        [](const std::string &text) {
+            if (flux::runtime::journal::parse(text).entries.empty()) return policy_files().remove(kPolicyJournal);
+            return policy_files().write_atomic(kPolicyJournal, text);
+        },
+        flux_observatory::bridge().transaction_observer());
+    return instance;
+}
+
+flux::policy::LivePolicyController &live_policy() {
+    static flux::policy::LivePolicyController instance(
+        sampler(), flux_capability::context().get(), policy_executor(),
+        [] {
+            flux::policy::ProfileIntent p;
+            if (profile_source) p.mode = to_policy(profile_source());
+            return p;
+        },
+        [] {
+            flux::policy::RuntimeEvidence r;
+            r.game_active = manager().active();
+            switch (flux_runtime::host().runtime().state()) {
+            case flux::perf::RuntimeState::Active: r.transaction = flux::runtime::TxState::Active; break;
+            case flux::perf::RuntimeState::Failed: r.transaction = flux::runtime::TxState::Failed; break;
+            default: r.transaction = flux::runtime::TxState::Inactive; break;
+            }
+            r.recovery_failed = runtime_recovery_failed;
+            return r;
+        });
+    static const bool observed = [] {
+        instance.set_observer([](const flux::policy::LiveEvaluation &e) {
+            if (e.decision.action == flux::policy::Action::NoAction || e.decision.action == flux::policy::Action::Observe)
+                return;
+            LOGI_TAG("Policy", "{} {} -> {}: {}", flux::policy::to_string(e.decision.action), e.decision.target,
+                     flux::policy::to_string(e.execution.final_status), e.execution.reason);
+        });
+        return true;
+    }();
+    (void)observed;
+    return instance;
+}
+
+flux::policy::LivePolicyParticipant &live_policy_participant() {
+    static flux::policy::LivePolicyParticipant p(live_policy(), [] {
+        // A crash while a policy change was applied: put the original values back first.
+        const auto leftover = policy_files().read(kPolicyJournal);
+        if (!leftover) return true;
+        const auto report = flux::runtime::recover(flux::perf::make_node_io(), *leftover);
+        if (!report.clean()) {
+            LOGW_TAG("Policy", "policy journal not fully restored ({} failed); live policy disabled",
+                     report.failed.size());
+            return false;
+        }
+        policy_files().remove(kPolicyJournal);
+        LOGI_TAG("Policy", "policy journal replayed: {} value(s) restored", report.restored);
+        return true;
+    });
+    return p;
+}
+
 } // namespace
+
+void set_profile_source(std::function<FluxProfileMode()> source) { profile_source = std::move(source); }
 
 flux::session::SessionManager &manager() {
     static flux::session::SessionManager instance = [] {
@@ -126,6 +219,9 @@ flux::session::SessionManager &manager() {
         m.add(&recorder_participant);
         // Last to begin, first to end: sampling stops before any restore runs.
         m.add(&sampler_participant());
+        // Live policy LAST: begins after metrics, ends FIRST, so the PolicyExecutor transaction is
+        // restored before sampling stops and before GameRuntime restores its own values.
+        m.add(&live_policy_participant());
         m.set_observer(flux_observatory::bridge().session_observer());
         m.set_context(flux_observatory::bridge().session_context());
         return m;

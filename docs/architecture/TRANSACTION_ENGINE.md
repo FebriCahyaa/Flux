@@ -167,3 +167,12 @@ at boot are reported failed even when correct. No current planner uses a view.
 The Policy Executor builds `RuntimePlan`s (domain `policy`, subject = decision id) of `NodeWriteOperation`s
 and runs them with `Transaction`: start (snapshot, journal, apply, verify, rollback on failure) and,
 for RESTORE, finish (restore by read-back). It adds no transaction concepts. See `POLICY_EXECUTOR.md`.
+
+## Policy transactions (Phase 4C)
+
+The PolicyExecutor is the only additional transaction owner: at most one transaction (domain
+`policy`), journaled at `/data/adb/.config/zairenkai/policy.journal` and replayed by
+`flux::runtime::recover` at daemon start (the `live_policy` participant's `recover()`). When that
+replay is not clean the journal is kept and live policy stays blocked (`recovery_incomplete`).
+No second transaction framework exists. At session end the policy transaction is restored before
+GameRuntime restores its own values.

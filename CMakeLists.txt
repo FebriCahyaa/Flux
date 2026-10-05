@@ -235,9 +235,9 @@ target_link_libraries(observatory_analysis_test PRIVATE flux_observatory flux_br
 
 # -- decision & policy foundation (reasoning only; no executor) -----------------
 add_library(flux_policy STATIC jni/policy/PolicyConstraint.cpp jni/policy/PolicyDecision.cpp
-  jni/policy/DecisionEngine.cpp jni/policy/PolicyExecutor.cpp)
+  jni/policy/DecisionEngine.cpp jni/policy/PolicyExecutor.cpp jni/policy/LivePolicyController.cpp)
 target_include_directories(flux_policy PUBLIC jni/policy)
-target_link_libraries(flux_policy PUBLIC flux_context flux_bottleneck flux_thermal flux_runtime flux_observatory flux_perf)
+target_link_libraries(flux_policy PUBLIC flux_context flux_bottleneck flux_thermal flux_runtime flux_observatory flux_perf flux_metrics flux_session)
 target_compile_options(flux_policy PRIVATE ${FLUX_WARNINGS})
 
 flux_add_test(policy_decision_test tests/policy_decision_test.cpp)
@@ -248,3 +248,7 @@ target_link_libraries(capability_verification_test PRIVATE flux_kernel flux_poli
 
 flux_add_test(policy_executor_test tests/policy_executor_test.cpp)
 target_link_libraries(policy_executor_test PRIVATE flux_policy flux_bridge)
+
+flux_add_test(live_policy_test tests/live_policy_test.cpp)
+target_link_libraries(live_policy_test PRIVATE flux_policy flux_metrics)
+target_compile_definitions(live_policy_test PRIVATE FLUX_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}")

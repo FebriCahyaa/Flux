@@ -595,6 +595,7 @@ static void select_profile(DaemonState &state) {
 
 static void flux_main_daemon() {
     DaemonState state;
+    flux_session::set_profile_source([&state] { return state.cur_mode; });
     pthread_setname_np(pthread_self(), "MainThread");
 
     // Persistent telemetry + installation epoch + retention (Step 8.11); failures only log.

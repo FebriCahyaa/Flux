@@ -19,12 +19,22 @@
 // fluxd's session manager with its real participants, in begin order:
 //   1. Game Runtime performance context (GameRuntimeHost)
 //   2. SessionRecorder (statistics; sessions.json format unchanged)
-// End runs in reverse: statistics are finished before per-game values are restored.
+//   3. RuntimeMetrics (read-only sampling)
+//   4. Live policy (DecisionEngine + PolicyExecutor, Phase 4C)
+// End runs in reverse: the policy transaction is restored first, then sampling stops, statistics
+// are finished, and GameRuntime restores its per-game values last.
 
 #include "SessionManager.hpp"
+
+#include <Flux.hpp>
+
+#include <functional>
 
 namespace flux_session {
 
 flux::session::SessionManager &manager();
+
+/// Profile intent for live policy decisions (the daemon's current profile mode).
+void set_profile_source(std::function<FluxProfileMode()> source);
 
 } // namespace flux_session

@@ -39,7 +39,7 @@ LOCAL_MODULE := fluxd
 
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/include
 
-LOCAL_STATIC_LIBRARIES := rapidjson spdlog SynthesisCore NativeMonitor BinderNDK PIDTracker InotifyWatcher LockFile GameRegistry FluxUtility DeviceInfo FluxGfx FluxBridge FluxSession FluxPerf FluxRuntime FluxObservatory FluxMetrics FluxPolicy FluxThermal FluxBottleneck FluxDisplay FluxGraphics FluxKernel FluxContext
+LOCAL_STATIC_LIBRARIES := rapidjson spdlog SynthesisCore NativeMonitor BinderNDK PIDTracker InotifyWatcher LockFile GameRegistry FluxUtility DeviceInfo FluxGfx FluxBridge FluxPolicy FluxSession FluxPerf FluxRuntime FluxObservatory FluxMetrics FluxThermal FluxBottleneck FluxDisplay FluxGraphics FluxKernel FluxContext
 
 LOCAL_SRC_FILES := $(wildcard $(LOCAL_PATH)/*.cpp)
 LOCAL_SRC_FILES := $(LOCAL_SRC_FILES:$(LOCAL_PATH)/%=%)

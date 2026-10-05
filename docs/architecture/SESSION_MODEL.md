@@ -115,3 +115,11 @@ incomplete, never filled in. `fluxd telemetry session <id>` prints it. See `OBSE
 The Decision Engine reads the session and transaction state (game active, `TxState`, transaction id,
 recovery outcome) only to decide whether RESTORE takes priority. It never changes the session or the
 transaction. It is not called from fluxd yet. See `POLICY_DECISION.md`.
+
+## Live policy participant (Phase 4C)
+
+Participants in begin order: `game_runtime`, `session_recorder`, `runtime_metrics`, `live_policy`.
+End runs in reverse, so for every end reason (exit, focus loss, switch, process death, failure,
+daemon stop) the order is: stop policy evaluation → restore the PolicyExecutor transaction → stop
+sampling (final `BOTTLENECK_ASSESSED`) → finish statistics → GameRuntime restore. A failed policy
+restore makes the session end unclean (visible in the session notice) without stopping the others.

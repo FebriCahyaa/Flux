@@ -153,3 +153,9 @@ thermal and profile semantics. It still has no call path and no executor.
 The executor's trusted operations (cpufreq `scaling_max_freq`, KGSL `max_gpuclk`, devfreq `max_freq`)
 execute only on facts with `verified=true`; anything else is `capability_unverified`. Until device
 validation (B-37) produces real verified facts, the executor blocks on devices.
+
+## Live policy (Phase 4C)
+
+The live policy loop does not re-run verification. It consumes the facts that the single
+start-up verification published; an unverified control keeps blocking execution
+(`capability_unverified`).

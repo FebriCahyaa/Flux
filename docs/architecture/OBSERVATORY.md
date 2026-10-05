@@ -161,3 +161,9 @@ will be considered only together with a future executor.
 Policy execution is observed through the existing `TRANSACTION_*` events (domain `policy` in the
 transaction, subject = decision id), via the bridge's transaction observer. No `POLICY_*` type was
 added. See `POLICY_EXECUTOR.md`.
+
+## Live policy (Phase 4C)
+
+No event type and no schema field was added (schema v1, 19 types). Policy transactions reach the
+Observatory through the existing transaction observer (TRANSACTION_* events). Live evaluation uses the
+in-session assessment and never writes or replaces the session-final `BOTTLENECK_ASSESSED` event.

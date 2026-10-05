@@ -183,8 +183,8 @@ void test_confirmed_cpu_and_gpu() {
     in.thermal = synrei("boost");
     in.bottleneck = result(b::Kind::Cpu, b::State::Confirmed, ctx::Confidence::High);
     in.profile.mode = p::ProfileMode::Balance;
-    auto d = engine.evaluate(in); // 6.
-    CHECK(d.action == p::Action::Mitigate);
+    auto d = engine.evaluate(in); // 6. B-38: boost + confirmed CPU, BOOST unmet -> OBSERVE
+    CHECK(d.action == p::Action::Observe);
     CHECK_EQ(d.target, std::string("cpu"));
 
     in.bottleneck = result(b::Kind::Gpu, b::State::Confirmed, ctx::Confidence::High); // 7. no GPU control
@@ -215,7 +215,7 @@ void test_capability_gating() {
         auto g = p::gate(&c, "gpu");
         CHECK(g.verdict == want);
         auto in = base(&c);
-        in.thermal = synrei("boost");
+        in.thermal = synrei("safety"); // the gate decides whether safety may MITIGATE
         in.bottleneck = result(b::Kind::Gpu, b::State::Confirmed, ctx::Confidence::High);
         auto d = p::DecisionEngine().evaluate(in);
         CHECK(d.action == action);
@@ -288,14 +288,48 @@ void test_profile_intent() {
     in.fps = shortfall();
     in.profile.mode = p::ProfileMode::Powersave; // evidence for boost, but the profile does not request it
     auto m = engine.evaluate(in);
-    CHECK(m.action == p::Action::Mitigate);
+    CHECK(m.action == p::Action::Observe); // B-38: never MITIGATE under boost
     CHECK(has(m, p::ConstraintKind::ProfileIntent, "boost"));
     // LIKELY (not confirmed) is not enough for boost.
     in.profile.mode = p::ProfileMode::Performance;
     in.bottleneck = result(b::Kind::Gpu, b::State::Likely, ctx::Confidence::Medium);
     auto l = engine.evaluate(in);
-    CHECK(l.action == p::Action::Mitigate);
+    CHECK(l.action == p::Action::Observe); // B-38
     CHECK(l.confidence == ctx::Confidence::Medium);
+}
+
+// B-38: MITIGATE means "lower the ceiling one step"; only Synrei safety justifies it.
+void test_b38_mitigate_semantics() {
+    auto c = caps({control("gpu.kgsl.max_gpuclk", "gpu"), control("cpufreq.policy4.scaling_max_freq", "cpufreq")});
+    for (auto kind : {b::Kind::Cpu, b::Kind::Gpu}) {
+        auto in = base(&c);
+        in.thermal = synrei("boost");
+        in.bottleneck = result(kind, b::State::Confirmed, ctx::Confidence::High);
+        in.profile.mode = p::ProfileMode::Balance; // BOOST unmet (profile, FPS)
+        auto d = engine.evaluate(in);
+        CHECK(d.action == p::Action::Observe); // boost + CPU/GPU -> OBSERVE, never MITIGATE
+        in.profile.mode = p::ProfileMode::Performance;
+        CHECK(engine.evaluate(in).action == p::Action::Observe); // missing FPS -> no BOOST
+        in.fps = shortfall();
+        CHECK(engine.evaluate(in).action == p::Action::Boost); // full requirements -> BOOST
+    }
+    auto in = base(&c);
+    in.thermal = synrei("safety");
+    in.bottleneck = result(b::Kind::Gpu, b::State::Confirmed, ctx::Confidence::High);
+    CHECK(engine.evaluate(in).action == p::Action::Mitigate); // safety + verified -> MITIGATE
+    auto u = caps({control("gpu.kgsl.max_gpuclk", "gpu", false)});
+    in.capabilities = &u;
+    CHECK(engine.evaluate(in).action == p::Action::Observe); // safety + unverified -> OBSERVE
+    for (auto st : {"relaxed", "idle", "suspended", "disabled"}) { // non-constraining, not "relaxed" evidence
+        auto r = base(&c);
+        r.thermal = synrei(st);
+        r.bottleneck = result(b::Kind::Gpu, b::State::Confirmed, ctx::Confidence::High);
+        r.fps = shortfall();
+        r.profile.mode = p::ProfileMode::Performance;
+        auto d = engine.evaluate(r);
+        CHECK(d.action == p::Action::Observe);
+        CHECK(has(d, p::ConstraintKind::ThermalUnknown));
+    }
 }
 
 void test_determinism_and_evidence() {
@@ -388,6 +422,7 @@ int main() {
     test_capability_gating();
     test_restore_priority();
     test_profile_intent();
+    test_b38_mitigate_semantics();
     test_determinism_and_evidence();
     test_no_writes_and_isolation();
     test_b35_unchanged();

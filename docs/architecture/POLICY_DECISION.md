@@ -68,10 +68,18 @@ whenever a stronger action is not justified.
    capability gate decides.
    - **BOOST** only for cpu or gpu, and only if: rated CONFIRMED, an FPS shortfall was observed, the
      profile requests performance, and the gate is actionable.
-   - Otherwise **MITIGATE** if the gate is actionable.
-   - Otherwise OBSERVE.
+   - Otherwise **OBSERVE** (B-38). MITIGATE is never recommended under Synrei `boost`.
+   - Without an actionable gate: OBSERVE.
 
-Therefore: RESTORE → NO_ACTION → MITIGATE → BOOST. A profile never forces BOOST, and BOOST needs every
+**MITIGATE semantics (B-38, resolved in Phase 4C):** MITIGATE means "lower the ceiling of a control
+one step". It is justified only by thermal or power pressure, i.e. a verified, fresh Synrei `safety`
+with an actionable (verified, reversible) control; otherwise OBSERVE. Lowering the ceiling of the
+resource that limits the frame rate does not relieve that bottleneck, so a confirmed CPU/GPU
+bottleneck under Synrei `boost` yields BOOST (all requirements met) or OBSERVE, never MITIGATE.
+`relaxed`, `idle`, `suspended` and `disabled` stay non-constraining and are not taken as evidence of
+a relaxed thermal state.
+
+Therefore: RESTORE → NO_ACTION → MITIGATE (safety only) → BOOST. A profile never forces BOOST, and BOOST needs every
 condition.
 
 ## Capability gating (`gate(capabilities, resource)`)
@@ -153,5 +161,11 @@ unvalidated (B-37).
 
 `PolicyExecutor` (`POLICY_EXECUTOR.md`) executes a `PolicyDecision` exactly as decided, only through
 trusted operations and the Transaction Engine. It never upgrades an action and never acts on
-OBSERVE or NO_ACTION. There is still no fluxd call path. Open design question (B-38): for a
-non-thermal bottleneck under Synrei `boost`, MITIGATE is executed as a one-step ceiling reduction.
+OBSERVE or NO_ACTION. B-38 was resolved in the Decision Engine (Phase 4C, see above); the executor is unchanged.
+
+## Live evaluation (Phase 4C)
+
+fluxd evaluates the engine during a session through `LivePolicyController` (`CONTROL_EXECUTION.md`):
+once per new RuntimeMetrics sample, with the in-session `RuntimeMetricsSampler::assess()` result, the
+newest Synrei snapshot, FPS evidence from the sampler window, the daemon profile mode and the
+GameRuntime state. The engine itself is unchanged apart from the B-38 rule above.

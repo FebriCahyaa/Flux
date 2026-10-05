@@ -228,7 +228,7 @@ PolicyDecision decide(const PolicyInputs &in) {
                        target + " bottleneck rated " + b::to_string(res->primary.rating) +
                            ", but the thermal state is unknown; observing.");
 
-    // -- 9. Synrei boost: MITIGATE or (with full evidence) BOOST, capability-gated ------------
+    // -- 9. Synrei boost: BOOST only with full evidence, otherwise OBSERVE (never MITIGATE) ------------
     const bool confirmed = res->primary.rating == b::State::Confirmed;
     bool boost_ok = target == "cpu" || target == "gpu";
     if (boost_ok && !confirmed) {
@@ -248,12 +248,17 @@ PolicyDecision decide(const PolicyInputs &in) {
         return observe(weaker(confidence, cx::Confidence::Medium),
                        target + " bottleneck rated " + b::to_string(res->primary.rating) +
                            ", but no verified writable control permits an action.");
-    x.d.action = boost_ok ? Action::Boost : Action::Mitigate;
+    // B-38: MITIGATE lowers a ceiling. Under Synrei boost a confirmed CPU/GPU bottleneck is
+    // the opposite of a reason to lower it, so anything short of full BOOST evidence observes.
+    if (!boost_ok)
+        return observe(weaker(confidence, cx::Confidence::Medium),
+                       target + " bottleneck rated " + b::to_string(res->primary.rating) +
+                           " under Synrei boost, but BOOST requirements are not all met; MITIGATE would "
+                           "lower the ceiling of the limiting resource, so observing.");
+    x.d.action = Action::Boost;
     x.d.confidence = confidence;
-    x.d.reason = boost_ok ? target + " bottleneck confirmed with an observed FPS shortfall, Synrei reports boost, and a "
-                                     "verified control exists; BOOST is supported by the evidence."
-                          : target + " bottleneck rated " + b::to_string(res->primary.rating) +
-                                " with a verified control; MITIGATE is consistent with the evidence.";
+    x.d.reason = target + " bottleneck confirmed with an observed FPS shortfall, Synrei reports boost, and a "
+                          "verified control exists; BOOST is supported by the evidence.";
     finish(x, in);
     return x.d;
 }
