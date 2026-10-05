@@ -116,7 +116,7 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   worker; primary UNKNOWN when insufficient; failures isolated (session, restore, transactions unaffected). Rules/thresholds
   unchanged; sessions.json, session_live.json, SessionRecorder, GameRuntime policy, PerformancePlanner, Synrei, kernel nodes
   unchanged. Host 27/27 PASS; clang-18 -Werror OK. CI: triggered, not monitored. Device: NOT_TESTED.
-- **Step 8.11 (Observatory persistent storage + 7-day retention): IN PROGRESS.**
+- **Step 8.11 (Observatory persistent storage + 7-day retention): IMPLEMENTATION COMPLETE (owner); CI/device validation pending.**
   `integration/game-runtime-clean` @ `1ee1c7a`: `jni/observatory/{TelemetryStore,InstallationEpoch}.*`; producers write via
   `TeeEventSink` (memory first, then `/data/adb/.config/zairenkai/telemetry/`: FORMAT, hourly JSONL segments = to_json(event),
   per-segment indexes). Retention 7 × 24 h at daemon start, hourly (main loop now wakes hourly when idle) and on SESSION_END;
@@ -125,7 +125,17 @@ Read this first when resuming. Then read `PHASE_STATUS.md`, `BLOCKERS.md`, `PLAN
   `fluxd telemetry status|retention|query` (read-only; retention dry run). sessions.json / session_live.json / thresholds
   unchanged; no WebUI. Host 28/28 PASS; clang-18 -Werror OK (CLI handler and ObservatoryHost compiled against stubs:
   spdlog absent locally). CI: triggered, not monitored. Device: NOT_TESTED.
-- **Next:** owner review of Step 8.11.
+- **Step 8.12 (Observatory historical analysis & explanation layer): IN PROGRESS — implementation complete, validation pending.**
+  `integration/game-runtime-clean` @ `0c23fc0`: `jni/observatory/{SessionTimeline,Explanation,ObservatoryAnalyzer,TelemetryCli}.*`,
+  additive read-only `PersistentEventStore::newest_timestamp()`, `fluxd telemetry session|analyze|history` (read-only; existing
+  commands moved unchanged into `TelemetryCli`). Session reconstruction, transaction / recovery / bottleneck (as recorded) /
+  thermal (correlation only) / FPS (Hz ≠ FPS) explanations with evidence references, bounded 7-day history patterns (≥ 2
+  occurrences, confidence ≤ medium). Deterministic, no clock. Telemetry format v1, retention, epoch, event schema v1,
+  sessions.json, session_live.json, thresholds unchanged. Host 29/29 PASS; clang-18 -Werror OK; FluxCLI handler compiled
+  against stubs. CI: triggered, NOT checked. Device: NOT_TESTED.
+  Limitation recorded: Synrei state transitions and per-sample FPS are not persisted as events, so the analysis can use only
+  the bottleneck assessment's thermal/FPS evidence.
+- **Next:** owner review of Step 8.12.
 - **Working rule (owner, 2026-10-05):** do not wait for / monitor CI completion; trigger it and report it as unchecked.
 - Phase 8 and Phase 13 are blocked (`BLOCKERS.md` B-01, B-02, B-08, B-11).
 

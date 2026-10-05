@@ -317,3 +317,17 @@ Step 5: **IMPLEMENTED**, architecture approved by owner (2026-09-29). Device val
 | Forbidden-symbol check | clean |
 | CI | triggered, not monitored (owner instruction) |
 | Device | NOT_TESTED |
+
+## Step 8.12 — Observatory historical analysis (`0c23fc0`)
+
+| Check | Result |
+|---|---|
+| Tests first; CMake configure failed without the analyzer sources (red) | confirmed |
+| Host ctest (gcc, -Werror) | PASS 29/29 (new `observatory_analysis_test`: 12 test functions covering the 20 required cases) |
+| clang-18 -Werror syntax (timeline, explanation, analyzer, CLI, store, test) | PASS |
+| FluxCLI `telemetry_handler` delegate compiled standalone | PASS (full FluxCLI.cpp: CI ndk-build only — spdlog absent locally) |
+| Read-only: file sizes + mtimes unchanged after analyze/history/CLI; corrupt lines not repaired | PASS |
+| Determinism: identical text from a fresh read-only store | PASS |
+| Forbidden-symbol check | clean |
+| Android CI | triggered, **not checked** (owner instruction) |
+| Device | NOT_TESTED |

@@ -189,8 +189,15 @@ cap ratio publication would need a HiCo-side decision), threshold calibration (B
 Done (`3ae57cd`): neutral BottleneckResult, Observatory events for completed/failed assessments, emission once at session end.
 Not in scope: any consumer/policy of the result, persistence/retention/export of events, WebUI, threshold calibration (B-33C).
 
-## Step 8.11 — Observatory persistent storage and 7-day retention (IN PROGRESS)
+## Step 8.11 — Observatory persistent storage and 7-day retention (IMPLEMENTATION COMPLETE; validation pending)
 
 Done (`1ee1c7a`): persistent telemetry store, indexes/queries, rolling 7 × 24 h retention with clock safety, installation
 epoch, failure isolation, read-only CLI hooks. Not in scope: WebUI/dashboard/export UI, sessions.json changes, threshold
 changes, optimisation policy, cross-process locking for the CLI (read-only by design).
+
+## Step 8.12 — Observatory historical analysis & explanation layer (IN PROGRESS: implementation complete, validation pending)
+
+Done (`0c23fc0`): read-only session timelines, evidence-backed explanations (lifecycle, transaction, recovery, bottleneck,
+thermal, FPS), deterministic summaries, bounded 7-day history patterns, read-only CLI. Not in scope: WebUI/dashboard, new
+event producers (Synrei transitions, per-sample FPS — would be a separate owner decision), optimisation/policy, telemetry
+format/retention changes.
