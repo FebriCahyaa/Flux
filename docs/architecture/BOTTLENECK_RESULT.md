@@ -84,3 +84,11 @@ PerformancePlanner, Synrei/HiCo, kernel nodes, and the bottleneck thresholds.
 `BOTTLENECK_ASSESSED` and `BOTTLENECK_ANALYSIS_FAILED` now go through `flux_observatory::sink()`, so they
 are kept in memory and persisted to the telemetry store, where they are retained for 7 × 24 h and
 queryable by `type`, `session_id` or `package`. A disk failure never turns into a success event.
+
+## Historical explanation (Step 8.12)
+
+`ObservatoryAnalyzer` reads `BOTTLENECK_ASSESSED` exactly as recorded: primary, rating, confidence,
+conflict, samples, secondary, note and every `evidence.*` entry. It explains the result without
+re-rating, and cites each evidence entry by event id and field. Thermal and FPS facts in the evidence
+feed the thermal and FPS explanations. History counts repeated cpu, gpu or thermal findings rated at
+least likely, as repetitions, not causes. See `OBSERVATORY_ANALYSIS.md`.

@@ -79,3 +79,11 @@ producer builds Event (no id, no sequence)
 - The persisted record format is exactly `to_json(event)` (schema 1), one event per line. Events
   rejected by validation are never persisted.
 - `event_id` stays the key for duplicate detection on disk.
+
+## Consumers: historical analysis (Step 8.12)
+
+The analysis layer reads events through the existing ordering contract (timestamp, then sequence) and
+the stored field names. It relies on `SESSION_END.after.{end_reason,duration_ms,clean}`,
+`SESSION_SWITCH.before.session_id`, `TRANSACTION_*` result and `after.{restored,not_restored,subject}`,
+and `BOTTLENECK_ASSESSED.after.*`. Schema v1 is unchanged, and no event type was added or renamed.
+Synrei state transitions and per-sample FPS are not events; the analysis reports them as limitations.

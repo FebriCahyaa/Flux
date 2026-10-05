@@ -137,7 +137,9 @@ target_link_libraries(session_manager_test PRIVATE flux_session)
 
 # -- observatory event model (additive; no producers wired yet) ------------------
 add_library(flux_observatory STATIC jni/observatory/Event.cpp jni/observatory/EventStore.cpp
-  jni/observatory/TelemetryStore.cpp jni/observatory/InstallationEpoch.cpp)
+  jni/observatory/TelemetryStore.cpp jni/observatory/InstallationEpoch.cpp
+  jni/observatory/SessionTimeline.cpp jni/observatory/Explanation.cpp jni/observatory/ObservatoryAnalyzer.cpp
+  jni/observatory/TelemetryCli.cpp)
 target_include_directories(flux_observatory PUBLIC jni/observatory)
 target_include_directories(flux_observatory SYSTEM PRIVATE "${RAPIDJSON_INCLUDE}")
 target_compile_options(flux_observatory PRIVATE ${FLUX_WARNINGS})
@@ -226,3 +228,6 @@ target_link_libraries(bottleneck_result_test PRIVATE flux_metrics flux_bridge)
 
 flux_add_test(telemetry_store_test tests/telemetry_store_test.cpp)
 target_link_libraries(telemetry_store_test PRIVATE flux_observatory)
+
+flux_add_test(observatory_analysis_test tests/observatory_analysis_test.cpp)
+target_link_libraries(observatory_analysis_test PRIVATE flux_observatory flux_bridge flux_bottleneck)

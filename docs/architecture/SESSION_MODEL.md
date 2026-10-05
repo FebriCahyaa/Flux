@@ -102,3 +102,10 @@ worker keeps running after the session. See `BOTTLENECK_RESULT.md`.
 kept for 7 × 24 h. Package queries resolve through `session_package` in the segment indexes. A
 persisted `SESSION_END` triggers due retention. `sessions.json` and `session_live.json` are unchanged.
 Disk failures never affect the session.
+
+## Reconstructed sessions (Step 8.12)
+
+Persisted session events can be rebuilt into a timeline: start, switch (previous session), profile,
+runtime, transactions, recovery (by time window), bottleneck and end (end_reason exit / focus_lost /
+process_death / switch / failure / daemon_stop, duration, clean). A missing start or end is reported as
+incomplete, never filled in. `fluxd telemetry session <id>` prints it. See `OBSERVATORY_ANALYSIS.md`.

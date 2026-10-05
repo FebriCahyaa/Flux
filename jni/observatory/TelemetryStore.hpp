@@ -101,6 +101,8 @@ class PersistentEventStore {
     bool append(const Event &e);
 
     std::vector<Event> query(const TelemetryQuery &q, QueryStats *stats = nullptr) const;
+    /// Newest stored event timestamp (reads only the newest segment); nullopt when empty. Read-only.
+    std::optional<int64_t> newest_timestamp() const;
 
     /// Deletes / trims expired segments. Skips (and says why) when the wall clock is unusable.
     RetentionReport maintain(bool dry_run = false);

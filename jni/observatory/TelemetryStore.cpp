@@ -462,6 +462,23 @@ std::vector<Event> PersistentEventStore::query(const TelemetryQuery &q, QuerySta
     return out;
 }
 
+std::optional<int64_t> PersistentEventStore::newest_timestamp() const {
+    try {
+        auto names = io_->list(events_dir());
+        for (auto it = names.rbegin(); it != names.rend(); ++it) {
+            if (!ends_with(*it, ".jsonl") || !segment_start(it->substr(0, it->size() - 6))) continue;
+            std::optional<int64_t> newest;
+            if (auto text = io_->read_all(events_dir() + "/" + *it))
+                for_each_line(*text, [&](const Event &e, const std::string &) {
+                    if (!newest || e.timestamp_ms > *newest) newest = e.timestamp_ms;
+                });
+            if (newest) return newest;
+        }
+    } catch (...) {
+    }
+    return std::nullopt;
+}
+
 bool PersistentEventStore::maintenance_due() const {
     if (!last_maint_steady_ || !clock_.steady_ms) return true;
     return clock_.steady_ms() - *last_maint_steady_ >= kMaintenanceIntervalMs;

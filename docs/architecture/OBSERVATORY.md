@@ -142,3 +142,10 @@ store at `/data/adb/.config/zairenkai/telemetry/` (hourly JSONL segments plus in
 rolling 7 × 24 h retention. Persistence failures are isolated and reported once per streak as
 `OBSERVATORY_STORAGE_FAILED`, in memory only. See `OBSERVATORY_STORAGE.md` and `TELEMETRY_RETENTION.md`.
 This supersedes the earlier "no persistence" notes.
+
+## Historical analysis (Step 8.12)
+
+A read-only analysis layer reconstructs session timelines from the persisted events and correlates
+lifecycle, transactions, recovery, the recorded bottleneck result, thermal evidence and FPS evidence
+into evidence-backed explanations and bounded seven-day history patterns. It never writes and never
+re-rates. CLI: `fluxd telemetry session | analyze | history`. See `OBSERVATORY_ANALYSIS.md`.
